@@ -5,10 +5,13 @@ import abc
 from typing import Dict, List
 from llama_index.core.schema import BaseNode, BaseComponent
 
+from graphrag_toolkit.indexing import IdGenerator
 from graphrag_toolkit.indexing.build.build_filter import BuildFilter
 from graphrag_toolkit.indexing.constants import DEFAULT_CLASSIFICATION
 
 class NodeBuilder(BaseComponent):
+
+    id_generator:IdGenerator
 
     @classmethod
     @abc.abstractmethod

@@ -157,8 +157,6 @@ class OpenSearchIndex(VectorIndex):
         embed_model = embed_model or GraphRAGConfig.embed_model
         dimensions = dimensions or GraphRAGConfig.embed_dimensions
 
-        create_index_if_not_exists(endpoint, index_name, dimensions)
-
         return OpenSearchIndex(index_name=index_name, endpoint=endpoint, dimensions=dimensions, embed_model=embed_model)
     
     class Config:
@@ -178,9 +176,10 @@ class OpenSearchIndex(VectorIndex):
     @property
     def client(self) -> OpensearchVectorClient:
         if not self._client:
+            create_index_if_not_exists(self.endpoint, self.underlying_index_name(), self.dimensions)
             self._client = create_opensearch_vector_client(
                 self.endpoint, 
-                self.index_name, 
+                self.underlying_index_name(), 
                 self.dimensions, 
                 self.embed_model
             )

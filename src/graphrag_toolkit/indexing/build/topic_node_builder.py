@@ -7,7 +7,6 @@ from llama_index.core.schema import TextNode, BaseNode
 from llama_index.core.schema import NodeRelationship
 
 from graphrag_toolkit.indexing.build.build_filter import BuildFilter
-from graphrag_toolkit.indexing.utils.graph_utils import node_id_from
 from graphrag_toolkit.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.indexing.model import TopicCollection, Topic, Statement
 from graphrag_toolkit.indexing.constants import TOPICS_KEY
@@ -73,7 +72,7 @@ class TopicNodeBuilder(NodeBuilder):
                 if filter.ignore_topic(topic.value):
                     continue
                 
-                topic_id = node_id_from('topic', source_id, topic.value) # topic identity defined by source, not chunk, so that we can connect same topic to multiple chunks in scope of single source
+                topic_id =  self.id_generator.create_node_id('topic', source_id, topic.value) # topic identity defined by source, not chunk, so that we can connect same topic to multiple chunks in scope of single source
 
                 if topic_id not in topic_nodes:
                     

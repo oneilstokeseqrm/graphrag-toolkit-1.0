@@ -15,9 +15,9 @@ from typing import Callable, Dict, Any
 from os.path import join
 from urllib.parse import urlparse
 
+from graphrag_toolkit.indexing import IdGenerator
 from graphrag_toolkit.indexing.load.file_based_chunks import FileBasedChunks
 from graphrag_toolkit.indexing.model import SourceDocument
-from graphrag_toolkit.indexing.utils.graph_utils import get_hash
 from graphrag_toolkit.indexing.extract.id_rewriter import IdRewriter
 
 from llama_index.core.schema import TextNode, Document
@@ -64,6 +64,7 @@ class BedrockKnowledgeBaseExport():
                  metadata_fn:Callable[[str], Dict[str, Any]]=None,
                  include_embeddings:bool=True,
                  include_source_doc:bool=False,
+                 graph_name:str=None,
                  **kwargs):
         
         self.bucket_name=bucket_name
@@ -72,7 +73,7 @@ class BedrockKnowledgeBaseExport():
         self.limit=limit
         self.output_dir = output_dir
         self.s3_client = boto3.client('s3', region_name=self.region)
-        self.id_rewriter = IdRewriter()
+        self.id_rewriter = IdRewriter(id_generator=IdGenerator(graph_name=graph_name))
         self.metadata_fn=metadata_fn
         self.include_embeddings = include_embeddings
         self.include_source_doc = include_source_doc

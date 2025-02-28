@@ -3,6 +3,7 @@
 
 import logging
 import abc
+from typing import Optional
 
 from typing import Sequence, Any, List, Dict
 from llama_index.core.schema import QueryBundle, BaseNode
@@ -26,12 +27,19 @@ def to_embedded_query(query_bundle:QueryBundle, embed_model:EmbeddingType) -> Qu
 
 class VectorIndex(BaseModel):
     index_name: str
-    
+    graph_name:Optional[str]=None
+
     @field_validator('index_name')
     def validate_option(cls, v):
         if v not in ALL_EMBEDDING_INDEXES:
             raise ValueError(f'Invalid index_name: must be one of {ALL_EMBEDDING_INDEXES}')
         return v
+    
+    def underlying_index_name(self) -> str:
+        if self.graph_name is None:
+            return self.index_name
+        else:
+            return f'{self.index_name}_{self.graph_name}'
     
     @abc.abstractmethod
     def add_embeddings(self, nodes:Sequence[BaseNode]) -> Sequence[BaseNode]:

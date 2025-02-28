@@ -6,7 +6,9 @@ from pipe import Pipe
 
 from graphrag_toolkit.storage import GraphStoreFactory, GraphStoreType
 from graphrag_toolkit.storage import VectorStoreFactory, VectorStoreType
+from graphrag_toolkit.storage import MultiTenantGraphStore, MultiTenantVectorStore
 from graphrag_toolkit.storage.graph_store import DummyGraphStore
+from graphrag_toolkit.storage.constants import LEXICAL_GRAPH_LABELS
 from graphrag_toolkit.indexing.extract import BatchConfig
 from graphrag_toolkit.indexing import NodeHandler
 from graphrag_toolkit.indexing import sink
@@ -27,7 +29,6 @@ from graphrag_toolkit.indexing.build.null_builder import NullBuilder
 from llama_index.core.node_parser import SentenceSplitter, NodeParser
 from llama_index.core.schema import BaseNode, NodeRelationship
 
-DEFAULT_INDEX_NAME = 'default-index'
 DEFAULT_EXTRACTION_DIR = 'output'
 
 class ExtractionConfig():
@@ -78,8 +79,8 @@ class LexicalGraphIndex():
             GraphStore instance or GraphStore connection string. If None, defaults to a DummyGraphStore.
         vector_store (Optional[VectorStoreType], optional):
             VectorStore instance or VectorStore connection string. If None, defaults to a VectorStore with DummyVectorIndexes.
-        index_name (str, optional):
-            Unique name of the index. Defaults to DEFAULT_INDEX_NAME.
+        graph_name (str, optional):
+            Unique name of the graph. Defaults to None.
         extraction_dir (List[TransformComponent], optional):
             Directory to which intermediate artefacts (e.g. checkpoints) will be written. Defaults to DEFAULT_EXTRACTION_DIR.
         indexing_config (Optional[IndexingConfig], optional):
@@ -101,14 +102,14 @@ class LexicalGraphIndex():
             self,
             graph_store:Optional[GraphStoreType]=None,
             vector_store:Optional[VectorStoreType]=None,
-            index_name:Optional[str]=None,
+            graph_name:Optional[str]=None,
             extraction_dir:Optional[str]=None,
             indexing_config:Optional[IndexingConfig]=None,
         ):
 
-        self.graph_store = GraphStoreFactory.for_graph_store(graph_store)
-        self.vector_store = VectorStoreFactory.for_vector_store(vector_store)
-        self.index_name = index_name or DEFAULT_INDEX_NAME
+        self.graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), graph_name) 
+        self.vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), graph_name)
+        self.graph_name = graph_name
         self.extraction_dir = extraction_dir or DEFAULT_EXTRACTION_DIR
         self.indexing_config = indexing_config or IndexingConfig()
 
@@ -137,7 +138,7 @@ class LexicalGraphIndex():
         entity_classification_provider = None
         topic_provider = None
 
-        classification_label = f'{self.index_name}_EntityClassification'
+        classification_label = 'EntityClassification'
         classification_scope = DEFAULT_SCOPE
         
         if isinstance(self.graph_store, DummyGraphStore):
@@ -151,7 +152,7 @@ class LexicalGraphIndex():
                 initial_scoped_values = { classification_scope: initial_scope_values }
             )           
             topic_provider = ScopedValueProvider(
-                label=f'{self.index_name}_StatementTopic',
+                label='StatementTopic',
                 scoped_value_store=GraphScopedValueStore(graph_store=self.graph_store),
                 scope_func=get_topic_scope
             )
@@ -220,6 +221,7 @@ class LexicalGraphIndex():
             show_progress=show_progress,
             checkpoint=checkpoint,
             num_workers=1 if self.allow_batch_inference else None,
+            graph_name=self.graph_name,
             **kwargs
         )
 
@@ -231,6 +233,7 @@ class LexicalGraphIndex():
             checkpoint=checkpoint,
             num_workers=1,
             batch_size=5,
+            graph_name=self.graph_name,
             **kwargs
         )
 
@@ -273,6 +276,7 @@ class LexicalGraphIndex():
             checkpoint=checkpoint,
             filter=self.indexing_config.build.filter,
             include_domain_labels=self.indexing_config.build.include_domain_labels,
+            graph_name=self.graph_name,
             **kwargs
         )
 
@@ -309,6 +313,7 @@ class LexicalGraphIndex():
             show_progress=show_progress,
             checkpoint=checkpoint,
             num_workers=1 if self.allow_batch_inference else None,
+            graph_name=self.graph_name,
             **kwargs
         )
         
@@ -321,6 +326,7 @@ class LexicalGraphIndex():
             checkpoint=checkpoint,
             filter=self.indexing_config.build.filter,
             include_domain_labels=self.indexing_config.build.include_domain_labels,
+            graph_name=self.graph_name,
             **kwargs
         )
 

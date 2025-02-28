@@ -11,7 +11,7 @@ from typing import Any, List, Optional, Sequence, Iterable
 from pipe import Pipe
 
 from graphrag_toolkit.config import GraphRAGConfig
-from graphrag_toolkit.indexing import NodeHandler
+from graphrag_toolkit.indexing import NodeHandler, IdGenerator
 from graphrag_toolkit.indexing.model import SourceType, SourceDocument, source_documents_from_source_types
 from graphrag_toolkit.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.indexing.build.checkpoint import Checkpoint, CheckpointWriter
@@ -45,6 +45,7 @@ class BuildPipeline():
                checkpoint:Optional[Checkpoint]=None,
                filter:Optional[BuildFilter]=None,
                include_domain_labels:Optional[bool]=None,
+               graph_name:Optional[str]=None,
                **kwargs:Any
             ):
         return Pipe(
@@ -59,6 +60,7 @@ class BuildPipeline():
                 checkpoint=checkpoint,
                 filter=filter,
                 include_domain_labels=include_domain_labels,
+                graph_name=graph_name,
                 **kwargs
             ).build
         )
@@ -74,6 +76,7 @@ class BuildPipeline():
                  checkpoint:Optional[Checkpoint]=None,
                  filter:Optional[BuildFilter]=None,
                  include_domain_labels:Optional[bool]=None,
+                 graph_name:Optional[str]=None,
                  **kwargs:Any
             ):
         
@@ -109,7 +112,7 @@ class BuildPipeline():
         self.batch_writes_enabled = batch_writes_enabled
         self.batch_write_size = batch_write_size
         self.include_domain_labels = include_domain_labels
-        self.metadata_to_nodes = MetadataToNodes(builders=builders, filter=filter)
+        self.metadata_to_nodes = MetadataToNodes(builders=builders, filter=filter, id_generator=IdGenerator(graph_name=graph_name))
         self.node_filter = NodeFilter() if not checkpoint else checkpoint.add_filter(NodeFilter())
         self.pipeline_kwargs = kwargs
     

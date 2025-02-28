@@ -7,7 +7,6 @@ from llama_index.core.schema import TextNode, BaseNode
 from llama_index.core.schema import NodeRelationship, RelatedNodeInfo
 
 from graphrag_toolkit.indexing.build.build_filter import BuildFilter
-from graphrag_toolkit.indexing.utils.graph_utils import node_id_from
 from graphrag_toolkit.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.indexing.model import TopicCollection
 from graphrag_toolkit.indexing.constants import TOPICS_KEY
@@ -54,7 +53,7 @@ class StatementNodeBuilder(NodeBuilder):
                 if filter.ignore_topic(topic.value):
                     continue
 
-                topic_id = node_id_from('topic', source_id, topic.value) # topic identity defined by source, not chunk, so that we can connect same topic to multiple chunks in scope of single source
+                topic_id = self.id_generator.create_node_id('topic', source_id, topic.value) # topic identity defined by source, not chunk, so that we can connect same topic to multiple chunks in scope of single source
 
                 prev_statement = None
                 
@@ -63,7 +62,7 @@ class StatementNodeBuilder(NodeBuilder):
                     if filter.ignore_statement(statement.value):
                         continue
 
-                    statement_id = node_id_from('statement', topic_id, statement.value)
+                    statement_id = self.id_generator.create_node_id('statement', topic_id, statement.value)
      
                     if statement_id not in statement_nodes:
 
@@ -112,7 +111,7 @@ class StatementNodeBuilder(NodeBuilder):
                             fact.object.classification if fact.object else None
                         )
                         
-                        fact_id = node_id_from('fact', fact_value)
+                        fact_id = self.id_generator.create_node_id('fact', fact_value)
 
                         lookup_id = f'{statement_id}-{fact_id}'
 
@@ -121,9 +120,9 @@ class StatementNodeBuilder(NodeBuilder):
                             fact.factId = fact_id
                             fact.statementId = statement_id
 
-                            fact.subject.entityId = node_id_from('entity', fact.subject.value, fact.subject.classification)
+                            fact.subject.entityId = self.id_generator.create_node_id('entity', fact.subject.value, fact.subject.classification)
                             if fact.object:
-                                fact.object.entityId = node_id_from('entity', fact.object.value, fact.object.classification)
+                                fact.object.entityId = self.id_generator.create_node_id('entity', fact.object.value, fact.object.classification)
                             
                             fact_metadata = {
                                 'fact': fact.model_dump(),

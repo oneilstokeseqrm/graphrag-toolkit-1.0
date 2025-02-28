@@ -20,7 +20,7 @@ class GraphSummaryBuilder(GraphBuilder):
     def index_key(cls) -> str:
         return 'fact'
     
-    def build(self, node:BaseNode, graph_client: GraphStore, **kwargs:Any):
+    def build(self, node:BaseNode, graph_client:GraphStore, **kwargs:Any):
             
         fact_metadata = node.metadata.get('fact', {})
         
@@ -30,8 +30,10 @@ class GraphSummaryBuilder(GraphBuilder):
 
             if fact.subject and fact.object:
 
-                sc_id = f'sys_class_{fact.subject.classification or DEFAULT_CLASSIFICATION}'
-                oc_id = f'sys_class_{fact.object.classification or DEFAULT_CLASSIFICATION}'
+                graph_name = graph_client.graph_name if graph_client.graph_name else ''
+
+                sc_id = f'sys_class:{graph_name}:{fact.subject.classification or DEFAULT_CLASSIFICATION}'
+                oc_id = f'sys_class:{graph_name}:{fact.object.classification or DEFAULT_CLASSIFICATION}'
 
                 statements = []
 

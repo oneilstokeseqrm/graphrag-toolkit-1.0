@@ -17,7 +17,9 @@ from graphrag_toolkit.retrieval.retrievers import StatementCosineSimilaritySearc
 from graphrag_toolkit.retrieval.retrievers import WeightedTraversalBasedRetrieverType, SemanticGuidedRetrieverType
 from graphrag_toolkit.storage import GraphStoreFactory, GraphStoreType
 from graphrag_toolkit.storage import VectorStoreFactory, VectorStoreType
+from graphrag_toolkit.storage import MultiTenantGraphStore, MultiTenantVectorStore
 from graphrag_toolkit.storage.vector_index import to_embedded_query
+from graphrag_toolkit.storage.constants import LEXICAL_GRAPH_LABELS
 
 from llama_index.core import ChatPromptTemplate
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -40,9 +42,13 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
     @staticmethod
     def for_traversal_based_search(graph_store:GraphStoreType, 
                                    vector_store:VectorStoreType, 
+                                   graph_name:Optional[str]=None,
                                    retrievers:Optional[List[WeightedTraversalBasedRetrieverType]]=None,
                                    post_processors:Optional[PostProcessorsType]=None, 
                                    **kwargs):
+        
+        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), graph_name) 
+        vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), graph_name)
         
         retriever = CompositeTraversalBasedRetriever(
             graph_store, 
@@ -54,6 +60,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
         return LexicalGraphQueryEngine(
             graph_store, 
             vector_store,
+            graph_name=graph_name,
             retriever=retriever,
             post_processors=post_processors,
             **kwargs
@@ -62,9 +69,13 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
     @staticmethod
     def for_semantic_guided_search(graph_store:GraphStoreType, 
                                    vector_store:VectorStoreType, 
+                                   graph_name:Optional[str]=None,
                                    retrievers:Optional[List[SemanticGuidedRetrieverType]]=None,
                                    post_processors:Optional[PostProcessorsType]=None, 
                                    **kwargs):
+        
+        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), graph_name) 
+        vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), graph_name)
         
         retrievers = retrievers or [
             StatementCosineSimilaritySearch(
@@ -96,6 +107,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
         return LexicalGraphQueryEngine(
             graph_store, 
             vector_store,
+            graph_name=graph_name,
             retriever=retriever,
             post_processors=post_processors,
             context_format='bedrock_xml',
@@ -106,6 +118,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
     def __init__(self, 
                  graph_store:GraphStoreType,
                  vector_store:VectorStoreType,
+                 graph_name:Optional[str]=None,
                  llm:LLMCacheType=None,
                  system_prompt:Optional[str]=ANSWER_QUESTION_SYSTEM_PROMPT,
                  user_prompt:Optional[str]=ANSWER_QUESTION_USER_PROMPT,
@@ -114,8 +127,8 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                  callback_manager: Optional[CallbackManager]=None, 
                  **kwargs):
         
-        graph_store = GraphStoreFactory.for_graph_store(graph_store)
-        vector_store = VectorStoreFactory.for_vector_store(vector_store)
+        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), graph_name) 
+        vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), graph_name)
         
         self.context_format = kwargs.get('context_format', 'json')
         

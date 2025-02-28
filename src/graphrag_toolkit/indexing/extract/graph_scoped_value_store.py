@@ -15,7 +15,7 @@ class GraphScopedValueStore(ScopedValueStore):
     def get_scoped_values(self, label:str, scope:str) -> List[str]:
         
         cypher = f'''
-        MATCH (n:`__SYS_SV__{label}`)
+        MATCH (n:`__SYS_SV__{label}__`)
         WHERE n.scope=$scope
         RETURN DISTINCT n.value AS value
         '''
@@ -32,7 +32,7 @@ class GraphScopedValueStore(ScopedValueStore):
         
         cypher = f'''
         UNWIND $values AS value
-        MERGE (:`__SYS_SV__{label}`{{scope:$scope, value:value}})
+        MERGE (:`__SYS_SV__{label}__`{{scope:$scope, value:value}})
         '''
 
         params = {

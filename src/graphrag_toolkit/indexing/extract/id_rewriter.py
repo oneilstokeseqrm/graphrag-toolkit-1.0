@@ -1,10 +1,10 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-import hashlib
 import uuid
 from typing import Any, List, Sequence, Optional, Iterable
 
+from graphrag_toolkit.indexing import IdGenerator
 from graphrag_toolkit.indexing.build.checkpoint import DoNotCheckpoint
 from graphrag_toolkit.indexing.model import SourceDocument
 
@@ -14,28 +14,27 @@ from llama_index.core.schema import NodeRelationship
 
 class IdRewriter(NodeParser, DoNotCheckpoint):
     inner:Optional[NodeParser]=None
+    id_generator:IdGenerator
     
     def _get_properties_str(self, properties, default):
         if properties:
             return ';'.join(sorted([f'{k}:{v}' for k,v in properties.items()]))
         else:
             return default
-            
-    def _get_hash(self, s):
-        return hashlib.md5(s.encode('utf-8')).digest().hex()
     
     def _new_doc_id(self, node):
         
-        metadata_str = self._get_properties_str(node.metadata, node.doc_id)       
-        return f'aws:{self._get_hash(str(node.text))[:8]}:{self._get_hash(metadata_str)[:4]}'
+        metadata_str = self._get_properties_str(node.metadata, node.doc_id)  
+        return self.id_generator.create_source_id(str(node.text), metadata_str)     
         
     def _new_node_id(self, node):
         
         source_info = node.relationships.get(NodeRelationship.SOURCE, None)
         source_id = source_info.node_id if source_info else f'aws:{uuid.uuid4().hex}' 
         metadata_str = self._get_properties_str(node.metadata, node.node_id) 
+
+        return self.id_generator.create_chunk_id(source_id, str(node.text), metadata_str)
         
-        return f'{source_id}:{self._get_hash(str(node.text) + metadata_str)[:8]}'
         
     def _new_id(self, node):
         

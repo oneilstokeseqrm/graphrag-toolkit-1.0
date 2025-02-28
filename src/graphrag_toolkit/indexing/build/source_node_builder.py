@@ -6,6 +6,7 @@ from typing import List
 from llama_index.core.schema import TextNode, BaseNode
 from llama_index.core.schema import NodeRelationship
 
+from graphrag_toolkit.indexing import IdGenerator
 from graphrag_toolkit.indexing.build.build_filter import BuildFilter
 from graphrag_toolkit.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.indexing.constants import TOPICS_KEY
