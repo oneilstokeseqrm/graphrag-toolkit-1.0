@@ -30,10 +30,10 @@ class GraphSummaryBuilder(GraphBuilder):
 
             if fact.subject and fact.object:
 
-                graph_name = graph_client.graph_name if graph_client.graph_name else ''
+                tenant_id = graph_client.tenant_id if graph_client.tenant_id else ''
 
-                sc_id = f'sys_class:{graph_name}:{fact.subject.classification or DEFAULT_CLASSIFICATION}'
-                oc_id = f'sys_class:{graph_name}:{fact.object.classification or DEFAULT_CLASSIFICATION}'
+                sc_id = f'sys_class:{tenant_id}:{fact.subject.classification or DEFAULT_CLASSIFICATION}'
+                oc_id = f'sys_class:{tenant_id}:{fact.object.classification or DEFAULT_CLASSIFICATION}'
 
                 statements = []
 

@@ -13,8 +13,8 @@ class GraphBatchClient():
         self.all_nodes = []
 
     @property
-    def graph_name(self):
-        return self.graph_client.graph_name
+    def tenant_id(self):
+        return self.graph_client.tenant_id
 
     def node_id(self, id_name:str):
         return self.graph_client.node_id(id_name)

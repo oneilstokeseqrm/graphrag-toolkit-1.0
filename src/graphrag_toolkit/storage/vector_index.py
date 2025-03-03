@@ -27,7 +27,7 @@ def to_embedded_query(query_bundle:QueryBundle, embed_model:EmbeddingType) -> Qu
 
 class VectorIndex(BaseModel):
     index_name: str
-    graph_name:Optional[str]=None
+    tenant_id:Optional[str]=None
 
     @field_validator('index_name')
     def validate_option(cls, v):
@@ -36,10 +36,10 @@ class VectorIndex(BaseModel):
         return v
     
     def underlying_index_name(self) -> str:
-        if self.graph_name is None:
+        if self.tenant_id is None:
             return self.index_name
         else:
-            return f'{self.index_name}_{self.graph_name}'
+            return f'{self.index_name}_{self.tenant_id}'
     
     @abc.abstractmethod
     def add_embeddings(self, nodes:Sequence[BaseNode]) -> Sequence[BaseNode]:

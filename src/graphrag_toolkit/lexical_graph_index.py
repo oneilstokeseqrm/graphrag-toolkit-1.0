@@ -79,8 +79,8 @@ class LexicalGraphIndex():
             GraphStore instance or GraphStore connection string. If None, defaults to a DummyGraphStore.
         vector_store (Optional[VectorStoreType], optional):
             VectorStore instance or VectorStore connection string. If None, defaults to a VectorStore with DummyVectorIndexes.
-        graph_name (str, optional):
-            Unique name of the graph. Defaults to None.
+        tenant_id (str, optional):
+            Tenant id. Defaults to None (default tenant).
         extraction_dir (List[TransformComponent], optional):
             Directory to which intermediate artefacts (e.g. checkpoints) will be written. Defaults to DEFAULT_EXTRACTION_DIR.
         indexing_config (Optional[IndexingConfig], optional):
@@ -102,14 +102,14 @@ class LexicalGraphIndex():
             self,
             graph_store:Optional[GraphStoreType]=None,
             vector_store:Optional[VectorStoreType]=None,
-            graph_name:Optional[str]=None,
+            tenant_id:Optional[str]=None,
             extraction_dir:Optional[str]=None,
             indexing_config:Optional[IndexingConfig]=None,
         ):
 
-        self.graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), graph_name) 
-        self.vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), graph_name)
-        self.graph_name = graph_name
+        self.graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id) 
+        self.vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
+        self.tenant_id = tenant_id
         self.extraction_dir = extraction_dir or DEFAULT_EXTRACTION_DIR
         self.indexing_config = indexing_config or IndexingConfig()
 
@@ -221,7 +221,7 @@ class LexicalGraphIndex():
             show_progress=show_progress,
             checkpoint=checkpoint,
             num_workers=1 if self.allow_batch_inference else None,
-            graph_name=self.graph_name,
+            tenant_id=self.tenant_id,
             **kwargs
         )
 
@@ -233,7 +233,7 @@ class LexicalGraphIndex():
             checkpoint=checkpoint,
             num_workers=1,
             batch_size=5,
-            graph_name=self.graph_name,
+            tenant_id=self.tenant_id,
             **kwargs
         )
 
@@ -276,7 +276,7 @@ class LexicalGraphIndex():
             checkpoint=checkpoint,
             filter=self.indexing_config.build.filter,
             include_domain_labels=self.indexing_config.build.include_domain_labels,
-            graph_name=self.graph_name,
+            tenant_id=self.tenant_id,
             **kwargs
         )
 
@@ -313,7 +313,7 @@ class LexicalGraphIndex():
             show_progress=show_progress,
             checkpoint=checkpoint,
             num_workers=1 if self.allow_batch_inference else None,
-            graph_name=self.graph_name,
+            tenant_id=self.tenant_id,
             **kwargs
         )
         
@@ -326,7 +326,7 @@ class LexicalGraphIndex():
             checkpoint=checkpoint,
             filter=self.indexing_config.build.filter,
             include_domain_labels=self.indexing_config.build.include_domain_labels,
-            graph_name=self.graph_name,
+            tenant_id=self.tenant_id,
             **kwargs
         )
 

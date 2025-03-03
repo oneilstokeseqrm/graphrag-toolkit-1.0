@@ -64,7 +64,7 @@ class BedrockKnowledgeBaseExport():
                  metadata_fn:Callable[[str], Dict[str, Any]]=None,
                  include_embeddings:bool=True,
                  include_source_doc:bool=False,
-                 graph_name:str=None,
+                 tenant_id:str=None,
                  **kwargs):
         
         self.bucket_name=bucket_name
@@ -73,7 +73,7 @@ class BedrockKnowledgeBaseExport():
         self.limit=limit
         self.output_dir = output_dir
         self.s3_client = boto3.client('s3', region_name=self.region)
-        self.id_rewriter = IdRewriter(id_generator=IdGenerator(graph_name=graph_name))
+        self.id_rewriter = IdRewriter(id_generator=IdGenerator(tenant_id=tenant_id))
         self.metadata_fn=metadata_fn
         self.include_embeddings = include_embeddings
         self.include_source_doc = include_source_doc

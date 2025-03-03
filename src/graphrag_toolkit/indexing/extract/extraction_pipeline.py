@@ -48,7 +48,7 @@ class ExtractionPipeline():
                batch_size=None, 
                show_progress=False, 
                checkpoint:Optional[Checkpoint]=None,
-               graph_name:Optional[str]=None,
+               tenant_id:Optional[str]=None,
                **kwargs:Any):
         
         return Pipe(
@@ -60,7 +60,7 @@ class ExtractionPipeline():
                 batch_size=batch_size,
                 show_progress=show_progress,
                 checkpoint=checkpoint,
-                graph_name=graph_name,
+                tenant_id=tenant_id,
                 **kwargs
             ).extract
         )
@@ -73,7 +73,7 @@ class ExtractionPipeline():
                  batch_size=None, 
                  show_progress=False, 
                  checkpoint:Optional[Checkpoint]=None,
-                 graph_name:Optional[str]=None,
+                 tenant_id:Optional[str]=None,
                  **kwargs:Any):
         
         components = components or []
@@ -87,7 +87,7 @@ class ExtractionPipeline():
         def add_id_rewriter(c):
             if isinstance(c, TextSplitter):
                 logger.debug(f'Wrapping {type(c).__name__} with IdRewriter')
-                return IdRewriter(inner=c, id_generator=IdGenerator(graph_name=graph_name))
+                return IdRewriter(inner=c, id_generator=IdGenerator(tenant_id=tenant_id))
             else:
                 return c
             
@@ -95,7 +95,7 @@ class ExtractionPipeline():
         
         if not any([isinstance(c, IdRewriter) for c in components]):
             logger.debug(f'Adding DocToNodes to components')
-            components.insert(0, IdRewriter(inner=DocsToNodes(), id_generator=IdGenerator(graph_name=graph_name)))
+            components.insert(0, IdRewriter(inner=DocsToNodes(), id_generator=IdGenerator(tenant_id=tenant_id)))
             
         if checkpoint:
             components = [checkpoint.add_filter(c) for c in components]
@@ -108,7 +108,7 @@ class ExtractionPipeline():
         self.num_workers = num_workers
         self.batch_size = batch_size
         self.show_progress = show_progress
-        self.id_rewriter = IdRewriter(id_generator=IdGenerator(graph_name=graph_name))
+        self.id_rewriter = IdRewriter(id_generator=IdGenerator(tenant_id=tenant_id))
         self.pipeline_kwargs = kwargs
     
     def _source_documents_from_base_nodes(self, nodes:Sequence[BaseNode]) -> List[SourceDocument]:

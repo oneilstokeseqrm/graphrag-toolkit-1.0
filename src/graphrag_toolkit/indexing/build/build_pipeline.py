@@ -45,7 +45,7 @@ class BuildPipeline():
                checkpoint:Optional[Checkpoint]=None,
                filter:Optional[BuildFilter]=None,
                include_domain_labels:Optional[bool]=None,
-               graph_name:Optional[str]=None,
+               tenant_id:Optional[str]=None,
                **kwargs:Any
             ):
         return Pipe(
@@ -60,7 +60,7 @@ class BuildPipeline():
                 checkpoint=checkpoint,
                 filter=filter,
                 include_domain_labels=include_domain_labels,
-                graph_name=graph_name,
+                tenant_id=tenant_id,
                 **kwargs
             ).build
         )
@@ -76,7 +76,7 @@ class BuildPipeline():
                  checkpoint:Optional[Checkpoint]=None,
                  filter:Optional[BuildFilter]=None,
                  include_domain_labels:Optional[bool]=None,
-                 graph_name:Optional[str]=None,
+                 tenant_id:Optional[str]=None,
                  **kwargs:Any
             ):
         
@@ -112,7 +112,7 @@ class BuildPipeline():
         self.batch_writes_enabled = batch_writes_enabled
         self.batch_write_size = batch_write_size
         self.include_domain_labels = include_domain_labels
-        self.metadata_to_nodes = MetadataToNodes(builders=builders, filter=filter, id_generator=IdGenerator(graph_name=graph_name))
+        self.metadata_to_nodes = MetadataToNodes(builders=builders, filter=filter, id_generator=IdGenerator(tenant_id=tenant_id))
         self.node_filter = NodeFilter() if not checkpoint else checkpoint.add_filter(NodeFilter())
         self.pipeline_kwargs = kwargs
     

@@ -42,13 +42,13 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
     @staticmethod
     def for_traversal_based_search(graph_store:GraphStoreType, 
                                    vector_store:VectorStoreType, 
-                                   graph_name:Optional[str]=None,
+                                   tenant_id:Optional[str]=None,
                                    retrievers:Optional[List[WeightedTraversalBasedRetrieverType]]=None,
                                    post_processors:Optional[PostProcessorsType]=None, 
                                    **kwargs):
         
-        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), graph_name) 
-        vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), graph_name)
+        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id) 
+        vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
         
         retriever = CompositeTraversalBasedRetriever(
             graph_store, 
@@ -60,7 +60,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
         return LexicalGraphQueryEngine(
             graph_store, 
             vector_store,
-            graph_name=graph_name,
+            tenant_id=tenant_id,
             retriever=retriever,
             post_processors=post_processors,
             **kwargs
@@ -69,13 +69,13 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
     @staticmethod
     def for_semantic_guided_search(graph_store:GraphStoreType, 
                                    vector_store:VectorStoreType, 
-                                   graph_name:Optional[str]=None,
+                                   tenant_id:Optional[str]=None,
                                    retrievers:Optional[List[SemanticGuidedRetrieverType]]=None,
                                    post_processors:Optional[PostProcessorsType]=None, 
                                    **kwargs):
         
-        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), graph_name) 
-        vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), graph_name)
+        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id) 
+        vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
         
         retrievers = retrievers or [
             StatementCosineSimilaritySearch(
@@ -107,7 +107,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
         return LexicalGraphQueryEngine(
             graph_store, 
             vector_store,
-            graph_name=graph_name,
+            tenant_id=tenant_id,
             retriever=retriever,
             post_processors=post_processors,
             context_format='bedrock_xml',
@@ -118,7 +118,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
     def __init__(self, 
                  graph_store:GraphStoreType,
                  vector_store:VectorStoreType,
-                 graph_name:Optional[str]=None,
+                 tenant_id:Optional[str]=None,
                  llm:LLMCacheType=None,
                  system_prompt:Optional[str]=ANSWER_QUESTION_SYSTEM_PROMPT,
                  user_prompt:Optional[str]=ANSWER_QUESTION_USER_PROMPT,
@@ -127,8 +127,8 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                  callback_manager: Optional[CallbackManager]=None, 
                  **kwargs):
         
-        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), graph_name) 
-        vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), graph_name)
+        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id) 
+        vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
         
         self.context_format = kwargs.get('context_format', 'json')
         

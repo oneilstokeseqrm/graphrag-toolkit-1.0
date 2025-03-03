@@ -9,12 +9,12 @@ from graphrag_toolkit.storage.graph_store import GraphStore, NodeId
 class MultiTenantGraphStore(GraphStore):
 
     @classmethod
-    def wrap(cls, graph_store:GraphStore, graph_name:Optional[str]=None, labels:List[str]=LEXICAL_GRAPH_LABELS):
-        if not graph_name:
+    def wrap(cls, graph_store:GraphStore, tenant_id:Optional[str]=None, labels:List[str]=LEXICAL_GRAPH_LABELS):
+        if not tenant_id:
             return graph_store
         if isinstance(graph_store, MultiTenantGraphStore):
             return graph_store
-        return MultiTenantGraphStore(inner=graph_store, graph_name=graph_name, labels=labels)
+        return MultiTenantGraphStore(inner=graph_store, tenant_id=tenant_id, labels=labels)
     
     inner:GraphStore
     labels:List[str]=[]
@@ -32,11 +32,11 @@ class MultiTenantGraphStore(GraphStore):
         return self.inner.execute_query(cypher=self._rewrite_query(cypher), parameters=parameters, correlation_id=correlation_id)
     
     def _rewrite_query(self, cypher:str):
-        if not self.graph_name:
+        if not self.tenant_id:
             return cypher
         for label in self.labels:
             original_label = f'`{label}`'
-            new_label = f'`{label}{self.graph_name}__`'
+            new_label = f'`{label}{self.tenant_id}__`'
             cypher = cypher.replace(original_label, new_label)
         return cypher
     

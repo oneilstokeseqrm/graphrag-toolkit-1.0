@@ -9,19 +9,19 @@ from llama_index.core.bridge.pydantic import Field
 class MultiTenantVectorStore(VectorStore):
 
     @classmethod
-    def wrap(cls, vector_store:VectorStore, graph_name:Optional[str]=None):
-        if not graph_name:
+    def wrap(cls, vector_store:VectorStore, tenant_id:Optional[str]=None):
+        if not tenant_id:
             return vector_store
         if isinstance(vector_store, MultiTenantVectorStore):
             return vector_store
-        return MultiTenantVectorStore(inner=vector_store, graph_name=graph_name)
+        return MultiTenantVectorStore(inner=vector_store, tenant_id=tenant_id)
 
     inner:VectorStore
-    graph_name:Optional[str]=None
+    tenant_id:Optional[str]=None
 
     def get_index(self, index_name):
         index = self.inner.get_index(index_name=index_name)
-        index.graph_name = self.graph_name
+        index.tenant_id = self.tenant_id
         return index
     
     def all_indexes(self) -> List[VectorIndex]:
