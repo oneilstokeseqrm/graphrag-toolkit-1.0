@@ -19,17 +19,41 @@ When building an application with the graphrag-toolkit, you are responsible for 
 
 ### Managing access to Amazon Neptune
 
-To allow your application to read from and write data to an Amazon Neptune database, attach the following example IAM policy to the AWS identity under which your application runs. Replace `<account-id>` with your AWS account ID, `<region>` with the name of the AWS Region in which your Amazon Neptune database cluster is located, and `<cluster-resource-id>` with the [cluster resource id](https://docs.aws.amazon.com/neptune/latest/userguide/iam-data-resources.html) of your database cluster.
+Index operations require read and write access to your Amazon Neptune database. Query operations require only read access to the database.
+
+To allow your application to read data from an Amazon Neptune database, attach the following example IAM policy to the AWS identity under which your application runs. Replace `<account-id>` with your AWS account ID, `<region>` with the name of the AWS Region in which your Amazon Neptune database cluster is located, and `<cluster-resource-id>` with the [cluster resource id](https://docs.aws.amazon.com/neptune/latest/userguide/iam-data-resources.html) of your database cluster.
 
 ```
 {
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "NeptuneDBDataAccessStatement",
+            "Sid": "NeptuneDBReadAccessStatement",
             "Effect": "Allow",
             "Action": [
-                "neptune-db:ReadDataViaQuery",
+                "neptune-db:ReadDataViaQuery"
+            ],
+            "Resource": "arn:aws:neptune-db:<region>:<account-id>:<cluster-resource-id>/*",
+            "Condition": {
+                "StringEquals": {
+                    "neptune-db:QueryLanguage": "OpenCypher"
+                }
+            }
+        }
+    ]
+}
+```
+
+To allow your application to write data to an Amazon Neptune database, attach the following example IAM policy to the AWS identity under which your application runs. Replace `<account-id>` with your AWS account ID, `<region>` with the name of the AWS Region in which your Amazon Neptune database cluster is located, and `<cluster-resource-id>` with the [cluster resource id](https://docs.aws.amazon.com/neptune/latest/userguide/iam-data-resources.html) of your database cluster.
+
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "NeptuneDBWriteAccessStatement",
+            "Effect": "Allow",
+            "Action": [
                 "neptune-db:WriteDataViaQuery"
             ],
             "Resource": "arn:aws:neptune-db:<region>:<account-id>:<cluster-resource-id>/*",

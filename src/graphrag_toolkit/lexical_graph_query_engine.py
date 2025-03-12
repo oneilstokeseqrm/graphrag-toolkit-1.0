@@ -195,8 +195,6 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             data = json2xml.Json2xml(json_results, attr_type=False).to_xml()
         else:
             data = json.dumps(json_results, indent=2)
-            
-        logger.debug(f'data: {data}')
         
         return data
     
