@@ -8,6 +8,7 @@ import time
 from json2xml import json2xml
 from typing import Optional, List, Type, Union
 
+from graphrag_toolkit.tenant_id import TenantId
 from graphrag_toolkit.config import GraphRAGConfig
 from graphrag_toolkit.utils import LLMCache, LLMCacheType
 from graphrag_toolkit.retrieval.prompts import ANSWER_QUESTION_SYSTEM_PROMPT, ANSWER_QUESTION_USER_PROMPT
@@ -42,7 +43,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
     @staticmethod
     def for_traversal_based_search(graph_store:GraphStoreType, 
                                    vector_store:VectorStoreType, 
-                                   tenant_id:Optional[str]=None,
+                                   tenant_id:Optional[TenantId]=None,
                                    retrievers:Optional[List[WeightedTraversalBasedRetrieverType]]=None,
                                    post_processors:Optional[PostProcessorsType]=None, 
                                    **kwargs):
@@ -69,7 +70,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
     @staticmethod
     def for_semantic_guided_search(graph_store:GraphStoreType, 
                                    vector_store:VectorStoreType, 
-                                   tenant_id:Optional[str]=None,
+                                   tenant_id:Optional[TenantId]=None,
                                    retrievers:Optional[List[SemanticGuidedRetrieverType]]=None,
                                    post_processors:Optional[PostProcessorsType]=None, 
                                    **kwargs):
@@ -118,7 +119,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
     def __init__(self, 
                  graph_store:GraphStoreType,
                  vector_store:VectorStoreType,
-                 tenant_id:Optional[str]=None,
+                 tenant_id:Optional[TenantId]=None,
                  llm:LLMCacheType=None,
                  system_prompt:Optional[str]=ANSWER_QUESTION_SYSTEM_PROMPT,
                  user_prompt:Optional[str]=ANSWER_QUESTION_USER_PROMPT,
@@ -127,8 +128,12 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                  callback_manager: Optional[CallbackManager]=None, 
                  **kwargs):
         
+        tenant_id = tenant_id or TenantId()
+        
         graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id) 
         vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
+
+
         
         self.context_format = kwargs.get('context_format', 'json')
         

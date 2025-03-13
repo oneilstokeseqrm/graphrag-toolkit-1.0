@@ -9,6 +9,8 @@ from tenacity import Retrying, stop_after_attempt, wait_random
 from tenacity import RetryCallState
 from typing import Callable, List, Dict, Any, Optional
 
+from graphrag_toolkit import TenantId
+
 from llama_index.core.bridge.pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -119,7 +121,7 @@ def on_query_failed(
 class GraphStore(BaseModel):
 
     log_formatting:GraphQueryLogFormatting = Field(default_factory=lambda: RedactedGraphQueryLogFormatting())
-    tenant_id:Optional[str]=None
+    tenant_id:TenantId
 
     def execute_query_with_retry(self, query:str, parameters:Dict[str, Any], max_attempts=3, max_wait=5, **kwargs):
         

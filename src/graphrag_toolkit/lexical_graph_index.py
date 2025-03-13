@@ -4,6 +4,7 @@
 from typing import List, Optional, Union, Any
 from pipe import Pipe
 
+from graphrag_toolkit.tenant_id import TenantId
 from graphrag_toolkit.storage import GraphStoreFactory, GraphStoreType
 from graphrag_toolkit.storage import VectorStoreFactory, VectorStoreType
 from graphrag_toolkit.storage import MultiTenantGraphStore, MultiTenantVectorStore
@@ -79,7 +80,7 @@ class LexicalGraphIndex():
             GraphStore instance or GraphStore connection string. If None, defaults to a DummyGraphStore.
         vector_store (Optional[VectorStoreType], optional):
             VectorStore instance or VectorStore connection string. If None, defaults to a VectorStore with DummyVectorIndexes.
-        tenant_id (str, optional):
+        tenant_id (TenantId, optional):
             Tenant id. Defaults to None (default tenant).
         extraction_dir (List[TransformComponent], optional):
             Directory to which intermediate artefacts (e.g. checkpoints) will be written. Defaults to DEFAULT_EXTRACTION_DIR.
@@ -102,14 +103,14 @@ class LexicalGraphIndex():
             self,
             graph_store:Optional[GraphStoreType]=None,
             vector_store:Optional[VectorStoreType]=None,
-            tenant_id:Optional[str]=None,
+            tenant_id:Optional[TenantId]=None,
             extraction_dir:Optional[str]=None,
             indexing_config:Optional[IndexingConfig]=None,
         ):
 
         self.graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id) 
         self.vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
-        self.tenant_id = tenant_id
+        self.tenant_id = tenant_id or TenantId()
         self.extraction_dir = extraction_dir or DEFAULT_EXTRACTION_DIR
         self.indexing_config = indexing_config or IndexingConfig()
 

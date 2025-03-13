@@ -3,14 +3,15 @@
 
 from typing import List, Dict, Any, Optional
 
+from graphrag_toolkit import TenantId
 from graphrag_toolkit.storage.constants import LEXICAL_GRAPH_LABELS
 from graphrag_toolkit.storage.graph_store import GraphStore, NodeId
 
 class MultiTenantGraphStore(GraphStore):
 
     @classmethod
-    def wrap(cls, graph_store:GraphStore, tenant_id:Optional[str]=None, labels:List[str]=LEXICAL_GRAPH_LABELS):
-        if not tenant_id:
+    def wrap(cls, graph_store:GraphStore, tenant_id:TenantId, labels:List[str]=LEXICAL_GRAPH_LABELS):
+        if tenant_id.is_default_tenant():
             return graph_store
         if isinstance(graph_store, MultiTenantGraphStore):
             return graph_store
@@ -32,11 +33,11 @@ class MultiTenantGraphStore(GraphStore):
         return self.inner.execute_query(cypher=self._rewrite_query(cypher), parameters=parameters, correlation_id=correlation_id)
     
     def _rewrite_query(self, cypher:str):
-        if not self.tenant_id:
+        if self.tenant_id.is_default_tenant():
             return cypher
         for label in self.labels:
             original_label = f'`{label}`'
-            new_label = f'`{label}{self.tenant_id}__`'
+            new_label = self.tenant_id.format_label(label)
             cypher = cypher.replace(original_label, new_label)
         return cypher
     
