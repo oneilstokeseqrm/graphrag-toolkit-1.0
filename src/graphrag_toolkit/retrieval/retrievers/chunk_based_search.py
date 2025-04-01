@@ -6,7 +6,7 @@ import concurrent.futures
 from typing import List, Optional, Type
 
 from graphrag_toolkit.retrieval.model import SearchResultCollection
-from graphrag_toolkit.storage.vector_store import VectorStore
+from graphrag_toolkit.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.storage.graph import GraphStore
 from graphrag_toolkit.retrieval.processors import ProcessorBase, ProcessorArgs
 from graphrag_toolkit.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever

@@ -17,7 +17,7 @@ from graphrag_toolkit.retrieval.retrievers import StatementCosineSimilaritySearc
 from graphrag_toolkit.retrieval.retrievers import WeightedTraversalBasedRetrieverType, SemanticGuidedRetrieverType
 from graphrag_toolkit.storage import GraphStoreFactory, GraphStoreType
 from graphrag_toolkit.storage import VectorStoreFactory, VectorStoreType
-from graphrag_toolkit.storage.vector_index import to_embedded_query
+from graphrag_toolkit.storage.vector.vector_index import to_embedded_query
 
 from llama_index.core import ChatPromptTemplate
 from llama_index.core.llms import ChatMessage, MessageRole

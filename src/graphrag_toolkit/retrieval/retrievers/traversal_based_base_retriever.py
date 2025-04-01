@@ -7,8 +7,8 @@ import time
 from typing import List, Any, Type, Optional
 
 from graphrag_toolkit.storage.graph import GraphStore
-from graphrag_toolkit.storage.vector_store import VectorStore
-from graphrag_toolkit.retrieval.model import SearchResultCollection, SearchResult, Source, ScoredEntity
+from graphrag_toolkit.storage.vector.vector_store import VectorStore
+from graphrag_toolkit.retrieval.model import SearchResultCollection, SearchResult, ScoredEntity
 from graphrag_toolkit.retrieval.processors import *
 
 from llama_index.core.base.base_retriever import BaseRetriever

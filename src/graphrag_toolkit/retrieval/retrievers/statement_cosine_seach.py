@@ -5,7 +5,7 @@ import logging
 from typing import List, Any, Optional
 
 from graphrag_toolkit.storage.graph import GraphStore
-from graphrag_toolkit.storage import VectorStore
+from graphrag_toolkit.storage.vector import VectorStore
 from graphrag_toolkit.retrieval.utils.statement_utils import get_top_k, SharedEmbeddingCache
 from graphrag_toolkit.retrieval.retrievers.semantic_guided_base_retriever import SemanticGuidedBaseRetriever
 

@@ -159,10 +159,5 @@ class GraphStore(BaseModel):
     def execute_query(self, cypher, parameters={}, correlation_id=None) -> Dict[str, Any]:
         raise NotImplementedError
 
-    
-class DummyGraphStore(GraphStore):
-    def execute_query(self, cypher, parameters={}, correlation_id=None):  
-        log_entry_parameters = self.log_formatting.format_log_entry(self._logging_prefix(correlation_id), cypher, parameters)
-        logger.debug(f'[{log_entry_parameters.query_ref}] query: {log_entry_parameters.query}, parameters: {log_entry_parameters.parameters}')
-        return []
+
     

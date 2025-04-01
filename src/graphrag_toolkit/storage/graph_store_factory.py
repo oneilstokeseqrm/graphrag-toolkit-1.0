@@ -5,13 +5,14 @@ import logging
 from typing import Union, Type
 
 from graphrag_toolkit.storage.graph import GraphStore, GraphStoreFactoryMethod
+from graphrag_toolkit.storage.graph.dummy_graph_store import DummyGraphStoreFactory
 from graphrag_toolkit.storage.graph.neptune_graph_stores import NeptuneAnalyticsGraphStoreFactory, NeptuneDatabaseGraphStoreFactory
 
 logger = logging.getLogger(__name__)
 
 GraphStoreType = Union[str, GraphStore]
 
-_graph_store_factories = { NeptuneAnalyticsGraphStoreFactory, NeptuneDatabaseGraphStoreFactory }
+_graph_store_factories = { NeptuneAnalyticsGraphStoreFactory, NeptuneDatabaseGraphStoreFactory, DummyGraphStoreFactory }
 
 
 class GraphStoreFactory():

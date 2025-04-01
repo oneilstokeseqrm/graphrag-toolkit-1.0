@@ -7,7 +7,7 @@ from typing import List, Generator, Tuple, Any, Optional, Type
 
 from graphrag_toolkit.retrieval.model import SearchResultCollection, ScoredEntity, Entity
 from graphrag_toolkit.storage.graph import GraphStore
-from graphrag_toolkit.storage.vector_store import VectorStore
+from graphrag_toolkit.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.storage.graph.graph_utils import node_result, search_string_from
 from graphrag_toolkit.retrieval.retrievers.keyword_entity_search import KeywordEntitySearch
 from graphrag_toolkit.retrieval.processors import ProcessorBase, ProcessorArgs

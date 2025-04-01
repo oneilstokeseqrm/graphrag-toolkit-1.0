@@ -11,13 +11,27 @@ from typing import List, Sequence, Dict, Any, Optional
 from urllib.parse import urlparse
 
 from graphrag_toolkit.config import GraphRAGConfig, EmbeddingType
-from graphrag_toolkit.storage.vector_index import VectorIndex, to_embedded_query
+from graphrag_toolkit.storage.vector import VectorIndex, VectorIndexFactoryMethod, to_embedded_query
 from graphrag_toolkit.storage.constants import INDEX_KEY
 
 from llama_index.core.schema import BaseNode, QueryBundle
 from llama_index.core.indices.utils import embed_nodes
 
 logger = logging.getLogger(__name__)
+
+POSTGRES = 'postgres://'
+POSTGRESQL = 'postgresql://'
+
+class PGVectorIndexFactory(VectorIndexFactoryMethod):
+    def try_create(self, index_names:List[str], vector_index_info:str, **kwargs) -> List[VectorIndex]:
+        connection_string = None
+        if vector_index_info.startswith(POSTGRES) or vector_index_info.startswith(POSTGRESQL):
+            connection_string = vector_index_info
+        if connection_string:
+            logger.debug(f"Opening PostgreSQL vector indexes [index_names: {index_names}, connection_string: {connection_string}]")
+            return [PGIndex.for_index(index_name, connection_string, **kwargs) for index_name in index_names]
+        else:
+            return None
 
 class PGIndex(VectorIndex):
 

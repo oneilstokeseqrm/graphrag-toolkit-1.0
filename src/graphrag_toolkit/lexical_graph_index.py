@@ -6,7 +6,7 @@ from pipe import Pipe
 
 from graphrag_toolkit.storage import GraphStoreFactory, GraphStoreType
 from graphrag_toolkit.storage import VectorStoreFactory, VectorStoreType
-from graphrag_toolkit.storage.graph.graph_store import DummyGraphStore
+from graphrag_toolkit.storage.graph import DummyGraphStore
 from graphrag_toolkit.indexing.extract import BatchConfig
 from graphrag_toolkit.indexing import NodeHandler
 from graphrag_toolkit.indexing import sink

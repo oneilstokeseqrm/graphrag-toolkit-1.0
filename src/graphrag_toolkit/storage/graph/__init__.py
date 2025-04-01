@@ -3,3 +3,4 @@
 
 from .graph_store import GraphStore, RedactedGraphQueryLogFormatting, NonRedactedGraphQueryLogFormatting, NodeId, get_log_formatting, format_id
 from .graph_store_factory_method import GraphStoreFactoryMethod
+from .dummy_graph_store import DummyGraphStore

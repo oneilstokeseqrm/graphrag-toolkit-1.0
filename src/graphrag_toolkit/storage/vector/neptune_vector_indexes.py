@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import string
+import logging
 from typing import Any, List
 
 from graphrag_toolkit.config import GraphRAGConfig
@@ -9,13 +10,27 @@ from graphrag_toolkit.storage import GraphStoreFactory
 from graphrag_toolkit.storage.graph import GraphStore
 from graphrag_toolkit.storage.graph.graph_utils import node_result
 from graphrag_toolkit.storage.graph.neptune_graph_stores import NeptuneAnalyticsClient
-from graphrag_toolkit.storage.vector_index import VectorIndex, to_embedded_query
+from graphrag_toolkit.storage.vector import VectorIndex, VectorIndexFactoryMethod, to_embedded_query
 
 from llama_index.core.indices.utils import embed_nodes
 from llama_index.core.schema import QueryBundle
 
+logger = logging.getLogger(__name__)
+
+NEPTUNE_ANALYTICS = 'neptune-graph://'
+
+class NeptuneAnalyticsVectorIndexFactory(VectorIndexFactoryMethod):
+    def try_create(self, index_names:List[str], vector_index_info:str, **kwargs) -> List[VectorIndex]:
+        graph_id = None
+        if vector_index_info.startswith(NEPTUNE_ANALYTICS):
+            graph_id = vector_index_info[len(NEPTUNE_ANALYTICS):]
+        if graph_id:
+            logger.debug(f"Opening Neptune Analytics vector indexes [index_names: {index_names}, graph_id: {graph_id}]")
+            return [NeptuneIndex.for_index(index_name, graph_id, **kwargs) for index_name in index_names]
+        else:
+            return None
+
 class NeptuneIndex(VectorIndex):
-    
     
     @staticmethod
     def for_index(index_name, graph_id, embed_model=None, dimensions=None):

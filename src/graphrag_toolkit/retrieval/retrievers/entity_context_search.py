@@ -6,7 +6,7 @@ from typing import List, Optional, Type, Union
 
 from graphrag_toolkit.retrieval.model import SearchResultCollection, ScoredEntity, Entity, SearchResult
 from graphrag_toolkit.storage.graph import GraphStore
-from graphrag_toolkit.storage.vector_store import VectorStore
+from graphrag_toolkit.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.retrieval.retrievers.keyword_entity_search import KeywordEntitySearch
 from graphrag_toolkit.retrieval.retrievers.chunk_based_search import ChunkBasedSearch
 from graphrag_toolkit.retrieval.retrievers.topic_based_search import TopicBasedSearch

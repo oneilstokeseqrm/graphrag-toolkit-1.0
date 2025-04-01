@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import List, Type, Optional, Union
 
 from graphrag_toolkit.storage.graph import GraphStore
-from graphrag_toolkit.storage.vector_store import VectorStore
+from graphrag_toolkit.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever
 from graphrag_toolkit.retrieval.utils.query_decomposition import QueryDecomposition
 from graphrag_toolkit.retrieval.retrievers.entity_context_search import EntityContextSearch
