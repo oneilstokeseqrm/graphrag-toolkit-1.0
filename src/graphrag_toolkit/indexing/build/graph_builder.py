@@ -4,7 +4,7 @@
 import abc
 from typing import Dict, Any
 
-from graphrag_toolkit.storage.graph_store import GraphStore
+from graphrag_toolkit.storage.graph import GraphStore
 
 from llama_index.core.schema import BaseComponent, BaseNode
 

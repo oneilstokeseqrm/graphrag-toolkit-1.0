@@ -5,7 +5,7 @@ import logging
 from typing import List, Optional, Type, Union
 
 from graphrag_toolkit.retrieval.model import SearchResultCollection, ScoredEntity, Entity, SearchResult
-from graphrag_toolkit.storage.graph_store import GraphStore
+from graphrag_toolkit.storage.graph import GraphStore
 from graphrag_toolkit.storage.vector_store import VectorStore
 from graphrag_toolkit.retrieval.retrievers.keyword_entity_search import KeywordEntitySearch
 from graphrag_toolkit.retrieval.retrievers.chunk_based_search import ChunkBasedSearch

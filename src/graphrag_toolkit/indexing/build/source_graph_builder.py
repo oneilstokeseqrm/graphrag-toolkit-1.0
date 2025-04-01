@@ -4,7 +4,7 @@
 import logging
 from typing import Any
 
-from graphrag_toolkit.storage.graph_store import GraphStore
+from graphrag_toolkit.storage.graph import GraphStore
 from graphrag_toolkit.indexing.build.graph_builder import GraphBuilder
 
 from llama_index.core.schema import BaseNode

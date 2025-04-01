@@ -6,8 +6,8 @@ import asyncio
 from typing import List
 
 from graphrag_toolkit.config import GraphRAGConfig
-from graphrag_toolkit.storage.graph_store import GraphStore
-from graphrag_toolkit.storage.graph_utils import node_result, search_string_from
+from graphrag_toolkit.storage.graph import GraphStore
+from graphrag_toolkit.storage.graph.graph_utils import node_result, search_string_from
 from graphrag_toolkit.utils import LLMCache, LLMCacheType
 from graphrag_toolkit.retrieval.model import ScoredEntity
 from graphrag_toolkit.retrieval.prompts import SIMPLE_EXTRACT_KEYWORDS_PROMPT, EXTENDED_EXTRACT_KEYWORDS_PROMPT

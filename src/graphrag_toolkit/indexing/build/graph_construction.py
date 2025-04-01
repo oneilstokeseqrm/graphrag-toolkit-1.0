@@ -8,7 +8,7 @@ from typing import Any, List, Union
 from graphrag_toolkit.indexing.build.graph_builder import GraphBuilder
 from graphrag_toolkit.indexing.node_handler import NodeHandler
 from graphrag_toolkit.indexing.build.graph_batch_client import GraphBatchClient
-from graphrag_toolkit.storage.graph_store import GraphStore
+from graphrag_toolkit.storage.graph import GraphStore
 from graphrag_toolkit.storage.graph_store_factory import GraphStoreFactory
 from graphrag_toolkit.storage.constants import INDEX_KEY 
 from graphrag_toolkit.indexing.build.source_graph_builder import SourceGraphBuilder

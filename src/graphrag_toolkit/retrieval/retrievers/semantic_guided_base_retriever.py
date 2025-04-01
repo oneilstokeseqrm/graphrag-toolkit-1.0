@@ -4,7 +4,7 @@
 from abc import abstractmethod
 from typing import List
 
-from graphrag_toolkit.storage.graph_store import GraphStore
+from graphrag_toolkit.storage.graph import GraphStore
 from graphrag_toolkit.storage.vector_store import VectorStore
 
 from llama_index.core.base.base_retriever import BaseRetriever

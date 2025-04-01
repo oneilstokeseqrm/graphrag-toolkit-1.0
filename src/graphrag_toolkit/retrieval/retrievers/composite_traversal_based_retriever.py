@@ -7,7 +7,7 @@ import concurrent.futures
 from dataclasses import dataclass
 from typing import List, Type, Optional, Union
 
-from graphrag_toolkit.storage.graph_store import GraphStore
+from graphrag_toolkit.storage.graph import GraphStore
 from graphrag_toolkit.storage.vector_store import VectorStore
 from graphrag_toolkit.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever
 from graphrag_toolkit.retrieval.utils.query_decomposition import QueryDecomposition

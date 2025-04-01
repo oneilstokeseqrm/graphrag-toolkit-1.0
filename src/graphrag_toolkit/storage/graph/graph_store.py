@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 REDACTED = '**REDACTED**'
 NUM_CHARS_IN_DEBUG_RESULTS = 256
 
+def get_log_formatting(args):
+    log_formatting = args.pop('log_formatting', RedactedGraphQueryLogFormatting())
+    if not isinstance(log_formatting, GraphQueryLogFormatting):
+        raise ValueError('log_formatting must be of type GraphQueryLogFormatting')
+    return log_formatting
+
 @dataclass
 class NodeId:
 
@@ -119,6 +125,7 @@ def on_query_failed(
 class GraphStore(BaseModel):
 
     log_formatting:GraphQueryLogFormatting = Field(default_factory=lambda: RedactedGraphQueryLogFormatting())
+    
 
     def execute_query_with_retry(self, query:str, parameters:Dict[str, Any], max_attempts=3, max_wait=5, **kwargs):
         

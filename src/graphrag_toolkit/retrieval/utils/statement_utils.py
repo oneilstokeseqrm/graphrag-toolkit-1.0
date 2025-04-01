@@ -9,7 +9,7 @@ import logging
 from typing import Dict, List
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-from graphrag_toolkit.storage.graph_utils import node_result
+from graphrag_toolkit.storage.graph.graph_utils import node_result
 
 logger = logging.getLogger(__name__)
 

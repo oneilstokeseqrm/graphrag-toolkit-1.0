@@ -6,7 +6,7 @@ from queue import PriorityQueue
 import numpy as np
 import logging
 
-from graphrag_toolkit.storage.graph_store import GraphStore
+from graphrag_toolkit.storage.graph import GraphStore
 from graphrag_toolkit.storage import VectorStore
 from graphrag_toolkit.retrieval.utils.statement_utils import get_top_k, SharedEmbeddingCache
 from graphrag_toolkit.retrieval.retrievers.semantic_guided_base_retriever import SemanticGuidedBaseRetriever

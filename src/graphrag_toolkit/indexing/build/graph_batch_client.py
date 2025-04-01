@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from typing import Dict, Any, List
-from graphrag_toolkit.storage.graph_store import GraphStore
+from graphrag_toolkit.storage.graph import GraphStore
 
 class GraphBatchClient():
     def __init__(self, graph_client:GraphStore, batch_writes_enabled:bool, batch_write_size:int):

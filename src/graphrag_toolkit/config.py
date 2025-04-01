@@ -4,7 +4,7 @@
 import os
 import json
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Optional, Union, Set, Type
 
 from llama_index.llms.bedrock import Bedrock
 from llama_index.embeddings.bedrock import BedrockEmbedding
@@ -247,5 +247,7 @@ class _GraphRAGConfig:
     @reranking_model.setter
     def reranking_model(self, reranking_model: str) -> None:
        self._reranking_model = reranking_model
+    
+
     
 GraphRAGConfig = _GraphRAGConfig()

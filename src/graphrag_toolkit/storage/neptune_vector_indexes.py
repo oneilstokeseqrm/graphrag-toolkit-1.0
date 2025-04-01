@@ -5,9 +5,10 @@ import string
 from typing import Any, List
 
 from graphrag_toolkit.config import GraphRAGConfig
-from graphrag_toolkit.storage import GraphStoreFactory, GraphStore
-from graphrag_toolkit.storage.graph_utils import node_result
-from graphrag_toolkit.storage.neptune_graph_stores import NeptuneAnalyticsClient
+from graphrag_toolkit.storage import GraphStoreFactory
+from graphrag_toolkit.storage.graph import GraphStore
+from graphrag_toolkit.storage.graph.graph_utils import node_result
+from graphrag_toolkit.storage.graph.neptune_graph_stores import NeptuneAnalyticsClient
 from graphrag_toolkit.storage.vector_index import VectorIndex, to_embedded_query
 
 from llama_index.core.indices.utils import embed_nodes

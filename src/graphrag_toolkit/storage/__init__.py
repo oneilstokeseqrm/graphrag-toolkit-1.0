@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from .graph_store import GraphStore, RedactedGraphQueryLogFormatting, NonRedactedGraphQueryLogFormatting
 from .graph_store_factory import GraphStoreFactory, GraphStoreType
 from .vector_index import VectorIndex
 from .vector_index_factory import VectorIndexFactory

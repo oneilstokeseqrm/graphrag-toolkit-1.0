@@ -4,7 +4,7 @@
 import logging
 from typing import List
 from graphrag_toolkit.indexing.extract.scoped_value_provider import ScopedValueStore
-from graphrag_toolkit.storage.graph_store import GraphStore
+from graphrag_toolkit.storage.graph import GraphStore
 
 logger = logging.getLogger(__name__)
 

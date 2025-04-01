@@ -7,7 +7,7 @@ from typing import List, Optional, Type
 
 from graphrag_toolkit.retrieval.model import SearchResultCollection
 from graphrag_toolkit.storage.vector_store import VectorStore
-from graphrag_toolkit.storage.graph_store import GraphStore
+from graphrag_toolkit.storage.graph import GraphStore
 from graphrag_toolkit.retrieval.processors import ProcessorBase, ProcessorArgs
 from graphrag_toolkit.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever
 from graphrag_toolkit.retrieval.utils.vector_utils import get_diverse_vss_elements
