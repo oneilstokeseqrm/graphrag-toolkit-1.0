@@ -5,7 +5,7 @@ from typing import List, Optional
 import re
 import string
 
-from graphrag_toolkit.storage.graph_store import NodeId
+from graphrag_toolkit.storage.graph.graph_store import NodeId
 
 SEARCH_STRING_PATTERN = re.compile('([^\s\w]|_)+')
 

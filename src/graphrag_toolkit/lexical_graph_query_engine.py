@@ -19,7 +19,7 @@ from graphrag_toolkit.retrieval.retrievers import WeightedTraversalBasedRetrieve
 from graphrag_toolkit.storage import GraphStoreFactory, GraphStoreType
 from graphrag_toolkit.storage import VectorStoreFactory, VectorStoreType
 from graphrag_toolkit.storage import MultiTenantGraphStore, MultiTenantVectorStore
-from graphrag_toolkit.storage.vector_index import to_embedded_query
+from graphrag_toolkit.storage.vector import to_embedded_query
 from graphrag_toolkit.storage.constants import LEXICAL_GRAPH_LABELS
 
 from llama_index.core import ChatPromptTemplate
@@ -64,6 +64,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             tenant_id=tenant_id,
             retriever=retriever,
             post_processors=post_processors,
+            context_format='text',
             **kwargs
         )
     
@@ -185,6 +186,15 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             logger.exception(f'Error answering query [query: {query_bundle.query_str}, context: {context}]')
             raise
             
+    def _format_as_text(self, json_results):
+        lines = []
+        for json_result in json_results:
+            lines.append(f"""## {json_result['topic']}""")
+            lines.append(' '.join([s for s in json_result['statements']]))
+            lines.append(f"""[Source: {json_result['source']}]""")
+            lines.append('\n')
+        return '\n'.join(lines)
+    
     def _format_context(self, search_results:List[NodeWithScore], context_format:str='json'):
 
         if context_format == 'bedrock_xml':
@@ -198,6 +208,8 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             data = yaml.dump(json_results, sort_keys=False)
         elif context_format == 'xml':
             data = json2xml.Json2xml(json_results, attr_type=False).to_xml()
+        elif context_format == 'text':
+            data = self._format_as_text(json_results)
         else:
             data = json.dumps(json_results, indent=2)
         

@@ -52,16 +52,3 @@ class VectorIndex(BaseModel):
     @abc.abstractmethod
     def get_embeddings(self, ids:List[str]=[]) -> Sequence[Dict[str, Any]]:
         raise NotImplementedError
-    
-class DummyVectorIndex(VectorIndex):
-
-    def add_embeddings(self, nodes):
-        logger.debug(f'[{self.index_name}] add embeddings for nodes: {[n.id_ for n in nodes]}')
-    
-    def top_k(self, query_bundle:QueryBundle, top_k:int=5) -> Sequence[Any]:
-        logger.debug(f'[{self.index_name}] top k query: {query_bundle.query_str}, top_k: {top_k}')
-        return []
-
-    def get_embeddings(self, ids:List[str]=[]) -> Sequence[Any]:
-        logger.debug(f'[{self.index_name}] get embeddings for ids: {ids}')
-        return []

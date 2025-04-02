@@ -18,6 +18,12 @@ logger = logging.getLogger(__name__)
 REDACTED = '**REDACTED**'
 NUM_CHARS_IN_DEBUG_RESULTS = 256
 
+def get_log_formatting(args):
+    log_formatting = args.pop('log_formatting', RedactedGraphQueryLogFormatting())
+    if not isinstance(log_formatting, GraphQueryLogFormatting):
+        raise ValueError('log_formatting must be of type GraphQueryLogFormatting')
+    return log_formatting
+
 @dataclass
 class NodeId:
 
@@ -155,10 +161,5 @@ class GraphStore(BaseModel):
     def execute_query(self, cypher, parameters={}, correlation_id=None) -> Dict[str, Any]:
         raise NotImplementedError
 
-    
-class DummyGraphStore(GraphStore):
-    def execute_query(self, cypher, parameters={}, correlation_id=None):  
-        log_entry_parameters = self.log_formatting.format_log_entry(self._logging_prefix(correlation_id), cypher, parameters)
-        logger.debug(f'[{log_entry_parameters.query_ref}] query: {log_entry_parameters.query}, parameters: {log_entry_parameters.parameters}')
-        return []
+
     

@@ -9,9 +9,13 @@ import uuid
 from botocore.config import Config
 from typing import Optional, Any
 
-from graphrag_toolkit.storage.graph_store import GraphStore, NodeId
+from graphrag_toolkit.storage.graph import GraphStoreFactoryMethod, GraphStore, NodeId, get_log_formatting
 
 from llama_index.core.bridge.pydantic import PrivateAttr
+
+NEPTUNE_ANALYTICS = 'neptune-graph://'
+NEPTUNE_DATABASE = 'neptune-db://'
+NEPTUNE_DB_DNS = 'neptune.amazonaws.com'
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +25,62 @@ def format_id_for_neptune(id_name:str):
             return NodeId(parts[0], '`~id`', False)           
         else:
             return NodeId(parts[1], f'id({parts[0]})', False)
+        
+def create_config(config:Optional[str]=None):
+    config_args = {}
+    if config:
+        config_args = json.loads(config)
+    return Config(
+        retries={
+            'total_max_attempts': 1, 
+            'mode': 'standard'
+        }, 
+        read_timeout=600,
+        **config_args
+    )
 
+class NeptuneAnalyticsGraphStoreFactory(GraphStoreFactoryMethod):
+
+    def try_create(self, graph_info:str, **kwargs) -> GraphStore:
+
+        if graph_info.startswith(NEPTUNE_ANALYTICS):
+
+            graph_id = graph_info[len(NEPTUNE_ANALYTICS):]
+            config = kwargs.pop('config', {})
+
+            logger.debug(f"Opening Neptune Analytics graph [graph_id: {graph_id}]")
+            return NeptuneAnalyticsClient(graph_id=graph_id, log_formatting=get_log_formatting(kwargs), config=json.dumps(config))
+        else:
+            return None
+            
+class NeptuneDatabaseGraphStoreFactory(GraphStoreFactoryMethod):
+
+    def try_create(self, graph_info:str, **kwargs) -> GraphStore:
+         
+        graph_endpoint = None
+
+        if graph_info.startswith(NEPTUNE_DATABASE):
+            graph_endpoint = graph_info[len(NEPTUNE_DATABASE):]
+        elif graph_info.endswith(NEPTUNE_DB_DNS):
+            graph_endpoint = graph_info
+        elif NEPTUNE_DB_DNS in graph_info:
+            graph_endpoint = graph_info.replace('https://', '')
+
+        if graph_endpoint:
+            logger.debug(f"Opening Neptune database [endpoint: {graph_endpoint}]")
+            endpoint_url = kwargs.pop('endpoint_url', None)
+            port = kwargs.pop('port', 8182)
+            if not endpoint_url:
+                endpoint_url = f'https://{graph_endpoint}' if ':' in graph_endpoint else f'https://{graph_endpoint}:{port}'
+            config = kwargs.pop('config', {})
+            return NeptuneDatabaseClient(endpoint_url=endpoint_url, log_formatting=get_log_formatting(kwargs), config=json.dumps(config))
+        else:
+            return None
+            
 class NeptuneAnalyticsClient(GraphStore):
     
     graph_id: str
+    config : Optional[str] = None
     _client: Optional[Any] = PrivateAttr(default=None)
         
     def __getstate__(self):
@@ -36,7 +92,7 @@ class NeptuneAnalyticsClient(GraphStore):
         if self._client is None:
             self._client = boto3.client(
                 'neptune-graph', 
-                config=(Config(retries={'total_max_attempts': 1, 'mode': 'standard'}, read_timeout=600))
+                config=create_config(self.config)
             )
         return self._client
     
@@ -83,6 +139,7 @@ class NeptuneAnalyticsClient(GraphStore):
 class NeptuneDatabaseClient(GraphStore):
             
     endpoint_url: str
+    config : Optional[str] = None
     _client: Optional[Any] = PrivateAttr(default=None)
         
     def __getstate__(self):
@@ -95,7 +152,7 @@ class NeptuneDatabaseClient(GraphStore):
             self._client = boto3.client(
                 'neptunedata', 
                 endpoint_url=self.endpoint_url,
-                config=(Config(retries={'total_max_attempts': 1, 'mode': 'standard'}, read_timeout=600))
+                config=create_config(self.config)
             )
         return self._client
     

@@ -15,12 +15,16 @@ If you are running these notebooks via the Cloudformation template below, a `.en
 
 ### Cloudformation templates
 
-[`graphrag-toolkit-stack.json`](./cloudformation-templates/graphrag-toolkit-stack.json) creates a graphrag-toolkit environment:
-
- - Amazon VPC with three private subnets, one public subnet, and an internet gateway
- - Amazon Neptune Database cluster with a single Neptune serverless instance
- - Amazon OpenSearch Serverless collection with a public endpoint
- - Amazon SageMaker notebook
+ - [`graphrag-toolkit-neptune-db-opensearch-serverless.json`](./cloudformation-templates/graphrag-toolkit-neptune-db-opensearch-serverless.json) creates a graphrag-toolkit environment:
+   - Amazon VPC with three private subnets, one public subnet, and an internet gateway
+   - Amazon Neptune Database cluster with a single Neptune serverless instance
+   - Amazon OpenSearch Serverless collection with a public endpoint
+   - Amazon SageMaker notebook
+ - [`graphrag-toolkit-neptune-db-aurora-postgres.json`](./cloudformation-templates/graphrag-toolkit-neptune-db-aurora-postgres.json) creates a graphrag-toolkit environment:
+   - Amazon VPC with three private subnets, one public subnet, and an internet gateway
+   - Amazon Neptune Database cluster with a single Neptune serverless instance
+   - Amazon Aurora Postgres Database cluster with a single serverless instance
+   - Amazon SageMaker notebook
  
 Charges apply.
 

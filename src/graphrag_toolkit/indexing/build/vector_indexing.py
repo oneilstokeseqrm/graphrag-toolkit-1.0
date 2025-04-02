@@ -5,7 +5,7 @@ import logging
 from tqdm import tqdm
 from typing import List, Any, Union
 
-from graphrag_toolkit.storage import VectorStore
+from graphrag_toolkit.storage.vector import VectorStore
 from graphrag_toolkit.storage import VectorStoreFactory
 from graphrag_toolkit.indexing.node_handler import NodeHandler
 from graphrag_toolkit.indexing.build.vector_batch_client import VectorBatchClient

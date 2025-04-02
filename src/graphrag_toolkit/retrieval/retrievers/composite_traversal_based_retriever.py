@@ -7,11 +7,11 @@ import concurrent.futures
 from dataclasses import dataclass
 from typing import List, Type, Optional, Union
 
-from graphrag_toolkit.storage.graph_store import GraphStore
-from graphrag_toolkit.storage.vector_store import VectorStore
+from graphrag_toolkit.storage.graph import GraphStore
+from graphrag_toolkit.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever
 from graphrag_toolkit.retrieval.utils.query_decomposition import QueryDecomposition
-from graphrag_toolkit.retrieval.retrievers.entity_based_search import EntityBasedSearch
+from graphrag_toolkit.retrieval.retrievers.entity_context_search import EntityContextSearch
 from graphrag_toolkit.retrieval.retrievers.chunk_based_search import ChunkBasedSearch
 from graphrag_toolkit.retrieval.retrievers.keyword_entity_search import KeywordEntitySearch
 from graphrag_toolkit.retrieval.processors import *
@@ -30,8 +30,8 @@ class WeightedTraversalBasedRetriever:
     weight:float=1.0
 
 DEFAULT_TRAVERSAL_BASED_RETRIEVERS = [
-    WeightedTraversalBasedRetriever(retriever=ChunkBasedSearch, weight=1.0), 
-    WeightedTraversalBasedRetriever(retriever=EntityBasedSearch, weight=0.2)
+    WeightedTraversalBasedRetriever(retriever=ChunkBasedSearch, weight=0.2), 
+    WeightedTraversalBasedRetriever(retriever=EntityContextSearch, weight=1.0)
 ]
 
 WeightedTraversalBasedRetrieverType = Union[WeightedTraversalBasedRetriever, TraversalBasedBaseRetriever, Type[TraversalBasedBaseRetriever]]

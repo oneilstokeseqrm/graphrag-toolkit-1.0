@@ -2,20 +2,20 @@
 
 The graphrag-toolkit is a Python toolkit for building GraphRAG applications. It provides a framework for automating the construction of a graph from unstructured data, and composing question-answering strategies that query this graph when answering user questions. 
 
-The toolkit uses low-level [LlamaIndex](https://docs.llamaindex.ai/en/stable/)  components – data connectors, metadata extractors, and transforms – to implement much of the graph construction process. By default, the toolkit uses [Amazon Neptune Analytics](https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html) or [Amazon Neptune Database](https://docs.aws.amazon.com/neptune/latest/userguide/intro.html) (engine version 1.4.1.0 or later) for its graph store, and Neptune Analytics or [Amazon OpenSearch Serverless](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless.html) for its vector store, but it also provides extensibility points for adding alternative graph stores and vector stores. The default backend for LLMs and embedding models is [Amazon Bedrock](https://docs.aws.amazon.com/bedrock/); but, as with the stores, the toolkit can be configured for other LLM and embedding model backends using LlamaIndex abstractions.
+The toolkit uses low-level [LlamaIndex](https://docs.llamaindex.ai/en/stable/)  components – data connectors, metadata extractors, and transforms – to implement much of the graph construction process. By default, the toolkit uses [Amazon Neptune Analytics](https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html) or [Amazon Neptune Database](https://docs.aws.amazon.com/neptune/latest/userguide/intro.html) (engine version 1.4.1.0 or later) for its graph store, and Neptune Analytics, [Amazon OpenSearch Serverless](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless.html), or Postgres with the pgvector extension for its vector store, but it also provides extensibility points for adding alternative graph stores and vector stores. The default backend for LLMs and embedding models is [Amazon Bedrock](https://docs.aws.amazon.com/bedrock/); but, as with the stores, the toolkit can be configured for other LLM and embedding model backends using LlamaIndex abstractions.
 
 If you're running on AWS, there's a quick start AWS CloudFormation template in the [examples](./examples) directory. Note that you must run your application in an AWS region containing the Amazon Bedrock foundation models used by the toolkit (see the [configuration](./docs/configuration.md#graphragconfig) section in the documentation for details on the default models used), and must [enable access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html) to these models before running any part of the solution.
 
 ## v2.x
 
-v2.x of the graphrag-toolkit includes a number of breaking changes. The [graph model]((./docs/graph-model.md)) has changed so that the lexical graph can better co-exist with domain-specific graph data. The `LexicalGraphIndex` [configuration](./docs/indexing.md#configuring-the-extract-and-build-stages) has also changed.
+v2.x of the graphrag-toolkit includes a number of breaking changes. The [graph model](./docs/graph-model.md) has changed so that the lexical graph can better co-exist with domain-specific graph data. The `LexicalGraphIndex` [configuration](./docs/indexing.md#configuring-the-extract-and-build-stages) has also changed.
 
 ## Installation
 
-The graphrag-toolkit requires python and [pip](http://www.pip-installer.org/en/latest/) to install. You can install the graphrag-toolkit using pip:
+The graphrag-toolkit requires Python and [pip](http://www.pip-installer.org/en/latest/) to install. You can install the graphrag-toolkit using pip:
 
 ```
-$ pip install https://github.com/awslabs/graphrag-toolkit/archive/refs/tags/v2.0.1.zip
+$ pip install https://github.com/awslabs/graphrag-toolkit/archive/refs/tags/v2.4.0.zip
 ```
 
 ### Supported Python versions

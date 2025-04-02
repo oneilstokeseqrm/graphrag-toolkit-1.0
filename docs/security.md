@@ -6,7 +6,7 @@
 
   - [Overview](#overview)
   - [Managing access to Amazon Neptune](#managing-access-to-amazon-neptune)
-  - [Managing access to Amazon OpenSearch Serverless](#managing-access-to-amazon-opensearchs-serverless)
+  - [Managing access to Amazon OpenSearch Serverless](#managing-access-to-amazon-opensearch-serverless)
     - [OpenSearch API operations IAM policy](#opensearch-api-operations-iam-policy)
     - [Data access policy](#data-access-policy)
     - [Network access policy](#network-access-policy)

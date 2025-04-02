@@ -20,8 +20,11 @@ from opensearchpy import Urllib3AWSV4SignerAuth, Urllib3HttpConnection
 from opensearchpy import OpenSearch, AsyncOpenSearch
 
 from graphrag_toolkit.config import GraphRAGConfig, EmbeddingType
-from graphrag_toolkit.storage.vector_index import VectorIndex, to_embedded_query
+from graphrag_toolkit.storage.vector import VectorIndex, VectorIndexFactoryMethod, to_embedded_query
 from graphrag_toolkit.storage.constants import INDEX_KEY
+
+OPENSEARCH_SERVERLESS = 'aoss://'
+OPENSEARCH_SERVERLESS_DNS = 'aoss.amazonaws.com'
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,6 @@ llama_index.vector_stores.opensearch.OpensearchVectorClient._get_opensearch_vers
 @dataclass
 class DummyAuth:
     service:str
-
 
 def create_os_client(endpoint, **kwargs):
     
@@ -148,6 +150,20 @@ def create_opensearch_vector_client(endpoint, index_name, dimensions, embed_mode
     logger.debug(f'Created OpenSearch vector client [client: {client}, retry_count: {retry_count}]')
             
     return client
+
+class OpenSearchVectorIndexFactory(VectorIndexFactoryMethod):
+    def try_create(self, index_names:List[str], vector_index_info:str, **kwargs) -> List[VectorIndex]:
+        endpoint = None
+        if vector_index_info.startswith(OPENSEARCH_SERVERLESS):
+            endpoint = vector_index_info[len(OPENSEARCH_SERVERLESS):]
+        elif vector_index_info.startswith('https://') and vector_index_info.endswith(OPENSEARCH_SERVERLESS_DNS):
+            endpoint = vector_index_info
+        if endpoint:
+            logger.debug(f"Opening OpenSearch vector indexes [index_names: {index_names}, endpoint: {endpoint}]")
+            return [OpenSearchIndex.for_index(index_name, endpoint, **kwargs) for index_name in index_names]      
+        else:
+            return None
+
     
 class OpenSearchIndex(VectorIndex):
 

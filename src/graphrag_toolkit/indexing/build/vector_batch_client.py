@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from typing import List
-from graphrag_toolkit.storage import VectorStore
-from graphrag_toolkit.storage.vector_index import VectorIndex, DummyVectorIndex
+from graphrag_toolkit.storage.vector import VectorStore, VectorIndex, DummyVectorIndex
 from graphrag_toolkit.storage.constants import ALL_EMBEDDING_INDEXES
 
 class BatchVectorIndex():

@@ -8,7 +8,7 @@ from graphrag_toolkit.tenant_id import TenantId
 from graphrag_toolkit.storage import GraphStoreFactory, GraphStoreType
 from graphrag_toolkit.storage import VectorStoreFactory, VectorStoreType
 from graphrag_toolkit.storage import MultiTenantGraphStore, MultiTenantVectorStore
-from graphrag_toolkit.storage.graph_store import DummyGraphStore
+from graphrag_toolkit.storage.graph import DummyGraphStore
 from graphrag_toolkit.storage.constants import LEXICAL_GRAPH_LABELS
 from graphrag_toolkit.indexing.extract import BatchConfig
 from graphrag_toolkit.indexing import NodeHandler

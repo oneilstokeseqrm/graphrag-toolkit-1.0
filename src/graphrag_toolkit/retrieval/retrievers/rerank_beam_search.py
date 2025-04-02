@@ -5,8 +5,8 @@ import logging
 from queue import PriorityQueue
 from typing import List, Dict, Set, Tuple, Optional, Any, Union, Type
 
-from graphrag_toolkit.storage import GraphStore
-from graphrag_toolkit.storage import VectorStore
+from graphrag_toolkit.storage.graph import GraphStore
+from graphrag_toolkit.storage.vector import VectorStore
 from graphrag_toolkit.retrieval.utils.statement_utils import get_statements_query
 from graphrag_toolkit.retrieval.retrievers.semantic_guided_base_retriever import SemanticGuidedBaseRetriever
 from graphrag_toolkit.retrieval.post_processors import RerankerMixin

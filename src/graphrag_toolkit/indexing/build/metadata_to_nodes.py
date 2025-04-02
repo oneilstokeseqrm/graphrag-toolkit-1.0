@@ -39,12 +39,22 @@ class MetadataToNodes():
         return 'MetadataToNodes'
     
     def get_nodes_from_metadata(self, input_nodes: List[BaseNode], **kwargs: Any) -> List[BaseNode]:
+        
+        def clean_text(node):
+            node.text = node.text.replace('\x00', '')
+            return node
 
         results = []
 
         for builder in self.builders:
             try:
-                filtered_input_nodes = [node for node in input_nodes if any(key in builder.metadata_keys() for key in node.metadata)]
+                
+                filtered_input_nodes = [
+                    clean_text(node) 
+                    for node in input_nodes 
+                    if any(key in builder.metadata_keys() for key in node.metadata)
+                ]
+                
                 results.extend(builder.build_nodes(filtered_input_nodes, self.filter))
             except Exception as e:
                     logger.exception('An error occurred while building nodes from metadata')

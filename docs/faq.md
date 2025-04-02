@@ -26,7 +26,7 @@ from llama_index.readers.web import SimpleWebPageReader
 import nest_asyncio
 nest_asyncio.apply()
 
-def run_extract_and_build()
+def run_extract_and_build():
 
     graph_store = GraphStoreFactory.for_graph_store(
         'neptune-db://my-graph.cluster-abcdefghijkl.us-east-1.neptune.amazonaws.com'

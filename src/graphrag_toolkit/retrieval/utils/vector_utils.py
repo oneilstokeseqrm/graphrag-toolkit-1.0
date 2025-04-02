@@ -4,7 +4,7 @@
 import logging
 import queue
 
-from graphrag_toolkit.storage.vector_store import VectorStore
+from graphrag_toolkit.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.retrieval.processors import ProcessorArgs
 
 from llama_index.core.schema import QueryBundle
