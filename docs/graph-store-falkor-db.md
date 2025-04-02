@@ -20,7 +20,7 @@ Before creating a FalkorDB graph store, you must register the `FalkorDBGraphStor
 from graphrag_toolkit.storage import GraphStoreFactory
 from graphrag_toolkit.store.graph.falkordb_graph_store import FalkorDBGraphStoreFactory
 
-GraphStoreFactory.register_graph_store_factory_method(FalkorDBGraphStoreFactory)
+GraphStoreFactory.register(FalkorDBGraphStoreFactory)
 
 ```
 
@@ -38,7 +38,7 @@ from graphrag_toolkit.store.graph.falkordb_graph_store import FalkorDBGraphStore
 
 falkordb_connection_info = 'falkordb://your-falkordb-endpoint'
 
-GraphStoreFactory.register_graph_store_factory_method(FalkorDBGraphStoreFactory)
+GraphStoreFactory.register(FalkorDBGraphStoreFactory)
 
 graph_store = GraphStoreFactory.for_graph_store(falkordb_connection_info)
 ```
