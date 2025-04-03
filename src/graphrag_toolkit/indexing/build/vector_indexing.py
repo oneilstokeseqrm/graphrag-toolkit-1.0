@@ -26,18 +26,6 @@ class VectorIndexing(NodeHandler):
         else:
             return VectorIndexing(vector_store=VectorStoreFactory.for_vector_store(vector_store_info, index_names, **kwargs))
     
-    @staticmethod
-    def for_opensearch(endpoint, index_names=DEFAULT_EMBEDDING_INDEXES, **kwargs):
-        return VectorIndexing(vector_store=VectorStoreFactory.for_opensearch(endpoint, index_names=index_names, *kwargs))
-
-    @staticmethod
-    def for_neptune_analytics(graph_id, index_names=DEFAULT_EMBEDDING_INDEXES, **kwargs):
-        return VectorIndexing(vector_store=VectorStoreFactory.for_neptune_analytics(graph_id, index_names=index_names, **kwargs))
-        
-    @staticmethod
-    def for_dummy_vector_index(index_names=DEFAULT_EMBEDDING_INDEXES, **kwargs):
-        return VectorIndexing(vector_store=VectorStoreFactory.for_dummy_vector_index(index_names=index_names))
-    
     vector_store:VectorStore
 
     def accept(self, nodes: List[BaseNode], **kwargs: Any):

@@ -24,9 +24,8 @@ class NeptuneAnalyticsVectorIndexFactory(VectorIndexFactoryMethod):
         graph_id = None
         if vector_index_info.startswith(NEPTUNE_ANALYTICS):
             graph_id = vector_index_info[len(NEPTUNE_ANALYTICS):]
-        if graph_id:
             logger.debug(f"Opening Neptune Analytics vector indexes [index_names: {index_names}, graph_id: {graph_id}]")
-            return [NeptuneIndex.for_index(index_name, graph_id, **kwargs) for index_name in index_names]
+            return [NeptuneIndex.for_index(index_name, vector_index_info, **kwargs) for index_name in index_names]
         else:
             return None
 
@@ -36,7 +35,7 @@ class NeptuneIndex(VectorIndex):
     def for_index(index_name, graph_id, embed_model=None, dimensions=None):
 
         index_name = index_name.lower()
-        neptune_client:GraphStore = GraphStoreFactory.for_neptune_analytics(graph_id)
+        neptune_client:GraphStore = GraphStoreFactory.for_graph_store(graph_id)
         embed_model = embed_model or GraphRAGConfig.embed_model
         dimensions = dimensions or GraphRAGConfig.embed_dimensions
         id_name = f'{index_name}Id'
