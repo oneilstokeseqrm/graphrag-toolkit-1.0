@@ -272,18 +272,28 @@ class OpenSearchIndex(VectorIndex):
         
             query_bundle = to_embedded_query(query_bundle, self.embed_model)
 
-            results:VectorStoreQueryResult = await self.client.aquery(
-                VectorStoreQueryMode.DEFAULT, 
-                query_str=query_bundle.query_str, 
-                query_embedding=query_bundle.embedding, 
-                k=top_k
-            )
-                
-            scored_nodes = [
-                NodeWithScore(node=node, score=score) 
-                for node, score in zip(results.nodes, results.similarities)
-            ]
+            scored_nodes = []
             
+            try:
+
+                results:VectorStoreQueryResult = await self.client.aquery(
+                    VectorStoreQueryMode.DEFAULT, 
+                    query_str=query_bundle.query_str, 
+                    query_embedding=query_bundle.embedding, 
+                    k=top_k
+                )
+
+                scored_nodes.extend([
+                    NodeWithScore(node=node, score=score) 
+                    for node, score in zip(results.nodes, results.similarities)
+                ])
+
+            except NotFoundError as e:
+                if self.tenant_id.is_default_tenant():
+                    raise e
+                else:
+                    logger.warning(f'Multi-tenant index {self.underlying_index_name()} does not exist')
+                
             return scored_nodes
 
         scored_nodes = asyncio_run(atop_k(query_bundle, top_k))

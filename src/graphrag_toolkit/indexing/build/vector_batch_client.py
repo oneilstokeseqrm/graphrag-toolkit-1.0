@@ -28,7 +28,7 @@ class BatchVectorIndex():
 
 class VectorBatchClient():
     def __init__(self, vector_store:VectorStore, batch_writes_enabled:bool, batch_write_size:int):
-        self.indexes = {i.index_name: BatchVectorIndex(i, batch_write_size) for i in vector_store.indexes.values()}
+        self.indexes = {i.index_name: BatchVectorIndex(i, batch_write_size) for i in vector_store.all_indexes()}
         self.batch_writes_enabled = batch_writes_enabled
         self.all_nodes = []
 

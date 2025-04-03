@@ -5,6 +5,7 @@ import logging
 from pipe import Pipe
 from typing import List, Optional, Sequence, Dict, Iterable, Any
 
+from graphrag_toolkit import TenantId
 from graphrag_toolkit.config import GraphRAGConfig
 from graphrag_toolkit.indexing import IdGenerator
 from graphrag_toolkit.indexing.model import SourceType, SourceDocument, source_documents_from_source_types
@@ -48,7 +49,7 @@ class ExtractionPipeline():
                batch_size=None, 
                show_progress=False, 
                checkpoint:Optional[Checkpoint]=None,
-               tenant_id:Optional[str]=None,
+               tenant_id:Optional[TenantId]=None,
                **kwargs:Any):
         
         return Pipe(
@@ -73,7 +74,7 @@ class ExtractionPipeline():
                  batch_size=None, 
                  show_progress=False, 
                  checkpoint:Optional[Checkpoint]=None,
-                 tenant_id:Optional[str]=None,
+                 tenant_id:Optional[TenantId]=None,
                  **kwargs:Any):
         
         components = components or []

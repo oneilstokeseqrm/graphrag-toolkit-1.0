@@ -127,7 +127,7 @@ def on_query_failed(
 class GraphStore(BaseModel):
 
     log_formatting:GraphQueryLogFormatting = Field(default_factory=lambda: RedactedGraphQueryLogFormatting())
-    tenant_id:TenantId
+    tenant_id:TenantId = Field(default_factory=lambda: TenantId())
 
     def execute_query_with_retry(self, query:str, parameters:Dict[str, Any], max_attempts=3, max_wait=5, **kwargs):
         

@@ -123,7 +123,7 @@ class PGIndex(VectorIndex):
 
             register_vector(dbconn)
 
-            cur.execute(f'''CREATE TABLE IF NOT EXISTS {self.schema_name}.{self.index_name}(
+            cur.execute(f'''CREATE TABLE IF NOT EXISTS {self.schema_name}.{self.underlying_index_name()}(
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 {self.index_name}Id VARCHAR(255) unique,
                 value text,
@@ -131,8 +131,8 @@ class PGIndex(VectorIndex):
                 embedding vector({self.dimensions})
                 );'''
             )
-            cur.execute(f'CREATE INDEX IF NOT EXISTS {self.index_name}_{self.index_name}Id_idx ON {self.schema_name}.{self.index_name} USING hash ({self.index_name}Id);')
-            cur.execute(f'CREATE INDEX IF NOT EXISTS {self.index_name}_embedding_idx ON {self.schema_name}.{self.index_name} USING hnsw (embedding vector_l2_ops)')
+            cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_{self.index_name}Id_idx ON {self.schema_name}.{self.underlying_index_name()} USING hash ({self.index_name}Id);')
+            cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_embedding_idx ON {self.schema_name}.{self.underlying_index_name()} USING hnsw (embedding vector_l2_ops)')
             
             cur.close()
 
@@ -151,7 +151,7 @@ class PGIndex(VectorIndex):
         )
         for node in nodes:
             cur.execute(
-                f'INSERT INTO {self.schema_name}.{self.index_name} ({self.index_name}Id, value, metadata, embedding) SELECT %s, %s, %s, %s WHERE NOT EXISTS (SELECT * FROM {self.schema_name}.{self.index_name} c WHERE c.{self.index_name}Id = %s);',
+                f'INSERT INTO {self.schema_name}.{self.underlying_index_name()} ({self.index_name}Id, value, metadata, embedding) SELECT %s, %s, %s, %s WHERE NOT EXISTS (SELECT * FROM {self.schema_name}.{self.underlying_index_name()} c WHERE c.{self.index_name}Id = %s);',
                 (node.id_, node.text,  json.dumps(node.metadata), id_to_embed_map[node.id_], node.id_)
             )
 
@@ -206,7 +206,7 @@ class PGIndex(VectorIndex):
         query_bundle = to_embedded_query(query_bundle, self.embed_model)
 
         cur.execute(f'''SELECT {self.index_name}Id, metadata, embedding <-> %s AS score
-            FROM {self.schema_name}.{self.index_name}
+            FROM {self.schema_name}.{self.underlying_index_name()}
             ORDER BY score ASC LIMIT %s;''',
             (np.array(query_bundle.embedding), top_k)
         )
@@ -230,7 +230,7 @@ class PGIndex(VectorIndex):
             
 
         cur.execute(f'''SELECT {self.index_name}Id, value, metadata, embedding
-            FROM {self.schema_name}.{self.index_name}
+            FROM {self.schema_name}.{self.underlying_index_name()}
             WHERE {self.index_name}Id IN ({format_ids(ids)});'''
         )
 

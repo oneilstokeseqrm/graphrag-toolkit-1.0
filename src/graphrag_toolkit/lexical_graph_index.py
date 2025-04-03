@@ -1,10 +1,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
 from typing import List, Optional, Union, Any
 from pipe import Pipe
 
-from graphrag_toolkit.tenant_id import TenantId
+from graphrag_toolkit.tenant_id import TenantId, TenantIdType, DEFAULT_TENANT_ID, to_tenant_id
 from graphrag_toolkit.storage import GraphStoreFactory, GraphStoreType
 from graphrag_toolkit.storage import VectorStoreFactory, VectorStoreType
 from graphrag_toolkit.storage import MultiTenantGraphStore, MultiTenantVectorStore
@@ -31,6 +32,8 @@ from llama_index.core.node_parser import SentenceSplitter, NodeParser
 from llama_index.core.schema import BaseNode, NodeRelationship
 
 DEFAULT_EXTRACTION_DIR = 'output'
+
+logger = logging.getLogger(__name__)
 
 class ExtractionConfig():
     def __init__(self, 
@@ -103,10 +106,12 @@ class LexicalGraphIndex():
             self,
             graph_store:Optional[GraphStoreType]=None,
             vector_store:Optional[VectorStoreType]=None,
-            tenant_id:Optional[TenantId]=None,
+            tenant_id:Optional[TenantIdType]=None,
             extraction_dir:Optional[str]=None,
             indexing_config:Optional[IndexingConfig]=None,
         ):
+
+        tenant_id = to_tenant_id(tenant_id)
 
         self.graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id) 
         self.vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
@@ -216,13 +221,16 @@ class LexicalGraphIndex():
         ```
         """
 
+        if not self.tenant_id.is_default_tenant():
+            logger.warning('TenantId has been set to non-default tenant id, but extraction will use default tenant id')
+
         extraction_pipeline = ExtractionPipeline.create(
             components=self.extraction_components,
             pre_processors=self.extraction_pre_processors,
             show_progress=show_progress,
             checkpoint=checkpoint,
             num_workers=1 if self.allow_batch_inference else None,
-            tenant_id=self.tenant_id,
+            tenant_id=DEFAULT_TENANT_ID,
             **kwargs
         )
 
@@ -234,7 +242,7 @@ class LexicalGraphIndex():
             checkpoint=checkpoint,
             num_workers=1,
             batch_size=5,
-            tenant_id=self.tenant_id,
+            tenant_id=DEFAULT_TENANT_ID,
             **kwargs
         )
 
@@ -308,13 +316,18 @@ class LexicalGraphIndex():
         ```
         """
 
+        if not self.tenant_id.is_default_tenant():
+            logger.warning('TenantId has been set to non-default tenant id, but extraction will use default tenant id')
+
+        default_tenant_id = TenantId()
+
         extraction_pipeline = ExtractionPipeline.create(
             components=self.extraction_components,
             pre_processors=self.extraction_pre_processors,
             show_progress=show_progress,
             checkpoint=checkpoint,
             num_workers=1 if self.allow_batch_inference else None,
-            tenant_id=self.tenant_id,
+            tenant_id=DEFAULT_TENANT_ID,
             **kwargs
         )
         

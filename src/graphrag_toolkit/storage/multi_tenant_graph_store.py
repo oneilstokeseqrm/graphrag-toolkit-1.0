@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 
 from graphrag_toolkit import TenantId
 from graphrag_toolkit.storage.constants import LEXICAL_GRAPH_LABELS
-from graphrag_toolkit.storage.graph_store import GraphStore, NodeId
+from graphrag_toolkit.storage.graph import GraphStore, NodeId
 
 class MultiTenantGraphStore(GraphStore):
 

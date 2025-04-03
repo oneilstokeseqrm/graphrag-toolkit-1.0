@@ -38,7 +38,7 @@ class VectorStoreFactory():
         for factory in _vector_index_factories.values():
             vector_indexes = factory.try_create(index_names, vector_store_info, **kwargs)
             if vector_indexes:
-                return VectorStore(vector_indexes)
+                return VectorStore(indexes={i.index_name: i for i in vector_indexes})
             
         raise ValueError(f'Unrecognized vector store info: {vector_store_info}. Check that the vector store connection info is formatted correctly, and that an appropriate vector index factory method is registered with VectorStoreFactory.')
     

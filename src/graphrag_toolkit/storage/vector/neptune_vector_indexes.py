@@ -5,6 +5,7 @@ import string
 import logging
 from typing import Any, List
 
+from graphrag_toolkit import IndexError
 from graphrag_toolkit.config import GraphRAGConfig
 from graphrag_toolkit.storage import GraphStoreFactory
 from graphrag_toolkit.storage.graph import GraphStore
@@ -70,6 +71,9 @@ class NeptuneIndex(VectorIndex):
 
     
     def add_embeddings(self, nodes):
+
+        if not self.tenant_id.is_default_tenant():
+            raise IndexError('NeptuneIndex does not support multi-tenant indexes')
                 
         id_to_embed_map = embed_nodes(
             nodes, self.embed_model
@@ -130,6 +134,9 @@ class NeptuneIndex(VectorIndex):
     
     def top_k(self, query_bundle:QueryBundle, top_k:int=5):
 
+        if not self.tenant_id.is_default_tenant():
+            raise IndexError('NeptuneIndex does not support multi-tenant indexes')
+
         query_bundle = to_embedded_query(query_bundle, self.embed_model)
 
         cypher = f'''
@@ -154,6 +161,9 @@ class NeptuneIndex(VectorIndex):
         return [result['result'] for result in results]
 
     def get_embeddings(self, ids:List[str]=[]):
+
+        if not self.tenant_id.is_default_tenant():
+            raise IndexError('NeptuneIndex does not support multi-tenant indexes')
         
         all_results = []
         

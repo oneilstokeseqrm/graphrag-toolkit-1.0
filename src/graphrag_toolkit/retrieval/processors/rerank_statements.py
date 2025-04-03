@@ -61,21 +61,26 @@ class RerankStatements(ProcessorBase):
 
         while len(values_to_score) <= limit:
             values_to_score.append('')
-            
-        matcher_results = tm.matcher(match_values, values_to_score, limit, 3)
 
-        max_i = len(matcher_results.columns)
-        
         scored_values = {}
+
+        try:
+            
+            matcher_results = tm.matcher(match_values, values_to_score, limit, 3)
+
+            max_i = len(matcher_results.columns)
         
-        for row_index in range(0, len(match_values)):
-            for col_index in range(1, max_i, 3) :
-                value = matcher_results.iloc[row_index, col_index]
-                score = matcher_results.iloc[row_index, col_index+1]
-                if value not in scored_values:
-                    scored_values[value] = score
-                else:
-                    scored_values[value] = max(scored_values[value], score)
+            for row_index in range(0, len(match_values)):
+                for col_index in range(1, max_i, 3) :
+                    value = matcher_results.iloc[row_index, col_index]
+                    score = matcher_results.iloc[row_index, col_index+1]
+                    if value not in scored_values:
+                        scored_values[value] = score
+                    else:
+                        scored_values[value] = max(scored_values[value], score)
+        except ValueError:
+            scored_values = {v: 0.0 for v in values_to_score if v}
+        
                 
         sorted_scored_values = dict(sorted(scored_values.items(), key=lambda item: item[1], reverse=True))
         

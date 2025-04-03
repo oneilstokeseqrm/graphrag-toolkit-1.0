@@ -10,6 +10,7 @@ from functools import partial, reduce
 from typing import Any, List, Optional, Sequence, Iterable
 from pipe import Pipe
 
+from graphrag_toolkit import TenantId
 from graphrag_toolkit.config import GraphRAGConfig
 from graphrag_toolkit.indexing import NodeHandler, IdGenerator
 from graphrag_toolkit.indexing.model import SourceType, SourceDocument, source_documents_from_source_types
@@ -45,7 +46,7 @@ class BuildPipeline():
                checkpoint:Optional[Checkpoint]=None,
                filter:Optional[BuildFilter]=None,
                include_domain_labels:Optional[bool]=None,
-               tenant_id:Optional[str]=None,
+               tenant_id:Optional[TenantId]=None,
                **kwargs:Any
             ):
         return Pipe(
@@ -76,7 +77,7 @@ class BuildPipeline():
                  checkpoint:Optional[Checkpoint]=None,
                  filter:Optional[BuildFilter]=None,
                  include_domain_labels:Optional[bool]=None,
-                 tenant_id:Optional[str]=None,
+                 tenant_id:Optional[TenantId]=None,
                  **kwargs:Any
             ):
         
