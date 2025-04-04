@@ -9,6 +9,7 @@ import boto3
 from pgvector.psycopg2 import register_vector
 from typing import List, Sequence, Dict, Any, Optional
 from urllib.parse import urlparse
+from psycopg2.errors import UniqueViolation, UndefinedTable
 
 from graphrag_toolkit.config import GraphRAGConfig, EmbeddingType
 from graphrag_toolkit.storage.vector import VectorIndex, VectorIndexFactoryMethod, to_embedded_query
@@ -119,23 +120,32 @@ class PGIndex(VectorIndex):
 
         if not self.initialized:
 
-            if self.writeable:
+            cur = dbconn.cursor()
 
-                cur = dbconn.cursor()
+            try:
 
                 register_vector(dbconn)
 
-                cur.execute(f'''CREATE TABLE IF NOT EXISTS {self.schema_name}.{self.underlying_index_name()}(
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    {self.index_name}Id VARCHAR(255) unique,
-                    value text,
-                    metadata text,
-                    embedding vector({self.dimensions})
-                    );'''
-                )
-                cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_{self.index_name}Id_idx ON {self.schema_name}.{self.underlying_index_name()} USING hash ({self.index_name}Id);')
-                cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_embedding_idx ON {self.schema_name}.{self.underlying_index_name()} USING hnsw (embedding vector_l2_ops)')
+                if self.writeable:
+
+                    try:
+                        cur.execute(f'''CREATE TABLE IF NOT EXISTS {self.schema_name}.{self.underlying_index_name()}(
+                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                            {self.index_name}Id VARCHAR(255) unique,
+                            value text,
+                            metadata text,
+                            embedding vector({self.dimensions})
+                            );'''
+                        )
+                    except UniqueViolation:
+                        # For alt approaches, see: https://stackoverflow.com/questions/29900845/create-schema-if-not-exists-raises-duplicate-key-error
+                        logger.warning(f"UniqueViolation while trying to create table '{self.underlying_index_name()}'")
+                        pass
+
+                    cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_{self.index_name}Id_idx ON {self.schema_name}.{self.underlying_index_name()} USING hash ({self.index_name}Id);')
+                    cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_embedding_idx ON {self.schema_name}.{self.underlying_index_name()} USING hnsw (embedding vector_l2_ops)')
             
+            finally:
                 cur.close()
 
             self.initialized = True
@@ -148,17 +158,27 @@ class PGIndex(VectorIndex):
         dbconn = self._get_connection()
         cur = dbconn.cursor()
 
-        id_to_embed_map = embed_nodes(
-            nodes, self.embed_model
-        )
-        for node in nodes:
-            cur.execute(
-                f'INSERT INTO {self.schema_name}.{self.underlying_index_name()} ({self.index_name}Id, value, metadata, embedding) SELECT %s, %s, %s, %s WHERE NOT EXISTS (SELECT * FROM {self.schema_name}.{self.underlying_index_name()} c WHERE c.{self.index_name}Id = %s);',
-                (node.id_, node.text,  json.dumps(node.metadata), id_to_embed_map[node.id_], node.id_)
-            )
+        try:
 
-        cur.close()
-        dbconn.close()
+            id_to_embed_map = embed_nodes(
+                nodes, self.embed_model
+            )
+            for node in nodes:
+                cur.execute(
+                    f'INSERT INTO {self.schema_name}.{self.underlying_index_name()} ({self.index_name}Id, value, metadata, embedding) SELECT %s, %s, %s, %s WHERE NOT EXISTS (SELECT * FROM {self.schema_name}.{self.underlying_index_name()} c WHERE c.{self.index_name}Id = %s);',
+                    (node.id_, node.text,  json.dumps(node.metadata), id_to_embed_map[node.id_], node.id_)
+                )
+
+        except UndefinedTable as e:
+            if self.tenant_id.is_default_tenant():
+                raise e
+            else:
+                logger.warning(f'Multi-tenant index {self.underlying_index_name()} does not exist')
+
+        finally:
+
+            cur.close()
+            dbconn.close()
 
         return nodes
     
@@ -205,20 +225,33 @@ class PGIndex(VectorIndex):
         dbconn = self._get_connection()
         cur = dbconn.cursor()
 
-        query_bundle = to_embedded_query(query_bundle, self.embed_model)
+        top_k_results = []
 
-        cur.execute(f'''SELECT {self.index_name}Id, metadata, embedding <-> %s AS score
-            FROM {self.schema_name}.{self.underlying_index_name()}
-            ORDER BY score ASC LIMIT %s;''',
-            (np.array(query_bundle.embedding), top_k)
-        )
+        try:
 
-        results = cur.fetchall()
+            query_bundle = to_embedded_query(query_bundle, self.embed_model)
+        
+            cur.execute(f'''SELECT {self.index_name}Id, metadata, embedding <-> %s AS score
+                FROM {self.schema_name}.{self.underlying_index_name()}
+                ORDER BY score ASC LIMIT %s;''',
+                (np.array(query_bundle.embedding), top_k)
+            )
 
-        top_k_results = [self._to_top_k_result(result) for result in results]
+            results = cur.fetchall()
 
-        cur.close()
-        dbconn.close()
+            top_k_results.extend(
+                [self._to_top_k_result(result) for result in results]
+            )
+
+        except UndefinedTable as e:
+            if self.tenant_id.is_default_tenant():
+                raise e
+            else:
+                logger.warning(f'Multi-tenant index {self.underlying_index_name()} does not exist')
+
+        finally:
+            cur.close()
+            dbconn.close()
 
         return top_k_results
 
@@ -229,18 +262,30 @@ class PGIndex(VectorIndex):
 
         def format_ids(ids):
             return ','.join([f"'{id}'" for id in ids])
-            
+        
+        get_embeddings_results = []
 
-        cur.execute(f'''SELECT {self.index_name}Id, value, metadata, embedding
-            FROM {self.schema_name}.{self.underlying_index_name()}
-            WHERE {self.index_name}Id IN ({format_ids(ids)});'''
-        )
+        try:
 
-        results = cur.fetchall()
+            cur.execute(f'''SELECT {self.index_name}Id, value, metadata, embedding
+                FROM {self.schema_name}.{self.underlying_index_name()}
+                WHERE {self.index_name}Id IN ({format_ids(ids)});'''
+            )
 
-        get_embeddings_results = [self._to_get_embedding_result(result) for result in results]
+            results = cur.fetchall()
 
-        cur.close()
-        dbconn.close()
+            get_embeddings_results.extend(
+                [self._to_get_embedding_result(result) for result in results]
+            )
+
+        except UndefinedTable as e:
+            if self.tenant_id.is_default_tenant():
+                raise e
+            else:
+                logger.warning(f'Multi-tenant index {self.underlying_index_name()} does not exist')
+
+        finally:
+            cur.close()
+            dbconn.close()
 
         return get_embeddings_results
