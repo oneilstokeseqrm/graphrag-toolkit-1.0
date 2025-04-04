@@ -27,6 +27,7 @@ def to_embedded_query(query_bundle:QueryBundle, embed_model:EmbeddingType) -> Qu
 class VectorIndex(BaseModel):
     index_name: str
     tenant_id:TenantId = Field(default_factory=lambda: TenantId())
+    writeable:bool = True
 
     @field_validator('index_name')
     def validate_option(cls, v):

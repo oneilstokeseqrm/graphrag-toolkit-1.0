@@ -4,14 +4,14 @@
 import boto3
 import json
 import logging
-from typing import List
+from typing import List, Any, Optional
 from dataclasses import dataclass
 
 from llama_index.core.bridge.pydantic import PrivateAttr
 from llama_index.core.schema import BaseNode, NodeWithScore, QueryBundle
 from llama_index.core.async_utils import asyncio_run
 from llama_index.vector_stores.opensearch import OpensearchVectorClient
-from llama_index.core.vector_stores.types import  VectorStoreQueryResult, VectorStoreQueryMode
+from llama_index.core.vector_stores.types import  VectorStoreQueryResult, VectorStoreQueryMode, MetadataFilters
 from llama_index.core.indices.utils import embed_nodes
 
 from opensearchpy.exceptions import NotFoundError, RequestError
@@ -82,7 +82,7 @@ def create_os_async_client(endpoint, **kwargs):
     )
     
 
-def create_index_if_not_exists(endpoint, index_name, dimensions):
+def index_exists(endpoint, index_name, dimensions, writeable) -> bool:
 
     client = create_os_client(endpoint, pool_maxsize=1)
 
@@ -107,10 +107,13 @@ def create_index_if_not_exists(endpoint, index_name, dimensions):
         }
     }
 
+    index_exists = False
+
     try:
-        if not client.indices.exists(index_name):
+        if not client.indices.exists(index_name) and writeable:
             logger.debug(f'Creating OpenSearch index [index_name: {index_name}, endpoint: {endpoint}]')
             client.indices.create(index=index_name, body=idx_conf)
+            index_exists = True
     except RequestError as e:
         if e.error == 'resource_already_exists_exception':
             pass
@@ -118,6 +121,8 @@ def create_index_if_not_exists(endpoint, index_name, dimensions):
             logger.exception('Error creating an OpenSearch index')
     finally:
         client.close()
+
+    return index_exists
         
     
 def create_opensearch_vector_client(endpoint, index_name, dimensions, embed_model):
@@ -163,7 +168,23 @@ class OpenSearchVectorIndexFactory(VectorIndexFactoryMethod):
             return [OpenSearchIndex.for_index(index_name, endpoint, **kwargs) for index_name in index_names]      
         else:
             return None
+        
+class DummyOpensearchVectorClient():
+    def __init__(self):
+        self._os_async_client = None
 
+    async def aindex_results(self, nodes: List[BaseNode], **kwargs: Any) -> List[str]:
+        return []
+    async def aquery(
+        self,
+        query_mode: VectorStoreQueryMode,
+        query_str: Optional[str],
+        query_embedding: List[float],
+        k: int,
+        filters: Optional[MetadataFilters] = None,
+    ) -> VectorStoreQueryResult:
+        return VectorStoreQueryResult(nodes=[], similarities=[], ids=[])
+        
     
 class OpenSearchIndex(VectorIndex):
 
@@ -192,17 +213,19 @@ class OpenSearchIndex(VectorIndex):
     @property
     def client(self) -> OpensearchVectorClient:
         if not self._client:
-            create_index_if_not_exists(self.endpoint, self.underlying_index_name(), self.dimensions)
-            self._client = create_opensearch_vector_client(
-                self.endpoint, 
-                self.underlying_index_name(), 
-                self.dimensions, 
-                self.embed_model
-            )
+            if index_exists(self.endpoint, self.underlying_index_name(), self.dimensions, self.writeable):
+                self._client = create_opensearch_vector_client(
+                    self.endpoint, 
+                    self.underlying_index_name(), 
+                    self.dimensions, 
+                    self.embed_model
+                )
+            else:
+                self._client = DummyOpensearchVectorClient()
         return self._client
     
     def __del__(self):
-        if self._client:
+        if self._client and isinstance(self._client, OpensearchVectorClient):
             asyncio_run(self._client._os_async_client.close())
         
     def _clean_id(self, s):
@@ -303,6 +326,10 @@ class OpenSearchIndex(VectorIndex):
     # opensearch has a limit of 10,000 results per search, so we use this to paginate the search
     async def paginated_search(self, query, page_size=10000, max_pages=None):
         client = self.client._os_async_client
+
+        if not client:
+            pass
+
         search_after = None
         page = 0
         

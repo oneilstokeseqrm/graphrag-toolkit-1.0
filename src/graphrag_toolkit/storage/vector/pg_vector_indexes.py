@@ -119,22 +119,24 @@ class PGIndex(VectorIndex):
 
         if not self.initialized:
 
-            cur = dbconn.cursor()
+            if self.writeable:
 
-            register_vector(dbconn)
+                cur = dbconn.cursor()
 
-            cur.execute(f'''CREATE TABLE IF NOT EXISTS {self.schema_name}.{self.underlying_index_name()}(
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                {self.index_name}Id VARCHAR(255) unique,
-                value text,
-                metadata text,
-                embedding vector({self.dimensions})
-                );'''
-            )
-            cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_{self.index_name}Id_idx ON {self.schema_name}.{self.underlying_index_name()} USING hash ({self.index_name}Id);')
-            cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_embedding_idx ON {self.schema_name}.{self.underlying_index_name()} USING hnsw (embedding vector_l2_ops)')
+                register_vector(dbconn)
+
+                cur.execute(f'''CREATE TABLE IF NOT EXISTS {self.schema_name}.{self.underlying_index_name()}(
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    {self.index_name}Id VARCHAR(255) unique,
+                    value text,
+                    metadata text,
+                    embedding vector({self.dimensions})
+                    );'''
+                )
+                cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_{self.index_name}Id_idx ON {self.schema_name}.{self.underlying_index_name()} USING hash ({self.index_name}Id);')
+                cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_embedding_idx ON {self.schema_name}.{self.underlying_index_name()} USING hnsw (embedding vector_l2_ops)')
             
-            cur.close()
+                cur.close()
 
             self.initialized = True
 
