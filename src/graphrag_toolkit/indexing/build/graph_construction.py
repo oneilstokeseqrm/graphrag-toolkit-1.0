@@ -48,18 +48,6 @@ class GraphConstruction(NodeHandler):
         else:
             return GraphConstruction(graph_client=GraphStoreFactory.for_graph_store(graph_info, **kwargs), **kwargs)
     
-    @staticmethod
-    def for_neptune_database(graph_endpoint, **kwargs):
-        return GraphConstruction(graph_client=GraphStoreFactory.for_neptune_database(graph_endpoint, **kwargs), **kwargs)
-    
-    @staticmethod
-    def for_neptune_analytics(graph_id, **kwargs):
-        return GraphConstruction(graph_client=GraphStoreFactory.for_neptune_analytics(graph_id, **kwargs), **kwargs)
-    
-    @staticmethod
-    def for_dummy_graph_store(*args, **kwargs):
-        return GraphConstruction(graph_client=GraphStoreFactory.for_dummy_graph_store(), **kwargs)
-    
     graph_client: GraphStore 
     builders:List[GraphBuilder] = Field(
         description='Graph builders',
