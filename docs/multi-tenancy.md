@@ -6,7 +6,9 @@
 
 - [Overview](#overview)
 - [Tenant Id](#tenant-id)
-- [Vector store](#vector-store)
+- [Indexing and multi-tenancy](#indexing-and-multi-tenancy)
+- [Querying and multi-tenancy](#querying-and-multi-tenancy)
+- [Implementation details](#implementation-details)
 
 ### Overview
 
