@@ -2,7 +2,9 @@
 
   - [Storage Model](./storage-model.md)
   - [Indexing](./indexing.md) 
+  - [Batch Extraction](./batch-extraction.md) 
   - [Querying](./querying.md) 
+  - [Multi-Tenancy](./multi-tenancy.md) 
   - [Configuration](./configuration.md) 
   - [Graph Model](./graph-model.md)
   - [Security](./security.md)

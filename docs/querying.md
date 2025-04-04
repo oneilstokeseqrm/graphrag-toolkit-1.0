@@ -27,6 +27,8 @@ In the current release the output formats of the two retrievers are different. F
 
 > The [FalkorDB graph store](./storage-model.md#falkordb-graph-store) currently supports the `SemanticGuidedRetriever`. It does not support the `TraversalBasedRetriever`](./querying.md#traversalbasedretriever)`.
 
+Querying supports [multi-tenancy](multi-tenancy.md), whereby you can query different lexical graphs hosted in the same backend graph and vector stores.
+
 #### Code examples
 
 The code examples here are formatted to run in a Jupyter notebook. If you’re building an application with a main entry point, put your application logic inside a method, and add an [`if __name__ == '__main__'` block](./faq.md#runtimeerror-please-use-nest_asyncioapply-to-allow-nested-event-loops).
