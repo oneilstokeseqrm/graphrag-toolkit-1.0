@@ -11,7 +11,7 @@ If you're running on AWS, there are quick start AWS CloudFormation templates in 
 The graphrag-toolkit requires Python and [pip](http://www.pip-installer.org/en/latest/) to install. You can install the graphrag-toolkit using pip:
 
 ```
-$ pip install https://github.com/awslabs/graphrag-toolkit/archive/refs/tags/v2.4.1.zip
+$ pip install https://github.com/awslabs/graphrag-toolkit/archive/refs/tags/v2.5.0.zip
 ```
 
 ### Supported Python versions

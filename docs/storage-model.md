@@ -48,7 +48,7 @@ The graphrag-toolkit supports the following vector-stores:
 
 By default, the `VectorStoreFactory` will enable both the statement index and the chunk index. If you want to enable just one of the indexes, pass an `index_names` argument to the factory method:
 
-```
+```python
 vector_store = VectorStoreFactory.for_vector_store(opensearch_connection_info, index_names=['chunk'])
 ```
 
