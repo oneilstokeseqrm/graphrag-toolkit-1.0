@@ -155,6 +155,9 @@ class PGIndex(VectorIndex):
 
     def add_embeddings(self, nodes:Sequence[BaseNode]) -> Sequence[BaseNode]:
 
+        if not self.writeable:
+            raise IndexError(f'Index {self.index_name()} is read-only')
+
         dbconn = self._get_connection()
         cur = dbconn.cursor()
 
@@ -244,10 +247,7 @@ class PGIndex(VectorIndex):
             )
 
         except UndefinedTable as e:
-            if self.tenant_id.is_default_tenant():
-                raise e
-            else:
-                logger.warning(f'Multi-tenant index {self.underlying_index_name()} does not exist')
+            logger.warning(f'Index {self.underlying_index_name()} does not exist')
 
         finally:
             cur.close()
@@ -279,10 +279,7 @@ class PGIndex(VectorIndex):
             )
 
         except UndefinedTable as e:
-            if self.tenant_id.is_default_tenant():
-                raise e
-            else:
-                logger.warning(f'Multi-tenant index {self.underlying_index_name()} does not exist')
+            logger.warning(f'Index {self.underlying_index_name()} does not exist')
 
         finally:
             cur.close()

@@ -266,6 +266,9 @@ class OpenSearchIndex(VectorIndex):
         return result
 
     def add_embeddings(self, nodes):
+
+        if not self.writeable:
+            raise IndexError(f'Index {self.index_name()} is read-only')
         
         async def aadd_embeddings(nodes):
                     
