@@ -12,7 +12,7 @@
 
 ### Overview
 
-Multi-tenancy allows you to host separate lexical graphs in the same underlying graph and vector stores.
+Multi-tenancy allows you to host multiple separate lexical graphs in the same underlying graph and vector stores.
 
 ### Tenant Id
 
@@ -45,7 +45,6 @@ The following example creates a `LexicalGraphQueryEngine` for tenant 'user123':
 from graphrag_toolkit import LexicalGraphQueryEngine
 
 graph_store = ...
-
 vector_store = ...
 
 query_engine = LexicalGraphQueryEngine.for_traversal_based_search(
