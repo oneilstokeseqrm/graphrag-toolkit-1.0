@@ -79,6 +79,8 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
             if not keywords:
                 logger.warning("No keywords extracted from query")
                 return []
+            
+            logger.debug(f'keywords: {keywords}')
 
             # 2. Find statements matching any keyword
             cypher = f"""
@@ -100,6 +102,8 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
             if not results:
                 logger.debug("No statements found matching keywords")
                 return []
+            
+            logger.debug(f'results: {results}')
 
             # 3. Group statements by number of keyword matches
             statements_by_matches: Dict[int, List[Tuple[str, Set[str]]]] = {}
@@ -126,6 +130,8 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
                         statement_embeddings,
                         len(statement_ids)
                     )
+                    
+                    logger.debug(f'scored_statements: {scored_statements}')
                     
                     # Create nodes with scores and keyword information
                     keyword_map = {sid: kw for sid, kw in group}
@@ -162,6 +168,8 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
             if self.top_k:
                 final_nodes.sort(key=lambda x: x.score or 0.0, reverse=True)
                 final_nodes = final_nodes[:self.top_k]
+                
+            logger.debug(f'final_nodes: {final_nodes}')
 
             return final_nodes
 

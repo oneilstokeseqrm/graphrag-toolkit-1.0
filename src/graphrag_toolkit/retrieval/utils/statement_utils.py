@@ -28,10 +28,15 @@ def cosine_similarity(query_embedding, statement_embeddings):
     return similarities, statement_ids
 
 def get_top_k(query_embedding, statement_embeddings, top_k):
+
+    logger.debug(f'statement_embeddings: {statement_embeddings}')
+
     if not statement_embeddings:
         return []  
     
     similarities, statement_ids = cosine_similarity(query_embedding, statement_embeddings)
+
+    logger.debug(f'similarities: {similarities}')
     
     if len(similarities) == 0:
         return []
@@ -97,12 +102,16 @@ class SharedEmbeddingCache:
         missing_ids = []
         cached_embeddings = {}
 
+        logger.debug(f'statement_ids: {statement_ids}')
+
         # Check cache first
         for sid in statement_ids:
             if sid in self._cache:
                 cached_embeddings[sid] = self._cache[sid]
             else:
                 missing_ids.append(sid)
+
+        logger.debug(f'missing_ids: {missing_ids}')
 
         # Fetch missing embeddings with retry
         if missing_ids:

@@ -36,6 +36,8 @@ class StatementCosineSimilaritySearch(SemanticGuidedBaseRetriever):
                 top_k=500
             )
             
+            logger.debug(f'statement_results: {statement_results}')
+            
             # 2. Get statement IDs and embeddings using shared cache
             statement_ids = [r['statement']['statementId'] for r in statement_results]
             statement_embeddings = self.embedding_cache.get_embeddings(statement_ids)
@@ -46,6 +48,8 @@ class StatementCosineSimilaritySearch(SemanticGuidedBaseRetriever):
                 statement_embeddings,
                 self.top_k
             )
+            
+            logger.debug(f'top_k_statements: {top_k_statements}')
 
             # 4. Create nodes with minimal data
             nodes = []
@@ -58,6 +62,8 @@ class StatementCosineSimilaritySearch(SemanticGuidedBaseRetriever):
                     }
                 )
                 nodes.append(NodeWithScore(node=node, score=score))
+                
+            logger.debug(f'nodes: {nodes}')
 
             return nodes
 

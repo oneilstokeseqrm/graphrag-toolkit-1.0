@@ -118,6 +118,8 @@ class SemanticBeamGraphSearch(SemanticGuidedBaseRetriever):
                 initial_statement_ids = [
                     r['statement']['statementId'] for r in results
                 ]
+                
+            logger.debug(f'initial_statement_ids: {initial_statement_ids}')
 
             if not initial_statement_ids:
                 return []
@@ -127,6 +129,8 @@ class SemanticBeamGraphSearch(SemanticGuidedBaseRetriever):
                 query_bundle.embedding,
                 initial_statement_ids
             )
+            
+            logger.debug(f'beam_results: {beam_results}')
 
             # 3. Create nodes for new statements only
             nodes = []
@@ -143,6 +147,8 @@ class SemanticBeamGraphSearch(SemanticGuidedBaseRetriever):
                         }
                     )
                     nodes.append(NodeWithScore(node=node, score=0.0))
+                    
+            logger.debug(f'nodes: {nodes}')
 
             return nodes
 

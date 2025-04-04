@@ -317,7 +317,7 @@ class OpenSearchIndex(VectorIndex):
                 body["search_after"] = search_after
 
             response = await client.search(
-                index=self.index_name,
+                index=self.underlying_index_name(),
                 body=body
             )
 

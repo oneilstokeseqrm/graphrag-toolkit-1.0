@@ -82,6 +82,8 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
             # 1. Get initial results in parallel
             tasks = [r.aretrieve(query_bundle) for r in self.initial_retrievers]
             initial_results = run_async_tasks(tasks)
+            
+            logger.debug(f'initial_results: {initial_results}')
 
             # 2. Collect unique initial nodes
             seen_statement_ids = set()
@@ -94,6 +96,8 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
                         initial_nodes.append(node)
 
             all_nodes = initial_nodes.copy()
+            
+            logger.debug(f'all_nodes (before expansion): {all_nodes}')
 
             # 3. Graph expansion if enabled
             if self.share_results and initial_nodes:
@@ -109,6 +113,8 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
                     except Exception as e:
                         logger.error(f"Error in graph retriever {retriever.__class__.__name__}: {e}")
                         continue
+                        
+            logger.debug(f'all_nodes (after expansion): {all_nodes}')
 
             # 4. Fetch statements once
             if not all_nodes:
@@ -119,6 +125,8 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
                 for node in all_nodes
             ]
             statements = get_statements_query(self.graph_store, statement_ids)
+            
+            logger.debug(f'statements: {statements}')
 
             # 5. Create final nodes with full data
             final_nodes = []
@@ -144,6 +152,8 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
                         node=new_node,
                         score=node.score
                     ))
+                    
+            logger.debug(f'final_nodes: {final_nodes}')
 
             # 6. Group by source for better context
             source_nodes = defaultdict(list)
@@ -156,6 +166,8 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
             for source_id, nodes in source_nodes.items():
                 nodes.sort(key=lambda x: x.score or 0.0, reverse=True)
                 ordered_nodes.extend(nodes)
+                
+            logger.debug(f'ordered_nodes: {ordered_nodes}')
 
             return ordered_nodes
 
