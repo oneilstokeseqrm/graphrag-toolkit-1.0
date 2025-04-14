@@ -142,9 +142,19 @@ class PGIndex(VectorIndex):
                         logger.warning(f"UniqueViolation while trying to create table '{self.underlying_index_name()}'")
                         pass
 
-                    cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_{self.index_name}Id_idx ON {self.schema_name}.{self.underlying_index_name()} USING hash ({self.index_name}Id);')
-                    cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_embedding_idx ON {self.schema_name}.{self.underlying_index_name()} USING hnsw (embedding vector_l2_ops)')
-            
+                    index_name = f'{self.underlying_index_name()}_{self.index_name}Id_idx'
+                    try:
+                        cur.execute(f'CREATE INDEX IF NOT EXISTS {index_name} ON {self.schema_name}.{self.underlying_index_name()} USING hash ({self.index_name}Id);')
+                    except UniqueViolation:
+                        logger.warning(f"UniqueViolation while trying to create index '{index_name}'")
+                        pass
+
+                    index_name = f'{self.underlying_index_name()}_{self.index_name}Id_idx'
+                    try:
+                        cur.execute(f'CREATE INDEX IF NOT EXISTS {self.underlying_index_name()}_embedding_idx ON {self.schema_name}.{self.underlying_index_name()} USING hnsw (embedding vector_l2_ops)')
+                    except UniqueViolation:
+                        logger.warning(f"UniqueViolation while trying to create index '{index_name}'")
+                        pass
             finally:
                 cur.close()
 
