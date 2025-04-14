@@ -649,9 +649,38 @@
                 "bedrock:InvokeModel"
               ],
               "Resource": [
-                {
-                  "Fn::Sub": "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"
-                },
+				{
+					"Fn::Sub": "arn:${AWS::Partition}:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-20240620-v1:0"
+				},
+				{
+					"Fn::Sub": [
+						"arn:${partition}:bedrock:${region}:${accountId}:inference-profile/${regionPrefix}.anthropic.claude-3-5-sonnet-20240620-v1:0",
+						{
+							"partition": {
+								"Ref": "AWS::Partition"
+							},
+							"region": {
+								"Ref": "AWS::Region"
+							},
+							"accountId": {
+								"Ref": "AWS::AccountId"
+							},
+							"regionPrefix": {
+								"Fn::Select": [
+									0,
+									{
+										"Fn::Split": [
+											"-",
+											{
+												"Ref": "AWS::Region"
+											}
+										]
+									}
+								]
+							}
+						}
+					]
+				},
                 {
                   "Fn::Sub": "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/cohere.embed-english-v3"
                 }
@@ -1276,11 +1305,101 @@
                     "sudo -u ec2-user -i <<'EOF'\n",
                     "\n",
                     "sudo pip install packaging==24.2\n",
-                    "echo \"export EXTRACTION_MODEL=anthropic.claude-3-sonnet-20240229-v1:0\" >> ~/.bashrc\n",
+                    "echo \"export EXTRACTION_MODEL=",
+					{
+						"Fn::Sub": [
+							"${regionPrefix}.anthropic.claude-3-5-sonnet-20240620-v1:0",
+							{
+								"partition": {
+									"Ref": "AWS::Partition"
+								},
+								"region": {
+									"Ref": "AWS::Region"
+								},
+								"accountId": {
+									"Ref": "AWS::AccountId"
+								},
+								"regionPrefix": {
+									"Fn::Select": [
+										0,
+										{
+											"Fn::Split": [
+												"-",
+												{
+													"Ref": "AWS::Region"
+												}
+											]
+										}
+									]
+								}
+							}
+						]
+					},
+					"\" >> ~/.bashrc\n",
                     "echo \"export EMBEDDINGS_MODEL=cohere.embed-english-v3\" >> ~/.bashrc\n",
                     "echo \"export EMBEDDINGS_DIMENSIONS=1024\" >> ~/.bashrc\n",
-                    "echo \"export RESPONSE_MODEL=anthropic.claude-3-sonnet-20240229-v1:0\" >> ~/.bashrc\n",
-                    "echo \"export EVALUATION_MODEL=anthropic.claude-3-sonnet-20240229-v1:0\" >> ~/.bashrc\n",
+                    "echo \"export RESPONSE_MODEL=",
+					{
+						"Fn::Sub": [
+							"${regionPrefix}.anthropic.claude-3-5-sonnet-20240620-v1:0",
+							{
+								"partition": {
+									"Ref": "AWS::Partition"
+								},
+								"region": {
+									"Ref": "AWS::Region"
+								},
+								"accountId": {
+									"Ref": "AWS::AccountId"
+								},
+								"regionPrefix": {
+									"Fn::Select": [
+										0,
+										{
+											"Fn::Split": [
+												"-",
+												{
+													"Ref": "AWS::Region"
+												}
+											]
+										}
+									]
+								}
+							}
+						]
+					},
+					"\" >> ~/.bashrc\n",
+                    "echo \"export EVALUATION_MODEL=",
+					{
+						"Fn::Sub": [
+							"${regionPrefix}.anthropic.claude-3-5-sonnet-20240620-v1:0",
+							{
+								"partition": {
+									"Ref": "AWS::Partition"
+								},
+								"region": {
+									"Ref": "AWS::Region"
+								},
+								"accountId": {
+									"Ref": "AWS::AccountId"
+								},
+								"regionPrefix": {
+									"Fn::Select": [
+										0,
+										{
+											"Fn::Split": [
+												"-",
+												{
+													"Ref": "AWS::Region"
+												}
+											]
+										}
+									]
+								}
+							}
+						]
+					},
+					"\" >> ~/.bashrc\n",
                     "echo \"export GRAPH_NOTEBOOK_AUTH_MODE=IAM\" >> ~/.bashrc\n",
                     "echo \"export GRAPH_NOTEBOOK_SSL=True\" >> ~/.bashrc\n",
                     "echo \"export GRAPH_NOTEBOOK_IAM_PROVIDER=ROLE\" >> ~/.bashrc\n",
@@ -1420,11 +1539,101 @@
                       ]
                     },
                     "\" >> .env\n",
-                    "  echo \"export EXTRACTION_MODEL=anthropic.claude-3-sonnet-20240229-v1:0\" >> .env\n",
+                    "  echo \"export EXTRACTION_MODEL=",
+					{
+						"Fn::Sub": [
+							"${regionPrefix}.anthropic.claude-3-5-sonnet-20240620-v1:0",
+							{
+								"partition": {
+									"Ref": "AWS::Partition"
+								},
+								"region": {
+									"Ref": "AWS::Region"
+								},
+								"accountId": {
+									"Ref": "AWS::AccountId"
+								},
+								"regionPrefix": {
+									"Fn::Select": [
+										0,
+										{
+											"Fn::Split": [
+												"-",
+												{
+													"Ref": "AWS::Region"
+												}
+											]
+										}
+									]
+								}
+							}
+						]
+					},
+					"\" >> .env\n",
                     "  echo \"export EMBEDDINGS_MODEL=cohere.embed-english-v3\" >> .env\n",
                     "  echo \"export EMBEDDINGS_DIMENSIONS=1024\" >> .env\n",
-                    "  echo \"export RESPONSE_MODEL=anthropic.claude-3-sonnet-20240229-v1:0\" >> .env\n",
-                    "  echo \"export EVALUATION_MODEL=anthropic.claude-3-sonnet-20240229-v1:0\" >> .env\n",
+                    "  echo \"export RESPONSE_MODEL=",
+					{
+						"Fn::Sub": [
+							"${regionPrefix}.anthropic.claude-3-5-sonnet-20240620-v1:0",
+							{
+								"partition": {
+									"Ref": "AWS::Partition"
+								},
+								"region": {
+									"Ref": "AWS::Region"
+								},
+								"accountId": {
+									"Ref": "AWS::AccountId"
+								},
+								"regionPrefix": {
+									"Fn::Select": [
+										0,
+										{
+											"Fn::Split": [
+												"-",
+												{
+													"Ref": "AWS::Region"
+												}
+											]
+										}
+									]
+								}
+							}
+						]
+					},
+					"\" >> .env\n",
+                    "  echo \"export EVALUATION_MODEL=",
+					{
+						"Fn::Sub": [
+							"${regionPrefix}.anthropic.claude-3-5-sonnet-20240620-v1:0",
+							{
+								"partition": {
+									"Ref": "AWS::Partition"
+								},
+								"region": {
+									"Ref": "AWS::Region"
+								},
+								"accountId": {
+									"Ref": "AWS::AccountId"
+								},
+								"regionPrefix": {
+									"Fn::Select": [
+										0,
+										{
+											"Fn::Split": [
+												"-",
+												{
+													"Ref": "AWS::Region"
+												}
+											]
+										}
+									]
+								}
+							}
+						]
+					},
+					"\" >> .env\n",
                     "fi\n",
                     "EOF"
                   ]

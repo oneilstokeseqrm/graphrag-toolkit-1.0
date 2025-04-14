@@ -43,9 +43,9 @@ llama_index.embeddings.bedrock.BedrockEmbedding._get_embedding = _get_embedding
 
 def _create_retry_decorator(client: Any, max_retries: int) -> Callable[[Any], Any]:
     min_seconds = 4
-    max_seconds = 10
+    max_seconds = 30
     # Wait 2^x * 1 second between each retry starting with
-    # 4 seconds, then up to 10 seconds, then 10 seconds afterwards
+    # 4 seconds, then up to 30 seconds, then 30 seconds afterwards
     try:
         import boto3  # noqa
     except ImportError as e:

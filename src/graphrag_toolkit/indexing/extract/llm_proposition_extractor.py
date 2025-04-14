@@ -73,6 +73,14 @@ class LLMPropositionExtractor(BaseExtractor):
         logger.debug(f'Extracting propositions for node {node.node_id}')
         text = node.metadata.get(self.source_metadata_field, node.text) if self.source_metadata_field else node.text
         proposition_collection = await self._extract_propositions(text)
+        if logger.isEnabledFor(logging.DEBUG):
+            s = f"""====================================
+text: {text}
+------------------------------------
+propositions: {proposition_collection}
+"""
+            logger.debug(s)
+            
         return {
             PROPOSITIONS_KEY: proposition_collection.model_dump()['propositions']
         }
@@ -91,5 +99,7 @@ class LLMPropositionExtractor(BaseExtractor):
 
         propositions = raw_response.split('\n')
 
-        return Propositions(propositions=[p for p in propositions if p])
+        unique_propositions = {p : None for p in propositions if p}
+
+        return Propositions(propositions=list(unique_propositions.keys()))
     

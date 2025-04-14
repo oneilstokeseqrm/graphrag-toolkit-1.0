@@ -24,8 +24,8 @@ The graphrag-toolkit also allows you to set the logging level and apply logging 
 
 | Parameter  | Description | Default Value | Environment Variable |
 | ------------- | ------------- | ------------- | ------------- |
-| `extraction_llm` | LLM used to perform graph extraction (see [LLM configuration](#llm-configuration)) | `anthropic.claude-3-sonnet-20240229-v1:0` | `EXTRACTION_MODEL` |
-| `response_llm` | LLM used to generate responses (see [LLM configuration](#llm-configuration)) | `anthropic.claude-3-sonnet-20240229-v1:0` | `RESPONSE_MODEL` |
+| `extraction_llm` | LLM used to perform graph extraction (see [LLM configuration](#llm-configuration)) | `us.anthropic.claude-3-5-sonnet-20240620-v1:0` | `EXTRACTION_MODEL` |
+| `response_llm` | LLM used to generate responses (see [LLM configuration](#llm-configuration)) | `us.anthropic.claude-3-5-sonnet-20240620-v1:0` | `RESPONSE_MODEL` |
 | `embed_model` | Embedding model used to generate embeddings for indexed data and queries (see [Embedding model configuration](#embedding-model-configuration)) | `cohere.embed-english-v3` | `EMBEDDINGS_MODEL` |
 | `embed_dimensions` | Number of dimensions in each vector | `1024` | `EMBEDDINGS_DIMENSIONS` |
 | `extraction_num_workers` | The number of parallel processes to use when running the extract stage | `2` | `EXTRACTION_NUM_WORKERS` |
@@ -54,12 +54,12 @@ You can also set configuration parameters via environment variables, as per the 
 The `extraction_llm` and `response_llm` configuration parameters accept three different types of value:
 
   - You can pass an instance of a LlamaIndex `LLM` object. This allows you to configure the graphrag-toolkit for LLM backends other than Amazon Bedrock.
-  - You can pass the model id of an Amazon Bedrock model. For example: `anthropic.claude-3-haiku-20240307-v1:0`.
-  - You can pass a JSON string representation of a LlamaIndex `Bedrock` instance. For example:
+  - You can pass the model id of an Amazon Bedrock model or [inference profile](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles.html). For example: `anthropic.claude-3-5-sonnet-20240620-v1:0` (model id) or `us.anthropic.claude-3-5-sonnet-20240620-v1:0` (inference profile).
+  - You can pass a JSON string representation of a LlamaIndex `BedrockConverse` instance. For example:
   
   ```
   {
-    "model": "anthropic.claude-3-sonnet-20240229-v1:0",
+    "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
     "temperature": 0.0,
     "max_tokens": 4096,
     "streaming": true

@@ -32,7 +32,7 @@ Charges apply.
 
 The SageMaker notebook's IAM role policy includes permissions that allow the following models to be invoked:
 
-- `anthropic.claude-3-sonnet-20240229-v1:0`
+- `anthropic.claude-3-5-sonnet-20240620-v1:0` via the `us.anthropic.claude-3-5-sonnet-20240620-v1:0` [inference profile](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles.html).
 - `cohere.embed-english-v3`
 
 You must run the CloudFormation stack in a region containing these models, and must [enable access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html) to these models before running the notebook examples.

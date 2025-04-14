@@ -4,7 +4,7 @@
 import os
 import json
 from dataclasses import dataclass
-from typing import Optional, Union, Set, Type
+from typing import Optional, Union
 
 from llama_index.llms.bedrock_converse import BedrockConverse
 from llama_index.embeddings.bedrock import BedrockEmbedding
@@ -15,8 +15,8 @@ from llama_index.core.base.embeddings.base import BaseEmbedding
 LLMType = Union[LLM, str]
 EmbeddingType = Union[BaseEmbedding, str]
 
-DEFAULT_EXTRACTION_MODEL = 'anthropic.claude-3-sonnet-20240229-v1:0'
-DEFAULT_RESPONSE_MODEL = 'anthropic.claude-3-sonnet-20240229-v1:0'
+DEFAULT_EXTRACTION_MODEL = 'us.anthropic.claude-3-5-sonnet-20240620-v1:0'
+DEFAULT_RESPONSE_MODEL = 'us.anthropic.claude-3-5-sonnet-20240620-v1:0'
 DEFAULT_EMBEDDINGS_MODEL = 'cohere.embed-english-v3'
 DEFAULT_RERANKING_MODEL = 'mixedbread-ai/mxbai-rerank-xsmall-v1'
 DEFAULT_EMBEDDINGS_DIMENSIONS = 1024

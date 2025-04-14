@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import re
+import logging
 from typing import Tuple, List
 
 from graphrag_toolkit.indexing.constants import DEFAULT_TOPIC
 from graphrag_toolkit.indexing.model import TopicCollection, Topic, Fact, Entity, Relation, Statement
+
+logger = logging.getLogger(__name__)
 
 def format_text(text):
         if isinstance(text, list):
@@ -32,6 +35,7 @@ def strip_parentheses(s):
     return re.sub('\(.*\)', '', s).replace('  ', ' ').strip()
 
 def parse_extracted_topics(raw_text:str) -> Tuple[TopicCollection, List[str]]:
+    
     garbage = []
     current_state = None
 
@@ -74,11 +78,11 @@ def parse_extracted_topics(raw_text:str) -> Tuple[TopicCollection, List[str]]:
 
             if current_statement and (current_statement.details or current_statement.facts):
                 current_topic.statements.append(current_statement)
-                
-            current_state = None
 
             statement_str = format_value(''.join(line.split(':')[1:]).strip())
             current_statement = Statement(value=statement_str, facts=[], details=[])
+
+            current_state = 'relationship-extraction'
                 
             continue
 
@@ -86,7 +90,7 @@ def parse_extracted_topics(raw_text:str) -> Tuple[TopicCollection, List[str]]:
             current_state = 'entity-extraction'
             continue
 
-        elif line in ['entity-entity relationships:', 'entity-attribute relationships:']:
+        elif line.startswith('entity-') and line.endswith('relationships:'):    
             current_state = 'relationship-extraction'
             continue
 
@@ -145,5 +149,15 @@ def parse_extracted_topics(raw_text:str) -> Tuple[TopicCollection, List[str]]:
 
         if current_topic.entities or current_topic.statements:
             topics.topics.append(current_topic)
+            
+    if logger.isEnabledFor(logging.DEBUG):
+        s = f"""====================================
+raw_text: {raw_text}
+------------------------------------
+topics: {topics}
+------------------------------------
+garbage: {garbage}
+"""
+        logger.debug(s)
 
     return (topics, garbage)
