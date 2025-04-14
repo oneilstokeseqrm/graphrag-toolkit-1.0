@@ -21,5 +21,5 @@ setuptools.setup(
     ],
     python_requires=">=3.10",
     install_requires=deps,
-    version="2.6.0"
+    version="2.7.0-SNAPSHOT"
 )
