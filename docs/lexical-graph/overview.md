@@ -20,7 +20,7 @@ The indexing process is further split into two pipeline stages: [_extract_](./in
 
 Extraction uses two LLM calls per chunk. The first 'cleans up' the content by extracting sets of well-formed, self-contained propositions from the chunked text. The second call then extracts topics, statements, facts, and entities and their relations from these propositions. Proposition extraction is optional: the second LLM call can be perfomed against the raw content, but the quality of the extraction tends to improve if the proposition extraction is performed first.
 
-The overall indexing process uses a micro-batching approach to progress data through the extract and build pipelines. This allows the host application to persist extracted information emitted by the extract pipeline, either to the filesystem or to Amazon S3, and/or inspect the contents, and if necessary filter and transform the extracted elements prior to consuming them in the build pipeline. Indexing can be run in a continuous-ingest fashion, or as separate extract and build steps. Both modes allow you to take advantage of Amazon Bedrock's batch inference capabilities to perform batch extraction over collections of documents.
+The overall indexing process uses a micro-batching approach to progress data through the extract and build pipelines. This allows the host application to persist extracted information emitted by the extract pipeline, either to the filesystem or to Amazon S3, and/or inspect the contents, and if necessary filter and transform the extracted elements prior to consuming them in the build pipeline. Indexing can be run in a continuous-ingest fashion, or as separate extract and build steps. Both modes allow you to take advantage of Amazon Bedrock's batch inference capabilities to perform [batch extraction](./batch-extraction.md) over collections of documents.
 
 The following diagram shows a high-level view of the indexing process:
 
@@ -44,6 +44,16 @@ Query steps:
   4. The results of the similarity search are used to anchor one or more graph queries that retrieve relevant content from the graph.
   5. The engine supplies this retrieved content togther with the user question to an LLM, which generates a response.
   6. The query engine returns this response to the application.
+
+### Multi tenancy
+
+The lexical-graph library's [multi-tenancy](./multi-tenancy.md) feature allows an application to host multiple separate lexical graphs in the same underlying graph and vector stores. Tenant graphs may correspond to different domains, collections of documents, or individual users.
+
+### Security
+
+Implementers using the lexical-graph library are responsible for securing access to the data sources they wish to index, and for provisioning and securing the underlying AWS resources, such as Neptune and OpenSearch, used by the library. The documentation includes [guidance](./security.md) on using AWS Identity and Access Management (IAM) policies to control access to Amazon Neptune, Amazon OpenSearch Serverless, and Amazon Bedrock.
+
+Irrespective of the policies applied to the identity under which the a lexical-graph application runs, the library always Sigv4 signs requests to AWS resources. Connections always use TLS version 1.3.
 
 ### Getting started
 

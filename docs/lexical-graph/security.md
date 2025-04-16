@@ -15,7 +15,7 @@
   
 ### Overview
 
-When building an application with the graphrag-toolkit, you are responsible for securing access to your source data, and to the graph store, vector store, and foundation model APIs that you use. The following sections provide guidance on using AWS Identity and Access Management (IAM) policies to control access to Amazon Neptune, Amazon OpenSearch Serverless, and Amazon Bedrock.
+When building an application with the lexical-graph library, you are responsible for securing access to your source data, and to the graph store, vector store, and foundation model APIs that you use. The following sections provide guidance on using AWS Identity and Access Management (IAM) policies to control access to Amazon Neptune, Amazon OpenSearch Serverless, and Amazon Bedrock.
 
 ### Managing access to Amazon Neptune
 
