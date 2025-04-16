@@ -2,7 +2,7 @@
 
 The graphrag-toolkit is a collection of Python tools for building graph-enhanced Generative AI applications.
 
-> With release 3.x of the graphrag-toolkit we have restructured this repository to support multiple tools. Previously, the graphrag-toolkit was scoped solely to a lexical graph. This project has now been moved under the [lexical-graph](./lexical-graph/) package. The reorganisation has necessitated a namespace change: modules in the lexical graph beginning `graphrag_toolkit` now begin `graphrag_toolkit.lexical_graph`.
+> **16 April 2025** With release 3.x of the graphrag-toolkit we have restructured this repository to support multiple tools. Previously, the graphrag-toolkit was scoped solely to a lexical graph. This project has now been moved under the [lexical-graph](./lexical-graph/) package. The reorganisation has necessitated a namespace change: modules in the lexical graph beginning `graphrag_toolkit` now begin `graphrag_toolkit.lexical_graph`.
 
 Installation instructions and requirements are detailed separately with each tool.
 
