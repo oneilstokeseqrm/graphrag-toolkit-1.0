@@ -5,7 +5,6 @@
 ### Topics
 
   - [Overview](#overview)
-    - [Changes in v2.x](#changes-in-v2x)
     - [A three-tiered lexical graph](#a-three-tiered-lexical-graph)
     - [Units of context](#units-of-context)
   - [Lineage tier](#lineage-tier)
@@ -19,10 +18,6 @@
 
 The lexical-graph uses a form of hierarchical [lexical graph](https://graphr.ag/reference/knowledge-graph/lexical-graph-hierarchical-structure/), auto-generated from unstructured sources, whose job is to help question-answering systems retrieve information which is *semantically dissimilar from the question*, but nonetheless *relevant to the answer*.
 
-#### Changes in v2.x
-
-The graphrag-toolkit's graph model has changed with v2.x of the toolkit. All node labels and relationship names are now surrounded by double underscores. For example, v1.x `Entity` nodes are now `__Entity__`. The reason for this change is to better allow the lexical graph data to co-exist with domain-specific data.
-
 #### A three-tiered lexical graph
 
 The lexical graph has three tiers:
@@ -31,7 +26,7 @@ The lexical graph has three tiers:
   - [**Summarisation**](#summarisation-tier) - Hierarchical summarisations and lexical units at different levels of granularity.
   - [**Entity-Relationship**](#entity-relationship-tier) - Individual entities and relations extracted from the underlying sources.
   
-![Lexical graph](../images/lexical-graph.png)
+![Lexical graph](../../images/lexical-graph.png)
   
 #### Units of context
 

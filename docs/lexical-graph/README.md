@@ -1,5 +1,6 @@
 ## Lexical Graph
 
+  - [Overview](./overview.md)
   - [Storage Model](./storage-model.md)
   - [Indexing](./indexing.md) 
   - [Batch Extraction](./batch-extraction.md) 

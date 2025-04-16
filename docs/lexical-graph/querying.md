@@ -25,7 +25,7 @@ The `SemanticGuidedRetriever` uses a *statement* vector index, whereas the `Trav
 
 In the current release the output formats of the two retrievers are different. Future releases of the lexical-graph will seek to align the outputs.
 
-> The [FalkorDB graph store](./storage-model.md#falkordb-graph-store) currently supports the `SemanticGuidedRetriever`. It does not support the `TraversalBasedRetriever`](./querying.md#traversalbasedretriever)`.
+> The [FalkorDB graph store](./storage-model.md#falkordb-graph-store) currently supports the `SemanticGuidedRetriever`. It does not support the [`TraversalBasedRetriever`](./querying.md#traversalbasedretriever)`.
 
 Querying supports [multi-tenancy](multi-tenancy.md), whereby you can query different lexical graphs hosted in the same backend graph and vector stores.
 

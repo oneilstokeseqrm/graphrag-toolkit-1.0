@@ -111,6 +111,7 @@ if __name__ == '__main__':
 
 ## Documentation
 
+  - [Overview](../docs/lexical-graph/overview.md)
   - [Storage Model](../docs/lexical-graph/storage-model.md) 
   - [Indexing](../docs/lexical-graph/indexing.md) 
   - [Batch Extraction](../docs/lexical-graph/batch-extraction.md) 
