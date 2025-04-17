@@ -29,7 +29,7 @@ class SentenceReranker(SentenceTransformerRerank, RerankerMixin):
             import torch
         except ImportError as e:
             raise ImportError(
-                "torch package not found, install with 'pip install torch'"
+                "torch and or sentence_transformers packages not found, install with 'pip install torch sentence_transformers'"
             ) from e
         
         super().__init__(
