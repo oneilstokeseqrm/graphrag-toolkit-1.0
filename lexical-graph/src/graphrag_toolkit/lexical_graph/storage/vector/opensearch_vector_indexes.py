@@ -10,23 +10,26 @@ from dataclasses import dataclass
 from llama_index.core.bridge.pydantic import PrivateAttr
 from llama_index.core.schema import BaseNode, NodeWithScore, QueryBundle
 from llama_index.core.async_utils import asyncio_run
-from llama_index.vector_stores.opensearch import OpensearchVectorClient
 from llama_index.core.vector_stores.types import  VectorStoreQueryResult, VectorStoreQueryMode, MetadataFilters
 from llama_index.core.indices.utils import embed_nodes
 
-from opensearchpy.exceptions import NotFoundError, RequestError
-from opensearchpy import AWSV4SignerAsyncAuth, AsyncHttpConnection
-from opensearchpy import Urllib3AWSV4SignerAuth, Urllib3HttpConnection
-from opensearchpy import OpenSearch, AsyncOpenSearch
-
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig, EmbeddingType
-from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, VectorIndexFactoryMethod, to_embedded_query
+from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, to_embedded_query
 from graphrag_toolkit.lexical_graph.storage.constants import INDEX_KEY
 
-OPENSEARCH_SERVERLESS = 'aoss://'
-OPENSEARCH_SERVERLESS_DNS = 'aoss.amazonaws.com'
-
 logger = logging.getLogger(__name__)
+
+try:
+    from llama_index.vector_stores.opensearch import OpensearchVectorClient
+    from opensearchpy.exceptions import NotFoundError, RequestError
+    from opensearchpy import AWSV4SignerAsyncAuth, AsyncHttpConnection
+    from opensearchpy import Urllib3AWSV4SignerAuth, Urllib3HttpConnection
+    from opensearchpy import OpenSearch, AsyncOpenSearch
+except ImportError as e:
+    raise ImportError(
+        "opensearch-py and/or llama-index-vector-stores-opensearch packages not found, install with 'pip install opensearch-py llama-index-vector-stores-opensearch'"
+    ) from e
+
 
 def _get_opensearch_version(self) -> str:
     #info = asyncio_run(self._os_async_client.info())
@@ -156,19 +159,6 @@ def create_opensearch_vector_client(endpoint, index_name, dimensions, embed_mode
     logger.debug(f'Created OpenSearch vector client [client: {client}, retry_count: {retry_count}]')
             
     return client
-
-class OpenSearchVectorIndexFactory(VectorIndexFactoryMethod):
-    def try_create(self, index_names:List[str], vector_index_info:str, **kwargs) -> List[VectorIndex]:
-        endpoint = None
-        if vector_index_info.startswith(OPENSEARCH_SERVERLESS):
-            endpoint = vector_index_info[len(OPENSEARCH_SERVERLESS):]
-        elif vector_index_info.startswith('https://') and vector_index_info.endswith(OPENSEARCH_SERVERLESS_DNS):
-            endpoint = vector_index_info
-        if endpoint:
-            logger.debug(f"Opening OpenSearch vector indexes [index_names: {index_names}, endpoint: {endpoint}]")
-            return [OpenSearchIndex.for_index(index_name, endpoint, **kwargs) for index_name in index_names]      
-        else:
-            return None
         
 class DummyOpensearchVectorClient():
     def __init__(self):
