@@ -5,7 +5,6 @@ import logging
 from typing import List
 
 from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, VectorIndexFactoryMethod, to_embedded_query
-from graphrag_toolkit.lexical_graph.storage.vector.opensearch_vector_indexes import OpenSearchIndex
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,12 @@ class OpenSearchVectorIndexFactory(VectorIndexFactoryMethod):
         elif vector_index_info.startswith('https://') and vector_index_info.endswith(OPENSEARCH_SERVERLESS_DNS):
             endpoint = vector_index_info
         if endpoint:
-            logger.debug(f"Opening OpenSearch vector indexes [index_names: {index_names}, endpoint: {endpoint}]")
-            return [OpenSearchIndex.for_index(index_name, endpoint, **kwargs) for index_name in index_names]      
+            try:
+                from graphrag_toolkit.lexical_graph.storage.vector.opensearch_vector_indexes import OpenSearchIndex
+                logger.debug(f"Opening OpenSearch vector indexes [index_names: {index_names}, endpoint: {endpoint}]")
+                return [OpenSearchIndex.for_index(index_name, endpoint, **kwargs) for index_name in index_names]
+            except ImportError as e:
+                raise e
+                  
         else:
             return None

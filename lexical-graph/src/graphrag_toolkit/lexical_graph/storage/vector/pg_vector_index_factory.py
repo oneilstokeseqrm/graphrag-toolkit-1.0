@@ -5,8 +5,6 @@ import logging
 from typing import List
 
 from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, VectorIndexFactoryMethod
-from graphrag_toolkit.lexical_graph.storage.vector.pg_vector_indexes import PGIndex
-
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +18,10 @@ class PGVectorIndexFactory(VectorIndexFactoryMethod):
             connection_string = vector_index_info
         if connection_string:
             logger.debug(f"Opening PostgreSQL vector indexes [index_names: {index_names}, connection_string: {connection_string}]")
-            return [PGIndex.for_index(index_name, connection_string, **kwargs) for index_name in index_names]
+            try:
+                from graphrag_toolkit.lexical_graph.storage.vector.pg_vector_indexes import PGIndex
+                return [PGIndex.for_index(index_name, connection_string, **kwargs) for index_name in index_names]
+            except ImportError as e:
+                raise e           
         else:
             return None
