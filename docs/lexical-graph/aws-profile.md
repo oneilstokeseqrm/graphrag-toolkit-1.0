@@ -1,6 +1,6 @@
 # Using AWS Profiles in `GraphRAGConfig`
 
-This guide explains how to configure and use **AWS named profiles** within the GraphRAG Toolkit by leveraging the `_GraphRAGConfig` class.
+This guide explains how to configure and use **AWS named profiles** within the GraphRAG Toolkit by leveraging the `GraphRAGConfig` class.
 
 ## 🔍 What is an AWS Profile?
 
@@ -16,10 +16,10 @@ These profiles are stored in:
 
 ---
 
-## How `_GraphRAGConfig` Uses AWS Profiles
+## How `GraphRAGConfig` Uses AWS Profiles
 
 ### 1. **Automatic Detection**
-If no profile is explicitly provided, `_GraphRAGConfig` attempts to use:
+If no profile is explicitly provided, `GraphRAGConfig` attempts to use:
 ```python
 os.environ.get("AWS_PROFILE")
 ```
