@@ -22,6 +22,22 @@ $ pip install https://github.com/awslabs/graphrag-toolkit/archive/refs/tags/v3.0
 
 If you're running on AWS, you must run your application in an AWS region containing the Amazon Bedrock foundation models used by the lexical graph (see the [configuration](../docs/lexical-graph/configuration.md#graphragconfig) section in the documentation for details on the default models used), and must [enable access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html) to these models before running any part of the solution.
 
+### Additional dependencies
+
+You will need to install additional dependencies for specific vector store backends:
+
+#### Amazon OpenSearch Serverless
+
+```
+$ pip install opensearch-py llama-index-vector-stores-opensearch
+```
+
+#### Postgres with pgvector
+
+```
+$ pip install psycopg2-binary pgvector
+```
+
 ### Supported Python versions
 
 The lexical-graph requires Python 3.10 or greater.
