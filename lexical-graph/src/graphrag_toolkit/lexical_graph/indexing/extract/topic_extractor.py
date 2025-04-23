@@ -67,6 +67,8 @@ class TopicExtractor(BaseExtractor):
             entity_classification_provider=entity_classification_provider or FixedScopedValueProvider(scoped_values={DEFAULT_SCOPE: DEFAULT_ENTITY_CLASSIFICATIONS}),
             topic_provider=topic_provider or FixedScopedValueProvider(scoped_values={DEFAULT_SCOPE: []})
         )
+
+        logger.debug(f'Prompt template: {self.prompt_template}')
     
     async def aextract(self, nodes: Sequence[BaseNode]) -> List[Dict]:
         fact_entries = await self._extract_for_nodes(nodes)

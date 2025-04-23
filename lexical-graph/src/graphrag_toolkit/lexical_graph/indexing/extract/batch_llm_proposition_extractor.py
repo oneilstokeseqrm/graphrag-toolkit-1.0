@@ -59,6 +59,8 @@ class BatchLLMPropositionExtractor(BaseExtractor):
             batch_inference_dir=batch_inference_dir or os.path.join('output', 'batch-propositions')
         )
 
+        logger.debug(f'Prompt template: {self.prompt_template}')
+
         self._prepare_directory(self.batch_inference_dir)
 
     def _prepare_directory(self, dir):

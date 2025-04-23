@@ -54,6 +54,8 @@ class LLMPropositionExtractor(BaseExtractor):
             num_workers=num_workers or GraphRAGConfig.extraction_num_threads_per_worker
         )
 
+        logger.debug(f'Prompt template: {self.prompt_template}')
+
     async def aextract(self, nodes: Sequence[BaseNode]) -> List[Dict]:
         proposition_entries = await self._extract_propositions_for_nodes(nodes)
         return [proposition_entry for proposition_entry in proposition_entries]

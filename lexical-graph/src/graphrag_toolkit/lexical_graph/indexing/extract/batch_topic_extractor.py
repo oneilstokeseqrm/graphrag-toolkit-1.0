@@ -64,6 +64,8 @@ class BatchTopicExtractor(BaseExtractor):
             topic_provider=topic_provider or FixedScopedValueProvider(scoped_values={DEFAULT_SCOPE: []})
         )
 
+        logger.debug(f'Prompt template: {self.prompt_template}')
+
         self._prepare_directory(self.batch_inference_dir)
 
     def _prepare_directory(self, dir):
