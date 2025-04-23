@@ -57,7 +57,7 @@ class BatchTopicExtractor(BaseExtractor):
                 llm=llm or GraphRAGConfig.extraction_llm,
                 enable_cache=GraphRAGConfig.enable_cache
             ),
-            prompt_template=prompt_template or  EXTRACT_TOPICS_PROMPT,
+            prompt_template=prompt_template or EXTRACT_TOPICS_PROMPT,
             source_metadata_field=source_metadata_field,
             batch_inference_dir=batch_inference_dir or os.path.join('output', 'batch-topics'),
             entity_classification_provider=entity_classification_provider or FixedScopedValueProvider(scoped_values={DEFAULT_SCOPE: DEFAULT_ENTITY_CLASSIFICATIONS}),

@@ -40,7 +40,7 @@ class LLMPropositionExtractor(BaseExtractor):
 
     def __init__(self, 
                  llm:LLMCacheType=None,
-                 prompt_template=EXTRACT_PROPOSITIONS_PROMPT,
+                 prompt_template=None,
                  source_metadata_field=None,
                  num_workers:Optional[int]=None):
                  
@@ -49,7 +49,7 @@ class LLMPropositionExtractor(BaseExtractor):
                 llm=llm or GraphRAGConfig.extraction_llm,
                 enable_cache=GraphRAGConfig.enable_cache
             ),
-            prompt_template=prompt_template, 
+            prompt_template=prompt_template or EXTRACT_PROPOSITIONS_PROMPT, 
             source_metadata_field=source_metadata_field,
             num_workers=num_workers or GraphRAGConfig.extraction_num_threads_per_worker
         )
