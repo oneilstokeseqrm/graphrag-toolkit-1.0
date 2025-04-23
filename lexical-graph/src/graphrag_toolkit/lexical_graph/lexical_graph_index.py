@@ -242,7 +242,6 @@ class LexicalGraphIndex():
             show_progress=show_progress,
             checkpoint=checkpoint,
             num_workers=1,
-            batch_size=5,
             tenant_id=DEFAULT_TENANT_ID,
             **kwargs
         )
@@ -319,8 +318,6 @@ class LexicalGraphIndex():
 
         if not self.tenant_id.is_default_tenant():
             logger.warning('TenantId has been set to non-default tenant id, but extraction will use default tenant id')
-
-        default_tenant_id = TenantId()
 
         extraction_pipeline = ExtractionPipeline.create(
             components=self.extraction_components,
