@@ -24,7 +24,7 @@ class FalkorDBGraphStoreFactory(GraphStoreFactoryMethod):
         if endpoint_url:
             try:
                 from graphrag_toolkit.lexical_graph.storage.graph.falkordb_graph_store import FalkorDBDatabaseClient
-                logger.debug(f"Opening FalkorDB database [endpoint: {endpoint_url}]")
+                logger.debug(f'Opening FalkorDB database [endpoint: {endpoint_url}]')
                 return FalkorDBDatabaseClient(
                     endpoint_url=endpoint_url,
                     log_formatting=get_log_formatting(kwargs), 

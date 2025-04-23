@@ -21,7 +21,7 @@ class OpenSearchVectorIndexFactory(VectorIndexFactoryMethod):
         if endpoint:
             try:
                 from graphrag_toolkit.lexical_graph.storage.vector.opensearch_vector_indexes import OpenSearchIndex
-                logger.debug(f"Opening OpenSearch vector indexes [index_names: {index_names}, endpoint: {endpoint}]")
+                logger.debug(f'Opening OpenSearch vector indexes [index_names: {index_names}, endpoint: {endpoint}]')
                 return [OpenSearchIndex.for_index(index_name, endpoint, **kwargs) for index_name in index_names]
             except ImportError as e:
                 raise e
