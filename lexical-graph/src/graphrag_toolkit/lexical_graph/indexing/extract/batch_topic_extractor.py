@@ -5,7 +5,7 @@ import asyncio
 import logging
 import os
 import json
-import boto3
+
 from typing import Optional, List, Sequence, Dict
 from datetime import datetime
 
@@ -184,9 +184,9 @@ class BatchTopicExtractor(BaseExtractor):
             )
             return await extractor.aextract(nodes)
 
-
-        s3_client = boto3.client('s3', region_name=self.batch_config.region)
-        bedrock_client = boto3.client('bedrock', region_name=self.batch_config.region)
+        #TODO: Review
+        s3_client = GraphRAGConfig.s3
+        bedrock_client = GraphRAGConfig.bedrock
 
         # 1 - Split nodes into batches (if needed)
         node_batches = split_nodes(nodes, self.batch_config.max_batch_size)
