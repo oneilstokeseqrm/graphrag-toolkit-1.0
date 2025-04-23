@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-import boto3
+
 import json
 import logging
 from typing import List, Any, Optional
@@ -43,12 +43,12 @@ class DummyAuth:
     service:str
 
 def create_os_client(endpoint, **kwargs):
-    
-    session = boto3.Session()
-    region = session.region_name
+
+    session = GraphRAGConfig.session
+    region = GraphRAGConfig.aws_region
     credentials = session.get_credentials()
     service = 'aoss'
-        
+
     auth = Urllib3AWSV4SignerAuth(credentials, region, service)
 
     return OpenSearch(
@@ -64,12 +64,12 @@ def create_os_client(endpoint, **kwargs):
     )
 
 def create_os_async_client(endpoint, **kwargs):
-    
-    session = boto3.Session()
-    region = session.region_name
+
+    session = GraphRAGConfig.session
+    region = GraphRAGConfig.aws_region
     credentials = session.get_credentials()
     service = 'aoss'
-        
+
     auth = AWSV4SignerAsyncAuth(credentials, region, service)
 
     return AsyncOpenSearch(

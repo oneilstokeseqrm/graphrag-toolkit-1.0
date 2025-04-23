@@ -4,7 +4,8 @@
 import json
 import logging
 import numpy as np
-import boto3
+
+from pgvector.psycopg2 import register_vector
 from typing import List, Sequence, Dict, Any, Optional
 from urllib.parse import urlparse
 
@@ -87,16 +88,15 @@ class PGIndex(VectorIndex):
         token = None
 
         if self.enable_iam_db_auth:
-            session = boto3.Session()
-            region = session.region_name
-            client = session.client('rds')
+            client = GraphRAGConfig.rds  # via __getattr__
+            region = GraphRAGConfig.aws_region
             token = client.generate_db_auth_token(
-                DBHostname=self.host, 
-                Port=self.port, 
-                DBUsername=self.username, 
+                DBHostname=self.host,
+                Port=self.port,
+                DBUsername=self.username,
                 Region=region
             )
-            
+
         password = token or self.password
 
         dbconn = psycopg2.connect(
