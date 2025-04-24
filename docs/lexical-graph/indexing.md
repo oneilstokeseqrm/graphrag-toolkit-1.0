@@ -71,9 +71,6 @@ from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
 
 from llama_index.readers.web import SimpleWebPageReader
 
-import nest_asyncio
-nest_asyncio.apply()
-
 doc_urls = [
     'https://docs.aws.amazon.com/neptune/latest/userguide/intro.html',
     'https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html',
@@ -113,9 +110,6 @@ from graphrag_toolkit.lexical_graph.indexing.load import S3BasedDocs
 
 from llama_index.readers.web import SimpleWebPageReader
 
-import nest_asyncio
-nest_asyncio.apply()
-
 extracted_docs = S3BasedDocs(
     region='us-east-1',
     bucket_name='my-bucket',
@@ -154,9 +148,6 @@ from graphrag_toolkit.lexical_graph import LexicalGraphIndex
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
 from graphrag_toolkit.lexical_graph.indexing.load import S3BasedDocs
-
-import nest_asyncio
-nest_asyncio.apply()
 
 docs = S3BasedDocs(
     region='us-east-1',
@@ -398,9 +389,6 @@ from graphrag_toolkit.lexical_graph.indexing.build import GraphConstruction
 
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.readers.web import SimpleWebPageReader
-
-import nest_asyncio
-nest_asyncio.apply()
 
 checkpoint = Checkpoint('advanced-construction-example', enabled=True)
 

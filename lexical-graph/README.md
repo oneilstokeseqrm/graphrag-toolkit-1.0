@@ -55,9 +55,6 @@ from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
 
 from llama_index.readers.web import SimpleWebPageReader
 
-import nest_asyncio
-nest_asyncio.apply()
-
 def run_extract_and_build():
 
     graph_store = GraphStoreFactory.for_graph_store(
