@@ -5,7 +5,7 @@
 ### Topics
 
   - [Overview](#overview)
-  - [Install dependencies](#install-dependencies)
+  - [Install package](#install-package)
   - [Registering FalkorDB as a graph store](#registering-falkordb-as-a-graph-store)
   - [Creating a FalkorDB graph store](#creating-a-falkordb-graph-store)
 
@@ -13,12 +13,12 @@
 
 You can use FalkorDB as a graph store.
 
-### Install dependencies
+### Install package
 
-The FalkorDB graph store requires both the `FalkorDB` and `redis` packages:
+The FalkorDB graph store is contained in a separate contributor package. To install it:
 
 ```
-pip install FalkorDB redis
+!pip install https://github.com/awslabs/graphrag-toolkit/archive/refs/tags/v3.3.0.zip#subdirectory=lexical-graph-contrib/falkordb
 ```
 
 ### Registering FalkorDB as a graph store
@@ -27,7 +27,7 @@ Before creating a FalkorDB graph store, you must register the `FalkorDBGraphStor
 
 ```python
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
-from graphrag_toolkit.lexical_graph.storage.graph.falkordb_graph_store_factory import FalkorDBGraphStoreFactory
+from graphrag_toolkit.lexical_graph.storage.graph.falkordb import FalkorDBGraphStoreFactory
 
 GraphStoreFactory.register(FalkorDBGraphStoreFactory)
 
@@ -43,7 +43,7 @@ To create a [FalkorDB Cloud](https://app.falkordb.cloud/) graph store, supply a 
 
 ```python
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
-from graphrag_toolkit.lexical_graph.storage.graph.falkordb_graph_store_factory import FalkorDBGraphStoreFactory
+from graphrag_toolkit.lexical_graph.storage.graph.falkordb import FalkorDBGraphStoreFactory
 
 falkordb_connection_info = 'falkordb://your-falkordb-endpoint'
 
