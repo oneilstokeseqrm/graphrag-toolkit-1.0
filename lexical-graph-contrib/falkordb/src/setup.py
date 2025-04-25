@@ -16,8 +16,8 @@ with open(req_path) as f:
         deps.append(line.strip())
 
 setuptools.setup(
-    name='graphrag-toolkit-lexical-graph',
-    description='AWS GraphRAG Toolkit, lexical graph',
+    name='graphrag-toolkit-lexical-graph-falkordb',
+    description="FalkorDB support for the AWS GraphRAG Toolkit, lexical graph",
     packages=setuptools.find_packages(where="."),
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -26,5 +26,5 @@ setuptools.setup(
     ],
     python_requires=">=3.10",
     install_requires=deps,
-    version="3.4.0-SNAPSHOT"
+    version="1.0"
 )
