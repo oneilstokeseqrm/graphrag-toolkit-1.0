@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "graphrag-toolkit-lexical-graph-falkordb"
 version = "1.0.0"
-description = "FalforDB support for the AWS GraphRAG Toolkit, lexical graph"
+description = "FalkorDB support for the AWS GraphRAG Toolkit, lexical graph"
 readme = "README.md"
 requires-python = ">=3.10"
 dynamic = ["dependencies"]
