@@ -13,14 +13,14 @@ CREATE TABLE graphrag.items (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     item_data JSONB,
-    embedding public.vector(1536)
+    embedding public.vector(1024) -- changed from 1536 to 768
 );
 
--- 🔥 THIS IS THE MISSING PART: drop and recreate the chunk table
+-- Drop and recreate the `chunk` table (main RAG chunks)
 DROP TABLE IF EXISTS graphrag.chunk;
 CREATE TABLE graphrag.chunk (
     chunkId TEXT PRIMARY KEY,
     value TEXT,
     metadata JSONB,
-    embedding public.vector(1536)
+    embedding public.vector(1024) -- changed from 1536 to 768
 );
