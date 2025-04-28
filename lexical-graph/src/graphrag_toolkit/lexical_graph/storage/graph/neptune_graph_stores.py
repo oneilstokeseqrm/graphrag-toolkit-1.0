@@ -36,6 +36,7 @@ def create_config(config:Optional[str]=None):
             'mode': 'standard'
         }, 
         read_timeout=600,
+        user_agent_appid='graphrag-toolkit-lexical-graph',
         **config_args
     )
 
