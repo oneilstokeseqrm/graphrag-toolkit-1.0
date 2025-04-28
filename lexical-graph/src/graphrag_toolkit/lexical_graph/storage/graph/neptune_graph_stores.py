@@ -8,6 +8,8 @@ import time
 import uuid
 from botocore.config import Config
 from typing import Optional, Any
+from importlib.metadata import version, PackageNotFoundError
+
 
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStoreFactoryMethod, GraphStore, NodeId, get_log_formatting
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
@@ -27,6 +29,15 @@ def format_id_for_neptune(id_name:str):
             return NodeId(parts[1], f'id({parts[0]})', False)
         
 def create_config(config:Optional[str]=None):
+
+
+    toolkit_version = 'unknown'
+
+    try:
+        toolkit_version = version('graphrag-toolkit-lexical-graph')
+    except PackageNotFoundError:
+        pass
+
     config_args = {}
     if config:
         config_args = json.loads(config)
@@ -36,7 +47,7 @@ def create_config(config:Optional[str]=None):
             'mode': 'standard'
         }, 
         read_timeout=600,
-        user_agent_appid='graphrag-toolkit-lexical-graph',
+        user_agent_appid=f'graphrag-toolkit-lexical-graph-{toolkit_version}',
         **config_args
     )
 
