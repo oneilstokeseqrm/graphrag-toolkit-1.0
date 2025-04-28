@@ -42,9 +42,6 @@ from graphrag_toolkit.lexical_graph import LexicalGraphQueryEngine
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
 
-import nest_asyncio
-nest_asyncio.apply()
-
 graph_store = GraphStoreFactory.for_graph_store(
     'neptune-db://my-graph.cluster-abcdefghijkl.us-east-1.neptune.amazonaws.com'
 )
@@ -175,9 +172,6 @@ from graphrag_toolkit.lexical_graph import LexicalGraphQueryEngine
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
 
-import nest_asyncio
-nest_asyncio.apply()
-
 graph_store = GraphStoreFactory.for_graph_store(
     'neptune-db://my-graph.cluster-abcdefghijkl.us-east-1.neptune.amazonaws.com'
 )
@@ -273,9 +267,6 @@ from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
 from graphrag_toolkit.lexical_graph.retrieval.retrievers import RerankingBeamGraphSearch, StatementCosineSimilaritySearch, KeywordRankingSearch
 from graphrag_toolkit.lexical_graph.retrieval.post_processors import SentenceReranker
 
-import nest_asyncio
-nest_asyncio.apply()
-
 graph_store = GraphStoreFactory.for_graph_store(
     'neptune-db://my-graph.cluster-abcdefghijkl.us-east-1.neptune.amazonaws.com'
 )
@@ -334,9 +325,6 @@ from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
 from graphrag_toolkit.lexical_graph.retrieval.retrievers import RerankingBeamGraphSearch, StatementCosineSimilaritySearch, KeywordRankingSearch
 from graphrag_toolkit.lexical_graph.retrieval.post_processors import BGEReranker
-
-import nest_asyncio
-nest_asyncio.apply()
 
 graph_store = GraphStoreFactory.for_graph_store(
     'neptune-db://my-graph.cluster-abcdefghijkl.us-east-1.neptune.amazonaws.com'
@@ -407,9 +395,6 @@ from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
 from graphrag_toolkit.lexical_graph.retrieval.post_processors import SentenceReranker, SentenceReranker, StatementDiversityPostProcessor, StatementEnhancementPostProcessor
 import os
-
-import nest_asyncio
-nest_asyncio.apply()
 
 graph_store = GraphStoreFactory.for_graph_store(
     'neptune-db://my-graph.cluster-abcdefghijkl.us-east-1.neptune.amazonaws.com'

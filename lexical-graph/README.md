@@ -94,9 +94,6 @@ from graphrag_toolkit.lexical_graph import LexicalGraphQueryEngine
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
 
-import nest_asyncio
-nest_asyncio.apply()
-
 def run_query():
 
   graph_store = GraphStoreFactory.for_graph_store(
