@@ -79,7 +79,8 @@ BASE_LOGGING_CONFIG = {
             'included_modules': {
                 logging.INFO: '*',
                 logging.DEBUG: ['graphrag_toolkit'],
-                logging.WARNING: '*'
+                logging.WARNING: '*',
+                logging.ERROR: '*'
             },
             'excluded_modules': {
                 logging.INFO: ['opensearch', 'boto', 'urllib'],

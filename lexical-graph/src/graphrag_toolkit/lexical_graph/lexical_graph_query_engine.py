@@ -33,6 +33,7 @@ from llama_index.core.callbacks.base import CallbackManager
 from llama_index.core.base.response.schema import RESPONSE_TYPE
 from llama_index.core.base.response.schema import Response
 from llama_index.core.prompts.mixin import PromptDictType, PromptMixinType
+from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                                    tenant_id:Optional[TenantIdType]=None,
                                    retrievers:Optional[List[WeightedTraversalBasedRetrieverType]]=None,
                                    post_processors:Optional[PostProcessorsType]=None, 
+                                   filters:Optional[MetadataFilters]=None,
                                    **kwargs):
         
         tenant_id = to_tenant_id(tenant_id)
@@ -60,6 +62,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             graph_store, 
             vector_store, 
             retrievers=retrievers,
+            filters=filters,
             **kwargs
         )
         
@@ -70,6 +73,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             retriever=retriever,
             post_processors=post_processors,
             context_format='text',
+            filters=filters,
             **kwargs
         )
     
@@ -79,6 +83,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                                    tenant_id:Optional[TenantIdType]=None,
                                    retrievers:Optional[List[SemanticGuidedRetrieverType]]=None,
                                    post_processors:Optional[PostProcessorsType]=None, 
+                                   filters:Optional[MetadataFilters]=None,
                                    **kwargs):
         
         tenant_id = to_tenant_id(tenant_id)
@@ -92,18 +97,21 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             StatementCosineSimilaritySearch(
                 vector_store=vector_store,
                 graph_store=graph_store,
-                top_k=50
+                top_k=50,
+                filters=filters
             ),
             KeywordRankingSearch(
                 vector_store=vector_store,
                 graph_store=graph_store,
-                max_keywords=10
+                max_keywords=10,
+                filters=filters
             ),
             SemanticBeamGraphSearch(
                 vector_store=vector_store,
                 graph_store=graph_store,
                 max_depth=8,
-                beam_width=100
+                beam_width=100,
+                filters=filters
             )
         ]
         
@@ -112,6 +120,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             graph_store=graph_store,
             retrievers=retrievers,
             share_results=True,
+            filters=filters,
             **kwargs
         ) 
         
@@ -122,6 +131,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             retriever=retriever,
             post_processors=post_processors,
             context_format='bedrock_xml',
+            filters=filters,
             **kwargs
         )
 
@@ -136,6 +146,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                  retriever:Optional[RetrieverType]=None,
                  post_processors:Optional[PostProcessorsType]=None,
                  callback_manager: Optional[CallbackManager]=None, 
+                 filters:Optional[MetadataFilters]=None,
                  **kwargs):
         
         tenant_id = to_tenant_id(tenant_id)
@@ -160,9 +171,9 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             if isinstance(retriever, BaseRetriever):
                 self.retriever = retriever
             else:
-                self.retriever = retriever(graph_store, vector_store, **kwargs)
+                self.retriever = retriever(graph_store, vector_store, filters=filters, **kwargs)
         else:
-            self.retriever = CompositeTraversalBasedRetriever(graph_store, vector_store, **kwargs)
+            self.retriever = CompositeTraversalBasedRetriever(graph_store, vector_store, filters=filters, **kwargs)
 
         if post_processors:
             self.post_processors = post_processors if isinstance(post_processors, list) else [post_processors]

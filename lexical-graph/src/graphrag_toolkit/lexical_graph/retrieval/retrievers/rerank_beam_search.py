@@ -12,22 +12,24 @@ from graphrag_toolkit.lexical_graph.retrieval.retrievers.semantic_guided_base_re
 from graphrag_toolkit.lexical_graph.retrieval.post_processors import RerankerMixin
 
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
+from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
 class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
     def __init__(
         self,
-        vector_store: VectorStore,
-        graph_store: GraphStore,
-        reranker: RerankerMixin,
-        initial_retrievers: Optional[List[Union[SemanticGuidedBaseRetriever, Type[SemanticGuidedBaseRetriever]]]] = None,
-        shared_nodes: Optional[List[NodeWithScore]] = None,
-        max_depth: int = 3,
-        beam_width: int = 10,
+        vector_store:VectorStore,
+        graph_store:GraphStore,
+        reranker:RerankerMixin,
+        initial_retrievers:Optional[List[Union[SemanticGuidedBaseRetriever, Type[SemanticGuidedBaseRetriever]]]]=None,
+        shared_nodes:Optional[List[NodeWithScore]] = None,
+        max_depth:int=3,
+        beam_width:int=10,
+        filters:Optional[MetadataFilters]=None,
         **kwargs: Any,
     ) -> None:
-        super().__init__(vector_store, graph_store, **kwargs)
+        super().__init__(vector_store, graph_store, filters, **kwargs)
         self.reranker = reranker 
         self.max_depth = max_depth
         self.beam_width = beam_width
@@ -173,86 +175,83 @@ class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
     
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
         """Retrieve statements using beam search."""
-        try:
-            # Get initial nodes (either shared or from initial retrievers)
-            initial_statement_ids = set()
-            
-            if self.shared_nodes is not None:
-                # Use shared nodes if available
-                for node in self.shared_nodes:
+ 
+        # Get initial nodes (either shared or from initial retrievers)
+        initial_statement_ids = set()
+        
+        if self.shared_nodes is not None:
+            # Use shared nodes if available
+            for node in self.shared_nodes:
+                initial_statement_ids.add(
+                    node.node.metadata['statement']['statementId']
+                )
+        elif self.initial_retrievers:
+            # Get nodes from initial retrievers
+            for retriever in self.initial_retrievers:
+                nodes = retriever.retrieve(query_bundle)
+                for node in nodes:
                     initial_statement_ids.add(
                         node.node.metadata['statement']['statementId']
                     )
-            elif self.initial_retrievers:
-                # Get nodes from initial retrievers
-                for retriever in self.initial_retrievers:
-                    nodes = retriever.retrieve(query_bundle)
-                    for node in nodes:
-                        initial_statement_ids.add(
-                            node.node.metadata['statement']['statementId']
-                        )
-            else:
-                # Fallback to vector similarity if no initial nodes
-                results = self.vector_store.get_index('statement').top_k(
-                    query_bundle,
-                    top_k=self.beam_width * 2
-                )
-                initial_statement_ids = {
-                    r['statement']['statementId'] for r in results
-                }
-
-            if not initial_statement_ids:
-                logger.warning("No initial statements found for the query.")
-                return []
-
-            # Perform beam search
-            beam_results = self.beam_search(
+        else:
+            # Fallback to vector similarity if no initial nodes
+            results = self.vector_store.get_index('statement').top_k(
                 query_bundle,
-                list(initial_statement_ids)
+                top_k=self.beam_width * 2,
+                filters=self.filters
             )
-
-            # Collect all new statement IDs from beam search
-            new_statement_ids = [
-                statement_id for statement_id, _ in beam_results
-                if statement_id not in initial_statement_ids
-            ]
-
-            if not new_statement_ids:
-                logger.info("Beam search did not find any new statements.")
-                return []
-
-            # Create nodes from results
-            nodes = []
-            statement_to_path = {
-                statement_id: path 
-                for statement_id, path in beam_results 
-                if statement_id not in initial_statement_ids
+            initial_statement_ids = {
+                r['statement']['statementId'] for r in results
             }
-            
-            for statement_id, path in statement_to_path.items():
-                statement_data = self.statement_cache.get(statement_id)
-                if statement_data:
-                    node = TextNode(
-                        text=statement_data['statement']['value'],
-                        metadata={
-                            'statement': statement_data['statement'],
-                            'chunk': statement_data['chunk'],
-                            'source': statement_data['source'],
-                            'search_type': 'beam_search',
-                            'depth': len(path),
-                            'path': path
-                        }
-                    )
-                    score = self.score_cache.get(statement_data['statement']['value'], 0.0)
-                    nodes.append(NodeWithScore(node=node, score=score))
-                else:
-                    logger.warning(f"Statement data not found in cache for ID: {statement_id}")
 
-            nodes.sort(key=lambda x: x.score or 0.0, reverse=True)
-
-            logger.info(f"Retrieved {len(nodes)} new nodes through beam search.")
-            return nodes
-
-        except Exception as e:
-            logger.error(f"Error in _retrieve: {str(e)}")
+        if not initial_statement_ids:
+            logger.warning("No initial statements found for the query.")
             return []
+
+        # Perform beam search
+        beam_results = self.beam_search(
+            query_bundle,
+            list(initial_statement_ids)
+        )
+
+        # Collect all new statement IDs from beam search
+        new_statement_ids = [
+            statement_id for statement_id, _ in beam_results
+            if statement_id not in initial_statement_ids
+        ]
+
+        if not new_statement_ids:
+            logger.info("Beam search did not find any new statements.")
+            return []
+
+        # Create nodes from results
+        nodes = []
+        statement_to_path = {
+            statement_id: path 
+            for statement_id, path in beam_results 
+            if statement_id not in initial_statement_ids
+        }
+        
+        for statement_id, path in statement_to_path.items():
+            statement_data = self.statement_cache.get(statement_id)
+            if statement_data:
+                node = TextNode(
+                    text=statement_data['statement']['value'],
+                    metadata={
+                        'statement': statement_data['statement'],
+                        'chunk': statement_data['chunk'],
+                        'source': statement_data['source'],
+                        'search_type': 'beam_search',
+                        'depth': len(path),
+                        'path': path
+                    }
+                )
+                score = self.score_cache.get(statement_data['statement']['value'], 0.0)
+                nodes.append(NodeWithScore(node=node, score=score))
+            else:
+                logger.warning(f"Statement data not found in cache for ID: {statement_id}")
+
+        nodes.sort(key=lambda x: x.score or 0.0, reverse=True)
+
+        logger.info(f"Retrieved {len(nodes)} new nodes through beam search.")
+        return nodes

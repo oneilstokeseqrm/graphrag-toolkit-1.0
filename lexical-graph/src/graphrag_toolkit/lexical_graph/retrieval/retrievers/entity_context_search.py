@@ -14,6 +14,7 @@ from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, P
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever
 
 from llama_index.core.schema import QueryBundle
+from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
                  processor_args:Optional[ProcessorArgs]=None,
                  processors:Optional[List[Type[ProcessorBase]]]=None,
                  sub_retriever:Optional[SubRetrieverType]=None,
+                 filters:Optional[MetadataFilters]=None,
                  **kwargs):
         
         self.sub_retriever = sub_retriever or ChunkBasedSearch
@@ -35,6 +37,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
             vector_store=vector_store,
             processor_args=processor_args,
             processors=processors,
+            filters=filters,
             **kwargs
         )
 
@@ -45,7 +48,8 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         keyword_entity_search = KeywordEntitySearch(
             graph_store=self.graph_store, 
             max_keywords=self.args.max_keywords,
-            expand_entities=False
+            expand_entities=False,
+            filters=self.filters
         )
 
         entity_search_results = keyword_entity_search.retrieve(query_bundle)
@@ -164,7 +168,8 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
                             vss_top_k=2,
                             max_search_results=2,
                             vss_diversity_factor=self.args.vss_diversity_factor,
-                            include_facts=self.args.include_facts
+                            include_facts=self.args.include_facts,
+                            filters=self.filters
                         ))
         logger.debug(f'sub_retriever: {type(sub_retriever).__name__}')
         return sub_retriever

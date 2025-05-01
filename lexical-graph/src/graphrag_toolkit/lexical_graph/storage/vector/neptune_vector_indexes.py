@@ -3,7 +3,7 @@
 
 import string
 import logging
-from typing import Any, List
+from typing import Any, List, Optional
 
 from graphrag_toolkit.lexical_graph import IndexError
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
@@ -15,6 +15,7 @@ from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, VectorInd
 
 from llama_index.core.indices.utils import embed_nodes
 from llama_index.core.schema import QueryBundle
+from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -131,10 +132,13 @@ class NeptuneIndex(VectorIndex):
 
         return nodes
     
-    def top_k(self, query_bundle:QueryBundle, top_k:int=5):
+    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filters:Optional[MetadataFilters]=None):
 
         if not self.tenant_id.is_default_tenant():
             raise IndexError('NeptuneIndex does not support multi-tenant indexes')
+        
+        if filters:
+            raise IndexError('NeptuneIndex does not support filters')
 
         query_bundle = to_embedded_query(query_bundle, self.embed_model)
 
@@ -166,7 +170,7 @@ class NeptuneIndex(VectorIndex):
         
         all_results = []
         
-        for i in ids:
+        for i in set(ids):
 
             cypher = f'''
             MATCH (n:`{self.label}`)  WHERE {self.neptune_client.node_id('n.{self.id_name}')} = $elementId

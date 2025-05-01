@@ -14,6 +14,7 @@ from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, P
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever
 
 from llama_index.core.schema import QueryBundle
+from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class EntityBasedSearch(TraversalBasedBaseRetriever):
                  vector_store:VectorStore,
                  processor_args:Optional[ProcessorArgs]=None,
                  processors:Optional[List[Type[ProcessorBase]]]=None,
+                 filters:Optional[MetadataFilters]=None,
                  **kwargs):
         
         super().__init__(
@@ -30,6 +32,7 @@ class EntityBasedSearch(TraversalBasedBaseRetriever):
             vector_store=vector_store,
             processor_args=processor_args,
             processors=processors,
+            filters=filters,
             **kwargs
         )
 

@@ -18,6 +18,7 @@ from graphrag_toolkit.lexical_graph.retrieval.retrievers.keyword_entity_search i
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, ScoredEntity, Entity
 
 from llama_index.core.schema import QueryBundle, NodeWithScore
+from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +43,13 @@ class CompositeTraversalBasedRetriever(TraversalBasedBaseRetriever):
                  vector_store:VectorStore,
                  retrievers:Optional[List[WeightedTraversalBasedRetrieverType]]=None,
                  query_decomposition:Optional[QueryDecomposition]=None,
+                 filters:Optional[MetadataFilters]=None,
                  **kwargs): 
 
         super().__init__(
             graph_store=graph_store, 
             vector_store=vector_store,
+            filters=filters,
             **kwargs
         )
 
@@ -68,7 +71,8 @@ class CompositeTraversalBasedRetriever(TraversalBasedBaseRetriever):
         keyword_entity_search = KeywordEntitySearch(
             graph_store=self.graph_store, 
             max_keywords=self.args.max_keywords,
-            expand_entities=self.args.expand_entities
+            expand_entities=self.args.expand_entities,
+            filters=self.filters
         )
 
         entity_search_results = keyword_entity_search.retrieve(query_bundle)
@@ -102,6 +106,7 @@ class CompositeTraversalBasedRetriever(TraversalBasedBaseRetriever):
                                 # No processing - just raw results
                             ],
                             entities=entities,
+                            filters=self.filters,
                             **sub_args
                         ))
 

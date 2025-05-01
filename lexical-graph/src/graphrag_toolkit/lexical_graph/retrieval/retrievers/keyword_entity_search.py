@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import concurrent.futures
 import logging
-import asyncio
 from itertools import repeat
-from typing import List, Iterator, cast
+from typing import List, Iterator, cast, Optional
 
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
@@ -16,6 +15,7 @@ from graphrag_toolkit.lexical_graph.retrieval.prompts import SIMPLE_EXTRACT_KEYW
 from llama_index.core.base.base_retriever import BaseRetriever
 from llama_index.core.prompts import PromptTemplate
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
+from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,8 @@ class KeywordEntitySearch(BaseRetriever):
                  simple_extract_keywords_template=SIMPLE_EXTRACT_KEYWORDS_PROMPT,
                  extended_extract_keywords_template=EXTENDED_EXTRACT_KEYWORDS_PROMPT,
                  max_keywords=10,
-                 expand_entities=False):
+                 expand_entities=False,
+                 filters:Optional[MetadataFilters]=None):
         
         self.graph_store = graph_store
         self.llm = llm if llm and isinstance(llm, LLMCache) else LLMCache(
@@ -37,6 +38,7 @@ class KeywordEntitySearch(BaseRetriever):
         self.extended_extract_keywords_template=extended_extract_keywords_template
         self.max_keywords = max_keywords
         self.expand_entities = expand_entities
+        self.filters = filters
 
     
     def _expand_entities(self, scored_entities:List[ScoredEntity]):

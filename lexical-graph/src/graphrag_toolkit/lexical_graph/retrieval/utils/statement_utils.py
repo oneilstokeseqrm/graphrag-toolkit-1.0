@@ -8,6 +8,7 @@ from typing import Dict, List
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import node_result
+from graphrag_toolkit.lexical_graph.storage.vector import VectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ def get_top_free_gpus(n=2):
             ) from e
 
 class SharedEmbeddingCache:
-    def __init__(self, vector_store):
+    def __init__(self, vector_store:VectorStore):
         self._cache: Dict[str, np.ndarray] = {}
         self._lock = threading.Lock()
         self.vector_store = vector_store

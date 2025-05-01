@@ -11,6 +11,7 @@ from llama_index.core.bridge.pydantic import PrivateAttr
 from llama_index.core.schema import BaseNode, NodeWithScore, QueryBundle
 from llama_index.core.vector_stores.types import  VectorStoreQueryResult, VectorStoreQueryMode, MetadataFilters
 from llama_index.core.indices.utils import embed_nodes
+from llama_index.core.vector_stores.types import MetadataFilters
 
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig, EmbeddingType
 from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, to_embedded_query
@@ -274,7 +275,7 @@ class OpenSearchIndex(VectorIndex):
         
         return nodes
     
-    def top_k(self, query_bundle:QueryBundle, top_k:int=5):
+    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filters:Optional[MetadataFilters]=None):
 
         query_bundle = to_embedded_query(query_bundle, self.embed_model)
 
@@ -286,7 +287,8 @@ class OpenSearchIndex(VectorIndex):
                 VectorStoreQueryMode.DEFAULT,
                 query_str=query_bundle.query_str,
                 query_embedding=query_bundle.embedding,
-                k=top_k
+                k=top_k,
+                filters=filters
             )
 
             scored_nodes.extend([
@@ -356,7 +358,7 @@ class OpenSearchIndex(VectorIndex):
 
         query = {
             "terms": {
-                f'metadata.{INDEX_KEY}.key': [self._clean_id(i) for i in ids]
+                f'metadata.{INDEX_KEY}.key': [self._clean_id(i) for i in set(ids)]
             }
         }
 
