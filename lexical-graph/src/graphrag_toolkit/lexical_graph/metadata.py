@@ -7,14 +7,14 @@ from llama_index.core.vector_stores.types import MetadataFilters, MetadataFilter
 MetadataFiltersType = Union[MetadataFilters, MetadataFilter, List[MetadataFilter]]
 
 class FilterConfig():
-    def __init__(self, filters:Optional[MetadataFiltersType]=None):
-        if not filters:
-            self.filters = None
-        elif isinstance(filters, MetadataFilters):
-            self.filters = filters
-        elif isinstance(filters, MetadataFilter):
-            self.filters = MetadataFilters(filters=[filters])
-        elif isinstance(filters, list):
-            self.filters = self.filters = MetadataFilters(filters=filters)
+    def __init__(self, source_filters:Optional[MetadataFiltersType]=None):
+        if not source_filters:
+            self.source_filters = None
+        elif isinstance(source_filters, MetadataFilters):
+            self.source_filters = source_filters
+        elif isinstance(source_filters, MetadataFilter):
+            self.source_filters = MetadataFilters(filters=[source_filters])
+        elif isinstance(source_filters, list):
+            self.source_filters = MetadataFilters(filters=source_filters)
         else:
-            raise ValueError(f'Invalid filters type: {type(filters)}')
+            raise ValueError(f'Invalid source filters type: {type(source_filters)}')

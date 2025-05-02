@@ -165,9 +165,9 @@ class DummyOpensearchVectorClient():
     def __init__(self):
         self._os_async_client = None
 
-    async def aindex_results(self, nodes: List[BaseNode], **kwargs: Any) -> List[str]:
+    def index_results(self, nodes: List[BaseNode], **kwargs: Any) -> List[str]:
         return []
-    async def aquery(
+    def query(
         self,
         query_mode: VectorStoreQueryMode,
         query_str: Optional[str],
@@ -276,6 +276,15 @@ class OpenSearchIndex(VectorIndex):
         
         return nodes
     
+    def _get_metadata_filters(self, filter_config:FilterConfig):
+        if not filter_config or not filter_config.source_filters:
+            return None
+        
+        for f in filter_config.source_filters.filters:
+            f.key = f'source.metadata.{f.key}'
+
+        return filter_config.source_filters
+    
     def top_k(self, query_bundle:QueryBundle, top_k:int=5, filter_config:Optional[FilterConfig]=None):
 
         query_bundle = to_embedded_query(query_bundle, self.embed_model)
@@ -289,7 +298,7 @@ class OpenSearchIndex(VectorIndex):
                 query_str=query_bundle.query_str,
                 query_embedding=query_bundle.embedding,
                 k=top_k,
-                filters=filter_config.filters if filter_config else None
+                filters=self._get_metadata_filters(filter_config)
             )
 
             scored_nodes.extend([

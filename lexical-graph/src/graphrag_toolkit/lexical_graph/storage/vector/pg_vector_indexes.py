@@ -87,7 +87,7 @@ def formatter_for_type(type_name:str) -> Callable[[Any], str]:
     
 def filters_to_sql_where_clause(filter_config:FilterConfig) -> str:
 
-    if filter_config is None or filter_config.filters is None:
+    if filter_config is None or filter_config.source_filters is None:
         return ''
 
     def to_key(key: str) -> str:
@@ -102,20 +102,20 @@ def filters_to_sql_where_clause(filter_config:FilterConfig) -> str:
         return f"({key})::{type_name} {operator} {type_formatter(operator_formatter(str(f.value)))}"
         
 
-    if len(filter_config.filters.filters) == 1:
-        f = filter_config.filters.filters[0]
+    if len(filter_config.source_filters.filters) == 1:
+        f = filter_config.source_filters.filters[0]
         where_clause = to_sql_where_clause(f)
     else:
-        if filter_config.filters.condition == FilterCondition.AND:
+        if filter_config.source_filters.condition == FilterCondition.AND:
             condition = 'AND'
-        elif filter_config.filters.condition == FilterCondition.OR:
+        elif filter_config.source_filters.condition == FilterCondition.OR:
             condition = 'OR'
         else:
-            raise ValueError(f'Unsupported filters condition: {filter_config.filters.condition}')
+            raise ValueError(f'Unsupported filters condition: {filter_config.source_filters.condition}')
         
         where_clause = f' {condition} '.join([
             f"{to_sql_where_clause(f)}\n"
-            for f in filter_config.filters.filters
+            for f in filter_config.source_filters.filters
         ])
 
     return f'WHERE {where_clause}'
