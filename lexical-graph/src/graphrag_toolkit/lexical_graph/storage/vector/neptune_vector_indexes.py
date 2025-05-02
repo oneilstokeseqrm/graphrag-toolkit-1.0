@@ -7,7 +7,7 @@ import json
 from typing import Any, List, Optional, Callable
 from dateutil.parser import parse
 
-from graphrag_toolkit.lexical_graph import IndexError
+from graphrag_toolkit.lexical_graph import IndexError, FilterConfig
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore, MultiTenantGraphStore
@@ -17,7 +17,7 @@ from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, VectorInd
 
 from llama_index.core.indices.utils import embed_nodes
 from llama_index.core.schema import QueryBundle
-from llama_index.core.vector_stores.types import FilterCondition, FilterOperator, MetadataFilters, MetadataFilter
+from llama_index.core.vector_stores.types import FilterCondition, FilterOperator, MetadataFilter
 
 logger = logging.getLogger(__name__)
 
@@ -76,9 +76,9 @@ def formatter_for_type(type_name:str) -> Callable[[Any], str]:
         raise ValueError(f'Unsupported type name: {type_name}')
         
     
-def filters_to_opencypher_where_clause(filters: MetadataFilters) -> str:
+def filters_to_opencypher_where_clause(filter_config:FilterConfig) -> str:
 
-    if filters is None:
+    if filter_config is None or filter_config.filters is None:
         return ''
 
     def to_key(key: str) -> str:
@@ -93,20 +93,20 @@ def filters_to_opencypher_where_clause(filters: MetadataFilters) -> str:
         return f"({key}) {operator} {type_formatter(operator_formatter(str(f.value)))}"
         
 
-    if len(filters.filters) == 1:
-        f = filters.filters[0]
+    if len(filter_config.filters.filters) == 1:
+        f = filter_config.filters.filters[0]
         where_clause = to_opencypher_where_clause(f)
     else:
-        if filters.condition == FilterCondition.AND:
+        if filter_config.filters.condition == FilterCondition.AND:
             condition = 'AND'
-        elif filters.condition == FilterCondition.OR:
+        elif filter_config.filters.condition == FilterCondition.OR:
             condition = 'OR'
         else:
-            raise ValueError(f'Unsupported filters condition: {filters.condition}')
+            raise ValueError(f'Unsupported filters condition: {filter_config.filters.condition}')
         
         where_clause = f' {condition} '.join([
             f"{to_opencypher_where_clause(f)}\n"
-            for f in filters.filters
+            for f in filter_config.filters.filters
         ])
 
     return f'WHERE {where_clause}'
@@ -206,7 +206,7 @@ class NeptuneIndex(VectorIndex):
         
         return nodes
     
-    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filters:Optional[MetadataFilters]=None):
+    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filter_config:Optional[FilterConfig]=None):
 
         if not self.tenant_id.is_default_tenant():
             raise IndexError('NeptuneIndex does not support multi-tenant indexes')
@@ -231,7 +231,7 @@ class NeptuneIndex(VectorIndex):
         WITH node as {self.index_name}, score WHERE '{tenant_specific_label}' in labels({self.index_name}) 
         WITH {self.index_name}, score ORDER BY score ASC LIMIT {top_k}
         MATCH {self.path}
-        {filters_to_opencypher_where_clause(filters)}
+        {filters_to_opencypher_where_clause(filter_config)}
         RETURN {{
             score: score,
             {self.return_fields}

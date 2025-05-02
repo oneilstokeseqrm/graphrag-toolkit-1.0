@@ -5,6 +5,7 @@ import logging
 import concurrent.futures
 from typing import List, Optional, Type
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
@@ -23,7 +24,7 @@ class TopicBasedSearch(TraversalBasedBaseRetriever):
                  vector_store:VectorStore,
                  processor_args:Optional[ProcessorArgs]=None,
                  processors:Optional[List[Type[ProcessorBase]]]=None,
-                 filters:Optional[MetadataFilters]=None,
+                 filter_config:FilterConfig=None,
                  **kwargs):
         
         super().__init__(
@@ -31,7 +32,7 @@ class TopicBasedSearch(TraversalBasedBaseRetriever):
             vector_store=vector_store,
             processor_args=processor_args,
             processors=processors,
-            filters=filters,
+            filter_config=filter_config,
             **kwargs
         )
     
@@ -57,7 +58,7 @@ class TopicBasedSearch(TraversalBasedBaseRetriever):
 
         logger.debug('Getting start node ids for topic-based search...')
 
-        topics = get_diverse_vss_elements('topic', query_bundle, self.vector_store, self.args, self.filters)
+        topics = get_diverse_vss_elements('topic', query_bundle, self.vector_store, self.args, self.filter_config)
         
         return [topic['topic']['topicId'] for topic in topics]
     

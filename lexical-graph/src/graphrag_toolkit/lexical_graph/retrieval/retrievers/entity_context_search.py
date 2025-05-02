@@ -4,6 +4,7 @@
 import logging
 from typing import List, Optional, Type, Union
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, ScoredEntity, Entity, SearchResult
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
@@ -14,7 +15,6 @@ from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, P
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever
 
 from llama_index.core.schema import QueryBundle
-from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
                  processor_args:Optional[ProcessorArgs]=None,
                  processors:Optional[List[Type[ProcessorBase]]]=None,
                  sub_retriever:Optional[SubRetrieverType]=None,
-                 filters:Optional[MetadataFilters]=None,
+                 filter_config:Optional[FilterConfig]=None,
                  **kwargs):
         
         self.sub_retriever = sub_retriever or ChunkBasedSearch
@@ -37,7 +37,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
             vector_store=vector_store,
             processor_args=processor_args,
             processors=processors,
-            filters=filters,
+            filter_config=filter_config,
             **kwargs
         )
 
@@ -49,7 +49,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
             graph_store=self.graph_store, 
             max_keywords=self.args.max_keywords,
             expand_entities=False,
-            filters=self.filters
+            filter_config=self.filter_config
         )
 
         entity_search_results = keyword_entity_search.retrieve(query_bundle)
@@ -169,7 +169,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
                             max_search_results=2,
                             vss_diversity_factor=self.args.vss_diversity_factor,
                             include_facts=self.args.include_facts,
-                            filters=self.filters
+                            filter_config=self.filter_config
                         ))
         logger.debug(f'sub_retriever: {type(sub_retriever).__name__}')
         return sub_retriever

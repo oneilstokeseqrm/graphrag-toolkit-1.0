@@ -15,7 +15,12 @@ logger = logging.getLogger(__name__)
 SourceInfoTemplateType = Union[str, Template]
 
 def default_source_formatter_fn(source:Source):
-    return ' '.join(source.metadata.values()) if source.metadata else source.sourceId
+    if source.metadata:
+        source_strs = [str(v) for v in source.metadata.values()]
+        source_strs.sort(key=len, reverse=True)
+        return ' '.join(source_strs)
+    else:
+        return source.sourceId
 
 def source_info_template(template:SourceInfoTemplateType) -> Callable[[Dict[str, Any]], str]:
     t = template if isinstance(template, Template) else Template(template)

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from itertools import repeat
 from typing import List, Type, Optional, Union, Iterator, cast
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever
@@ -18,7 +19,6 @@ from graphrag_toolkit.lexical_graph.retrieval.retrievers.keyword_entity_search i
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, ScoredEntity, Entity
 
 from llama_index.core.schema import QueryBundle, NodeWithScore
-from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +43,13 @@ class CompositeTraversalBasedRetriever(TraversalBasedBaseRetriever):
                  vector_store:VectorStore,
                  retrievers:Optional[List[WeightedTraversalBasedRetrieverType]]=None,
                  query_decomposition:Optional[QueryDecomposition]=None,
-                 filters:Optional[MetadataFilters]=None,
+                 filter_config:FilterConfig=None,
                  **kwargs): 
 
         super().__init__(
             graph_store=graph_store, 
             vector_store=vector_store,
-            filters=filters,
+            filter_config=filter_config,
             **kwargs
         )
 
@@ -72,7 +72,7 @@ class CompositeTraversalBasedRetriever(TraversalBasedBaseRetriever):
             graph_store=self.graph_store, 
             max_keywords=self.args.max_keywords,
             expand_entities=self.args.expand_entities,
-            filters=self.filters
+            filter_config=self.filter_config
         )
 
         entity_search_results = keyword_entity_search.retrieve(query_bundle)
@@ -106,7 +106,7 @@ class CompositeTraversalBasedRetriever(TraversalBasedBaseRetriever):
                                 # No processing - just raw results
                             ],
                             entities=entities,
-                            filters=self.filters,
+                            filter_config=self.filter_config,
                             **sub_args
                         ))
 

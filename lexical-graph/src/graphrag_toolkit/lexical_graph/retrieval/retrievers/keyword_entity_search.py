@@ -5,6 +5,7 @@ import logging
 from itertools import repeat
 from typing import List, Iterator, cast, Optional
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import node_result, search_string_from
@@ -15,7 +16,6 @@ from graphrag_toolkit.lexical_graph.retrieval.prompts import SIMPLE_EXTRACT_KEYW
 from llama_index.core.base.base_retriever import BaseRetriever
 from llama_index.core.prompts import PromptTemplate
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
-from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class KeywordEntitySearch(BaseRetriever):
                  extended_extract_keywords_template=EXTENDED_EXTRACT_KEYWORDS_PROMPT,
                  max_keywords=10,
                  expand_entities=False,
-                 filters:Optional[MetadataFilters]=None):
+                 filter_config:Optional[FilterConfig]=None):
         
         self.graph_store = graph_store
         self.llm = llm if llm and isinstance(llm, LLMCache) else LLMCache(
@@ -38,7 +38,7 @@ class KeywordEntitySearch(BaseRetriever):
         self.extended_extract_keywords_template=extended_extract_keywords_template
         self.max_keywords = max_keywords
         self.expand_entities = expand_entities
-        self.filters = filters
+        self.filter_config = filter_config
 
     
     def _expand_entities(self, scored_entities:List[ScoredEntity]):

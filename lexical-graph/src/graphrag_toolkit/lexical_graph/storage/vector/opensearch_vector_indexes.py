@@ -13,6 +13,7 @@ from llama_index.core.vector_stores.types import  VectorStoreQueryResult, Vector
 from llama_index.core.indices.utils import embed_nodes
 from llama_index.core.vector_stores.types import MetadataFilters
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig, EmbeddingType
 from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, to_embedded_query
 from graphrag_toolkit.lexical_graph.storage.constants import INDEX_KEY
@@ -275,7 +276,7 @@ class OpenSearchIndex(VectorIndex):
         
         return nodes
     
-    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filters:Optional[MetadataFilters]=None):
+    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filter_config:Optional[FilterConfig]=None):
 
         query_bundle = to_embedded_query(query_bundle, self.embed_model)
 
@@ -288,7 +289,7 @@ class OpenSearchIndex(VectorIndex):
                 query_str=query_bundle.query_str,
                 query_embedding=query_bundle.embedding,
                 k=top_k,
-                filters=filters
+                filters=filter_config.filters if filter_config else None
             )
 
             scored_nodes.extend([

@@ -9,6 +9,7 @@ from itertools import repeat
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 from llama_index.core.vector_stores.types import MetadataFilters
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector import VectorStore
 
@@ -30,10 +31,10 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
         graph_store:GraphStore,
         retrievers:Optional[List[Union[SemanticGuidedBaseRetriever, Type[SemanticGuidedBaseRetriever]]]]=None,
         share_results:bool=True,
-        filters:Optional[MetadataFilters]=None,
+        filter_config:Optional[FilterConfig]=None,
         **kwargs: Any,
     ) -> None:
-        super().__init__(vector_store, graph_store, filters, **kwargs)
+        super().__init__(vector_store, graph_store, filter_config, **kwargs)
         self.share_results = share_results
         
         # Create shared embedding cache

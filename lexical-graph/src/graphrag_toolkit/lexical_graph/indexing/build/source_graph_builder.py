@@ -35,11 +35,20 @@ class SourceGraphBuilder(GraphBuilder):
             metadata = source_metadata.get('metadata', {})
             
             clean_metadata = {}
+            metadata_assignments_fns = {}
+
             for k, v in metadata.items():
-                clean_metadata[k.replace(' ', '_')] = str(v)
+                key = k.replace(' ', '_')
+                value = str(v)
+                clean_metadata[key] = value
+                metadata_assignments_fns[key] = graph_client.property_assigment_fn(key, value)
+
+            def format_assigment(key):
+                assigment = f'params.{key}'
+                return metadata_assignments_fns[key](assigment)
         
             if clean_metadata:
-                all_properties = ', '.join(f'source.{key} = params.{key}' for key,_ in clean_metadata.items())
+                all_properties = ', '.join(f'source.{key} = {format_assigment(key)}' for key,_ in clean_metadata.items())
                 statements.append(f'ON CREATE SET {all_properties} ON MATCH SET {all_properties}')
             
             query = '\n'.join(statements)

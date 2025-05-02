@@ -9,6 +9,7 @@ from llama_index.core.schema import QueryBundle, BaseNode
 from llama_index.core.bridge.pydantic import BaseModel, Field, field_validator
 from llama_index.core.vector_stores.types import MetadataFilters
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph import EmbeddingType, TenantId
 from graphrag_toolkit.lexical_graph.storage.constants import ALL_EMBEDDING_INDEXES
 
@@ -48,7 +49,7 @@ class VectorIndex(BaseModel):
         raise NotImplementedError
     
     @abc.abstractmethod
-    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filters:Optional[MetadataFilters]=None) -> Sequence[Dict[str, Any]]:
+    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filter_config:Optional[FilterConfig]=None) -> Sequence[Dict[str, Any]]:
         raise NotImplementedError
 
     @abc.abstractmethod

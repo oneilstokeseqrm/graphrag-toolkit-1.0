@@ -6,6 +6,7 @@ import logging
 from functools import reduce
 from typing import List, Dict, Set, Any, Optional, Tuple, Iterator
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
@@ -16,7 +17,6 @@ from graphrag_toolkit.lexical_graph.retrieval.retrievers.semantic_guided_base_re
 
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 from llama_index.core.prompts import PromptTemplate
-from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +31,10 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
         llm:LLMCacheType=None,
         max_keywords:int=10,
         top_k:int=100,
-        filters:Optional[MetadataFilters]=None,
+        filter_config:Optional[FilterConfig]=None,
         **kwargs: Any,
     ) -> None:
-        super().__init__(vector_store, graph_store, filters, **kwargs)
+        super().__init__(vector_store, graph_store, filter_config, **kwargs)
         self.embedding_cache = embedding_cache
         self.llm = llm if llm and isinstance(llm, LLMCache) else LLMCache(
             llm=llm or GraphRAGConfig.response_llm,

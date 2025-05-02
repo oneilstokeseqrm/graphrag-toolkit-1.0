@@ -4,13 +4,13 @@
 import logging
 from typing import List, Any, Optional
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector import VectorStore
 from graphrag_toolkit.lexical_graph.retrieval.utils.statement_utils import get_top_k, SharedEmbeddingCache
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.semantic_guided_base_retriever import SemanticGuidedBaseRetriever
 
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
-from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +23,10 @@ class StatementCosineSimilaritySearch(SemanticGuidedBaseRetriever):
         graph_store:GraphStore,
         embedding_cache:Optional[SharedEmbeddingCache]=None,
         top_k:int=100,
-        filters:Optional[MetadataFilters]=None,
+        filter_config:Optional[FilterConfig]=None,
         **kwargs: Any,
     ) -> None:
-        super().__init__(vector_store, graph_store, filters, **kwargs)
+        super().__init__(vector_store, graph_store, filter_config, **kwargs)
         self.embedding_cache = embedding_cache
         self.top_k = top_k
 
@@ -36,7 +36,7 @@ class StatementCosineSimilaritySearch(SemanticGuidedBaseRetriever):
         statement_results = self.vector_store.get_index('statement').top_k(
             query_bundle, 
             top_k=500,
-            filters=self.filters
+            filter_config=self.filter_config
         )
         
         logger.debug(f'statement_results: {statement_results}')

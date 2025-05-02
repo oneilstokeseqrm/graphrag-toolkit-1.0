@@ -8,15 +8,16 @@ import numpy as np
 from pgvector.psycopg2 import register_vector
 from typing import List, Sequence, Dict, Any, Optional, Callable
 from urllib.parse import urlparse
-from datetime import datetime
+from dateutil.parser import parse
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig, EmbeddingType
 from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, to_embedded_query
 from graphrag_toolkit.lexical_graph.storage.constants import INDEX_KEY
 
 from llama_index.core.schema import BaseNode, QueryBundle
 from llama_index.core.indices.utils import embed_nodes
-from llama_index.core.vector_stores.types import FilterCondition, FilterOperator, MetadataFilters, MetadataFilter
+from llama_index.core.vector_stores.types import FilterCondition, FilterOperator, MetadataFilter
 
 
 logger = logging.getLogger(__name__)
@@ -68,7 +69,7 @@ def type_name_for_value(value:Any) -> str:
         return 'float'
     else:
         try:
-            datetime.fromisoformat(value)
+            parse(value, fuzzy=False)
             return 'timestamp'
         except ValueError as e:
             return 'text'
@@ -77,16 +78,16 @@ def formatter_for_type(type_name:str) -> Callable[[Any], str]:
     if type_name == 'text':
         return lambda x: f"'{x}'"
     elif type_name == 'timestamp':
-        return lambda x: f"'{datetime.fromisoformat(x)}'"
+        return lambda x: f"'{parse(x, fuzzy=False).isoformat()}'"
     elif type_name in ['int', 'float']:
         return lambda x:x
     else:
         raise ValueError(f'Unsupported type name: {type_name}')
         
     
-def filters_to_sql_where_clause(filters: MetadataFilters) -> str:
+def filters_to_sql_where_clause(filter_config:FilterConfig) -> str:
 
-    if filters is None:
+    if filter_config is None or filter_config.filters is None:
         return ''
 
     def to_key(key: str) -> str:
@@ -101,20 +102,20 @@ def filters_to_sql_where_clause(filters: MetadataFilters) -> str:
         return f"({key})::{type_name} {operator} {type_formatter(operator_formatter(str(f.value)))}"
         
 
-    if len(filters.filters) == 1:
-        f = filters.filters[0]
+    if len(filter_config.filters.filters) == 1:
+        f = filter_config.filters.filters[0]
         where_clause = to_sql_where_clause(f)
     else:
-        if filters.condition == FilterCondition.AND:
+        if filter_config.filters.condition == FilterCondition.AND:
             condition = 'AND'
-        elif filters.condition == FilterCondition.OR:
+        elif filter_config.filters.condition == FilterCondition.OR:
             condition = 'OR'
         else:
-            raise ValueError(f'Unsupported filters condition: {filters.condition}')
+            raise ValueError(f'Unsupported filters condition: {filter_config.filters.condition}')
         
         where_clause = f' {condition} '.join([
             f"{to_sql_where_clause(f)}\n"
-            for f in filters.filters
+            for f in filter_config.filters.filters
         ])
 
     return f'WHERE {where_clause}'
@@ -335,7 +336,7 @@ class PGIndex(VectorIndex):
             
         return result
     
-    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filters:Optional[MetadataFilters]=None) -> Sequence[Dict[str, Any]]:
+    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filter_config:Optional[FilterConfig]=None) -> Sequence[Dict[str, Any]]:
 
         dbconn = self._get_connection()
         cur = dbconn.cursor()
@@ -348,7 +349,7 @@ class PGIndex(VectorIndex):
 
             sql = f'''SELECT {self.index_name}Id, metadata, embedding <-> %s AS score
                 FROM {self.schema_name}.{self.underlying_index_name()}
-                {filters_to_sql_where_clause(filters)}
+                {filters_to_sql_where_clause(filter_config)}
                 ORDER BY score ASC LIMIT %s;'''
             
             logger.debug(f'sql: {sql}')

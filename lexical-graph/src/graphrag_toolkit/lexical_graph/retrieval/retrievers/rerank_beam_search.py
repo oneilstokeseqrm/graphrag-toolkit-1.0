@@ -5,6 +5,7 @@ import logging
 from queue import PriorityQueue
 from typing import List, Dict, Set, Tuple, Optional, Any, Union, Type
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector import VectorStore
 from graphrag_toolkit.lexical_graph.retrieval.utils.statement_utils import get_statements_query
@@ -12,7 +13,6 @@ from graphrag_toolkit.lexical_graph.retrieval.retrievers.semantic_guided_base_re
 from graphrag_toolkit.lexical_graph.retrieval.post_processors import RerankerMixin
 
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
-from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +26,10 @@ class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
         shared_nodes:Optional[List[NodeWithScore]] = None,
         max_depth:int=3,
         beam_width:int=10,
-        filters:Optional[MetadataFilters]=None,
+        filter_config:Optional[FilterConfig]=None,
         **kwargs: Any,
     ) -> None:
-        super().__init__(vector_store, graph_store, filters, **kwargs)
+        super().__init__(vector_store, graph_store, filter_config, **kwargs)
         self.reranker = reranker 
         self.max_depth = max_depth
         self.beam_width = beam_width
@@ -43,7 +43,7 @@ class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
             for retriever in initial_retrievers:
                 if isinstance(retriever, type):
                     self.initial_retrievers.append(
-                        retriever(vector_store, graph_store, **kwargs)
+                        retriever(vector_store, graph_store, filter_config, **kwargs)
                     )
                 else:
                     self.initial_retrievers.append(retriever)
@@ -198,7 +198,7 @@ class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
             results = self.vector_store.get_index('statement').top_k(
                 query_bundle,
                 top_k=self.beam_width * 2,
-                filters=self.filters
+                filter_config=self.filter_config
             )
             initial_statement_ids = {
                 r['statement']['statementId'] for r in results

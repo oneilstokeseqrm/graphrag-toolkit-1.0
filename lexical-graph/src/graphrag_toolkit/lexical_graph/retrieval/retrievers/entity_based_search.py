@@ -5,16 +5,15 @@ import logging
 import concurrent.futures
 from typing import List, Generator, Tuple, Any, Optional, Type
 
+from graphrag_toolkit.lexical_graph import FilterConfig
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, ScoredEntity, Entity
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
-from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import node_result, search_string_from
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.keyword_entity_search import KeywordEntitySearch
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, ProcessorArgs
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever
 
 from llama_index.core.schema import QueryBundle
-from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ class EntityBasedSearch(TraversalBasedBaseRetriever):
                  vector_store:VectorStore,
                  processor_args:Optional[ProcessorArgs]=None,
                  processors:Optional[List[Type[ProcessorBase]]]=None,
-                 filters:Optional[MetadataFilters]=None,
+                 filter_config:Optional[FilterConfig]=None,
                  **kwargs):
         
         super().__init__(
@@ -32,7 +31,7 @@ class EntityBasedSearch(TraversalBasedBaseRetriever):
             vector_store=vector_store,
             processor_args=processor_args,
             processors=processors,
-            filters=filters,
+            filter_config=filter_config,
             **kwargs
         )
 
