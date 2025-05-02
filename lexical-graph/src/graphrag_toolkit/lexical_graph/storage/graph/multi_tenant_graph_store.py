@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 
 from graphrag_toolkit.lexical_graph import TenantId
 from graphrag_toolkit.lexical_graph.storage.constants import LEXICAL_GRAPH_LABELS
@@ -25,6 +25,9 @@ class MultiTenantGraphStore(GraphStore):
 
     def _logging_prefix(self, query_id:str, correlation_id:Optional[str]=None):
         return self.inner._logging_prefix(query_id=query_id, correlation_id=correlation_id) 
+    
+    def property_assigment_fn(self, key:str, value:Any) -> Callable[[str], str]:
+        return self.inner.property_assigment_fn(key, value)
     
     def node_id(self, id_name:str) -> NodeId:
         return self.inner.node_id(id_name=id_name)

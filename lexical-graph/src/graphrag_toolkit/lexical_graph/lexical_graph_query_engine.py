@@ -8,6 +8,7 @@ import time
 from json2xml import json2xml
 from typing import Optional, List, Type, Union
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.tenant_id import TenantIdType, to_tenant_id
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
@@ -32,16 +33,11 @@ from llama_index.core.callbacks.base import CallbackManager
 from llama_index.core.base.response.schema import RESPONSE_TYPE
 from llama_index.core.base.response.schema import Response
 from llama_index.core.prompts.mixin import PromptDictType, PromptMixinType
-from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
 RetrieverType = Union[BaseRetriever, Type[BaseRetriever]]
 PostProcessorsType = Union[BaseNodePostprocessor, List[BaseNodePostprocessor]]
-
-class FilterConfig():
-    def __init__(self, filters:Optional[MetadataFilters]=None):
-        self.filters = filters
 
 class LexicalGraphQueryEngine(BaseQueryEngine):
 

@@ -3,11 +3,10 @@
 
 import string
 import logging
-import json
 from typing import Any, List, Optional, Callable
 from dateutil.parser import parse
 
-from graphrag_toolkit.lexical_graph import IndexError, FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore, MultiTenantGraphStore
@@ -124,10 +123,10 @@ class NeptuneAnalyticsVectorIndexFactory(VectorIndexFactoryMethod):
 class NeptuneIndex(VectorIndex):
     
     @staticmethod
-    def for_index(index_name, graph_id, embed_model=None, dimensions=None):
+    def for_index(index_name, graph_id, embed_model=None, dimensions=None, **kwargs):
 
         index_name = index_name.lower()
-        neptune_client:GraphStore = GraphStoreFactory.for_graph_store(graph_id)
+        neptune_client:GraphStore = GraphStoreFactory.for_graph_store(graph_id, **kwargs)
         embed_model = embed_model or GraphRAGConfig.embed_model
         dimensions = dimensions or GraphRAGConfig.embed_dimensions
         id_name = f'{index_name}Id'
@@ -166,7 +165,7 @@ class NeptuneIndex(VectorIndex):
     return_fields: str
 
     def _neptune_client(self):
-        if self.tenant_id.is_default_tenant:
+        if self.tenant_id.is_default_tenant():
             return self.neptune_client
         else:
             return MultiTenantGraphStore.wrap(self.neptune_client, tenant_id=self.tenant_id)
@@ -176,10 +175,7 @@ class NeptuneIndex(VectorIndex):
         
         for node in nodes:
             node.metadata['index'] = self.underlying_index_name()
-            
-        if not self.tenant_id.is_default_tenant():
-            raise IndexError('NeptuneIndex does not support multi-tenant indexes')
-                
+                    
         id_to_embed_map = embed_nodes(
             nodes, self.embed_model
         )
@@ -200,7 +196,7 @@ class NeptuneIndex(VectorIndex):
                 'embedding': embedding
             }
 
-            self._neptune_client().execute_query(query, properties)
+            self._neptune_client().execute_query_with_retry(query, properties)
             
             node.metadata.pop('index', None)
         
@@ -208,13 +204,12 @@ class NeptuneIndex(VectorIndex):
     
     def top_k(self, query_bundle:QueryBundle, top_k:int=5, filter_config:Optional[FilterConfig]=None):
 
-        if not self.tenant_id.is_default_tenant():
-            raise IndexError('NeptuneIndex does not support multi-tenant indexes')
+        query_str = f'''index: {self.underlying_index_name()}
 
-        prefix = json.dumps({'index': self.underlying_index_name()})
+{query_bundle.query_str}
+'''
 
-        query_bundle = QueryBundle(query_str=f'{prefix} {query_bundle.query_str}') 
-
+        query_bundle = QueryBundle(query_str=query_str) 
         query_bundle = to_embedded_query(query_bundle, self.embed_model)
 
         tenant_specific_label = self.tenant_id.format_label(self.label).replace('`', '')
@@ -244,10 +239,9 @@ class NeptuneIndex(VectorIndex):
 
     def get_embeddings(self, ids:List[str]=[]):
 
-        if not self.tenant_id.is_default_tenant():
-            raise IndexError('NeptuneIndex does not support multi-tenant indexes')
-        
         all_results = []
+
+        tenant_specific_label = self.tenant_id.format_label(self.label).replace('`', '')
         
         for i in set(ids):
 
@@ -257,7 +251,7 @@ class NeptuneIndex(VectorIndex):
                 n
             )
             YIELD node, embedding       
-            WITH node as {self.index_name}, embedding WHERE '{self.label}' in labels({self.index_name}) 
+            WITH node as {self.index_name}, embedding WHERE '{tenant_specific_label}' in labels({self.index_name}) 
             MATCH {self.path}
             RETURN {{
                 embedding: embedding,

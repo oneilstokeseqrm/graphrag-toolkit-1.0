@@ -9,7 +9,7 @@ from llama_index.core.schema import QueryBundle, BaseNode
 from llama_index.core.bridge.pydantic import BaseModel, Field, field_validator
 from llama_index.core.vector_stores.types import MetadataFilters
 
-from graphrag_toolkit.lexical_graph import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph import EmbeddingType, TenantId
 from graphrag_toolkit.lexical_graph.storage.constants import ALL_EMBEDDING_INDEXES
 

@@ -5,7 +5,7 @@ import logging
 from itertools import repeat
 from typing import List, Iterator, cast, Optional
 
-from graphrag_toolkit.lexical_graph import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import node_result, search_string_from

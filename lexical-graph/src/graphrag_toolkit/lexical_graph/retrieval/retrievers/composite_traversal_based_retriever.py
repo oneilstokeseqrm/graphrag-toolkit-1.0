@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from itertools import repeat
 from typing import List, Type, Optional, Union, Iterator, cast
 
-from graphrag_toolkit.lexical_graph import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever

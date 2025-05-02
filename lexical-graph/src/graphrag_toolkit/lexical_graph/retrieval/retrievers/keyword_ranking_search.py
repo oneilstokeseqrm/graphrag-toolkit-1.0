@@ -6,7 +6,7 @@ import logging
 from functools import reduce
 from typing import List, Dict, Set, Any, Optional, Tuple, Iterator
 
-from graphrag_toolkit.lexical_graph import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore

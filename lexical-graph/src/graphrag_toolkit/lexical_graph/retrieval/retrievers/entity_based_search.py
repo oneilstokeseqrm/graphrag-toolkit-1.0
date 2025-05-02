@@ -5,7 +5,7 @@ import logging
 import concurrent.futures
 from typing import List, Generator, Tuple, Any, Optional, Type
 
-from graphrag_toolkit.lexical_graph import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, ScoredEntity, Entity
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore

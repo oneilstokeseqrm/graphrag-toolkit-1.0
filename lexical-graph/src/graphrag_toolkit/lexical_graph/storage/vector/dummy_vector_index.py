@@ -3,7 +3,7 @@
 import logging
 from typing import List, Sequence, Any, Optional
 
-from graphrag_toolkit.lexical_graph import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, VectorIndexFactoryMethod
 
 from llama_index.core.schema import QueryBundle

@@ -5,7 +5,7 @@ import logging
 from queue import PriorityQueue
 from typing import List, Dict, Set, Tuple, Optional, Any, Union, Type
 
-from graphrag_toolkit.lexical_graph import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector import VectorStore
 from graphrag_toolkit.lexical_graph.retrieval.utils.statement_utils import get_statements_query

@@ -9,7 +9,7 @@ from itertools import repeat
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 from llama_index.core.vector_stores.types import MetadataFilters
 
-from graphrag_toolkit.lexical_graph import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector import VectorStore
 
