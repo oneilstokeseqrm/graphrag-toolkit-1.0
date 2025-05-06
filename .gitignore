@@ -1,2 +1,4 @@
 /examples/lexical-graph/notebooks/extracted/
 /examples/lexical-graph/notebooks/output/
+/.venv/
+/examples/lexical-graph-contrib/notebooks/output/
