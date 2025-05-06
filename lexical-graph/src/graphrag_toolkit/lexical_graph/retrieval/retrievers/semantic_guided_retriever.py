@@ -35,6 +35,9 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
         **kwargs: Any,
     ) -> None:
         super().__init__(vector_store, graph_store, filter_config, **kwargs)
+
+        self.debug_results = kwargs.pop('debug_results', None) is not None
+
         self.share_results = share_results
         
         # Create shared embedding cache
@@ -89,7 +92,10 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
                 repeat(query_bundle)
             ))
         
-        logger.debug(f'initial_results: {initial_results}')
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:
+            logger.debug(f'initial_results: {initial_results}')
+        else:
+            logger.debug(f'num initial_results: {len(initial_results)}')
 
         # 2. Collect unique initial nodes
         seen_statement_ids = set()
@@ -102,8 +108,11 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
                     initial_nodes.append(node)
 
         all_nodes = initial_nodes.copy()
-        
-        logger.debug(f'all_nodes (before expansion): {all_nodes}')
+
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:
+            logger.debug(f'all_nodes (before expansion): {all_nodes}')
+        else:
+            logger.debug(f'num all_nodes (before expansion): {len(all_nodes)}')
 
         # 3. Graph expansion if enabled
         if self.share_results and initial_nodes:
@@ -119,8 +128,11 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
                 except Exception as e:
                     logger.error(f"Error in graph retriever {retriever.__class__.__name__}: {e}")
                     continue
-                    
-        logger.debug(f'all_nodes (after expansion): {all_nodes}')
+
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:            
+            logger.debug(f'all_nodes (after expansion): {all_nodes}')
+        else:
+            logger.debug(f'num all_nodes (after expansion): {len(all_nodes)}')
 
         # 4. Fetch statements once
         if not all_nodes:
@@ -131,8 +143,12 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
             for node in all_nodes
         ]
         statements = get_statements_query(self.graph_store, statement_ids)
+
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:
+            logger.debug(f'statements: {statements}')
+        else:
+            logger.debug(f'num statements: {len(statements)}')
         
-        logger.debug(f'statements: {statements}')
 
         # 5. Create final nodes with full data
         final_nodes = []
@@ -158,8 +174,11 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
                     node=new_node,
                     score=node.score
                 ))
-                
-        logger.debug(f'final_nodes: {final_nodes}')
+
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:       
+            logger.debug(f'final_nodes: {final_nodes}')
+        else:
+            logger.debug(f'num final_nodes: {len(final_nodes)}')
 
         # 6. Group by source for better context
         source_nodes = defaultdict(list)
@@ -172,7 +191,10 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
         for source_id, nodes in source_nodes.items():
             nodes.sort(key=lambda x: x.score or 0.0, reverse=True)
             ordered_nodes.extend(nodes)
-            
-        logger.debug(f'ordered_nodes: {ordered_nodes}')
+
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:    
+            logger.debug(f'ordered_nodes: {ordered_nodes}')
+        else:
+            logger.debug(f'num ordered_nodes: {len(ordered_nodes)}')
 
         return ordered_nodes

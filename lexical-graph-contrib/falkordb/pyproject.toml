@@ -4,7 +4,7 @@ build-backend = "pbr.build"
 
 [project]
 name = "graphrag-toolkit-lexical-graph-falkordb"
-version = "1.0.0"
+version = "1.0.1"
 description = "FalkorDB support for the AWS GraphRAG Toolkit, lexical graph"
 readme = "README.md"
 requires-python = ">=3.10"
