@@ -99,7 +99,10 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
             logger.debug("No statements found matching keywords")
             return []
         
-        logger.debug(f'results: {results}')
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:   
+            logger.debug(f'results: {results}')
+        else:
+            logger.debug(f'num results: {len(results)}')
 
         # 3. Group statements by number of keyword matches
         statements_by_matches: Dict[int, List[Tuple[str, Set[str]]]] = {}
@@ -127,7 +130,10 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
                     len(statement_ids)
                 )
                 
-                logger.debug(f'scored_statements: {scored_statements}')
+                if logger.isEnabledFor(logging.DEBUG) and self.debug_results:   
+                    logger.debug(f'scored_statements: {scored_statements}')
+                else:
+                    logger.debug(f'num scored_statements: {len(scored_statements)}')
                 
                 # Create nodes with scores and keyword information
                 keyword_map = {sid: kw for sid, kw in group}
@@ -164,7 +170,10 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
         if self.top_k:
             final_nodes.sort(key=lambda x: x.score or 0.0, reverse=True)
             final_nodes = final_nodes[:self.top_k]
-            
-        logger.debug(f'final_nodes: {final_nodes}')
+
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:     
+            logger.debug(f'final_nodes: {final_nodes}')
+        else:
+            logger.debug(f'num final_nodes: {len(final_nodes)}')
 
         return final_nodes
