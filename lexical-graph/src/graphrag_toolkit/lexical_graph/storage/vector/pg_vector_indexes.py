@@ -224,28 +224,28 @@ class PGIndex(VectorIndex):
                         )
                     except UniqueViolation:
                         # For alt approaches, see: https://stackoverflow.com/questions/29900845/create-schema-if-not-exists-raises-duplicate-key-error
-                        logger.warning(f"UniqueViolation while trying to create table '{self.underlying_index_name()}'")
+                        logger.warning(f"Table already exists, so ignoring CREATE: {self.underlying_index_name()}")
                         pass
 
                     index_name = f'{self.underlying_index_name()}_{self.index_name}Id_idx'
                     try:
                         cur.execute(f'CREATE INDEX IF NOT EXISTS {index_name} ON {self.schema_name}.{self.underlying_index_name()} USING hash ({self.index_name}Id);')
                     except UniqueViolation:
-                        logger.warning(f"UniqueViolation while trying to create index '{index_name}'")
+                        logger.warning(f"Index already exists, so ignoring CREATE: {index_name}")
                         pass
 
                     index_name = f'{self.underlying_index_name()}_{self.index_name}Id_embedding_idx'
                     try:
                         cur.execute(f'CREATE INDEX IF NOT EXISTS {index_name} ON {self.schema_name}.{self.underlying_index_name()} USING hnsw (embedding vector_l2_ops)')
                     except UniqueViolation:
-                        logger.warning(f"UniqueViolation while trying to create index '{index_name}'")
+                        logger.warning(f"Index already exists, so ignoring CREATE: {index_name}")
                         pass
                     
                     index_name = f'{self.underlying_index_name()}_{self.index_name}Id_gin_idx'
                     try:
                         cur.execute(f'CREATE INDEX IF NOT EXISTS {index_name} ON {self.schema_name}.{self.underlying_index_name()} USING GIN (metadata)')
                     except UniqueViolation:
-                        logger.warning(f"UniqueViolation while trying to create index '{index_name}'")
+                        logger.warning(f"Index already exists, so ignoring CREATE: {index_name}")
                         pass
 
             finally:

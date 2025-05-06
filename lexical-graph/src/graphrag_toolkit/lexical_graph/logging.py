@@ -85,6 +85,7 @@ BASE_LOGGING_CONFIG = {
             'excluded_modules': {
                 logging.INFO: ['opensearch', 'boto', 'urllib'],
                 logging.DEBUG: ['opensearch', 'boto', 'urllib'],
+                logging.WARNING: ['urllib'],
             },
             'excluded_messages': {
                 logging.WARNING: ['Removing unpickleable private attribute'],
