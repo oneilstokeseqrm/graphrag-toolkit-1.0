@@ -8,7 +8,8 @@ import time
 from json2xml import json2xml
 from typing import Optional, List, Type, Union
 
-from graphrag_toolkit.lexical_graph.tenant_id import TenantId, TenantIdType, DEFAULT_TENANT_ID, to_tenant_id
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
+from graphrag_toolkit.lexical_graph.tenant_id import TenantIdType, to_tenant_id
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
 from graphrag_toolkit.lexical_graph.retrieval.prompts import ANSWER_QUESTION_SYSTEM_PROMPT, ANSWER_QUESTION_USER_PROMPT
@@ -21,7 +22,6 @@ from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory, VectorSto
 from graphrag_toolkit.lexical_graph.storage.graph import MultiTenantGraphStore
 from graphrag_toolkit.lexical_graph.storage.vector import MultiTenantVectorStore, ReadOnlyVectorStore
 from graphrag_toolkit.lexical_graph.storage.vector import to_embedded_query
-from graphrag_toolkit.lexical_graph.storage.constants import LEXICAL_GRAPH_LABELS
 
 from llama_index.core import ChatPromptTemplate
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -47,6 +47,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                                    tenant_id:Optional[TenantIdType]=None,
                                    retrievers:Optional[List[WeightedTraversalBasedRetrieverType]]=None,
                                    post_processors:Optional[PostProcessorsType]=None, 
+                                   filter_config:FilterConfig=None,
                                    **kwargs):
         
         tenant_id = to_tenant_id(tenant_id)
@@ -60,6 +61,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             graph_store, 
             vector_store, 
             retrievers=retrievers,
+            filter_config=filter_config,
             **kwargs
         )
         
@@ -70,6 +72,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             retriever=retriever,
             post_processors=post_processors,
             context_format='text',
+            filter_config=filter_config,
             **kwargs
         )
     
@@ -79,6 +82,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                                    tenant_id:Optional[TenantIdType]=None,
                                    retrievers:Optional[List[SemanticGuidedRetrieverType]]=None,
                                    post_processors:Optional[PostProcessorsType]=None, 
+                                   filter_config:FilterConfig=None,
                                    **kwargs):
         
         tenant_id = to_tenant_id(tenant_id)
@@ -92,18 +96,21 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             StatementCosineSimilaritySearch(
                 vector_store=vector_store,
                 graph_store=graph_store,
-                top_k=50
+                top_k=50,
+                filter_config=filter_config
             ),
             KeywordRankingSearch(
                 vector_store=vector_store,
                 graph_store=graph_store,
-                max_keywords=10
+                max_keywords=10,
+                filter_config=filter_config
             ),
             SemanticBeamGraphSearch(
                 vector_store=vector_store,
                 graph_store=graph_store,
                 max_depth=8,
-                beam_width=100
+                beam_width=100,
+                filter_config=filter_config
             )
         ]
         
@@ -112,6 +119,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             graph_store=graph_store,
             retrievers=retrievers,
             share_results=True,
+            filter_config=filter_config,
             **kwargs
         ) 
         
@@ -122,6 +130,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             retriever=retriever,
             post_processors=post_processors,
             context_format='bedrock_xml',
+            filter_config=filter_config,
             **kwargs
         )
 
@@ -136,6 +145,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                  retriever:Optional[RetrieverType]=None,
                  post_processors:Optional[PostProcessorsType]=None,
                  callback_manager: Optional[CallbackManager]=None, 
+                 filter_config:FilterConfig=None,
                  **kwargs):
         
         tenant_id = to_tenant_id(tenant_id)
@@ -160,9 +170,9 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             if isinstance(retriever, BaseRetriever):
                 self.retriever = retriever
             else:
-                self.retriever = retriever(graph_store, vector_store, **kwargs)
+                self.retriever = retriever(graph_store, vector_store, filter_config=filter_config, **kwargs)
         else:
-            self.retriever = CompositeTraversalBasedRetriever(graph_store, vector_store, **kwargs)
+            self.retriever = CompositeTraversalBasedRetriever(graph_store, vector_store, filter_config=filter_config, **kwargs)
 
         if post_processors:
             self.post_processors = post_processors if isinstance(post_processors, list) else [post_processors]

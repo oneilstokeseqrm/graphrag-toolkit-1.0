@@ -11,7 +11,9 @@ from llama_index.core.bridge.pydantic import PrivateAttr
 from llama_index.core.schema import BaseNode, NodeWithScore, QueryBundle
 from llama_index.core.vector_stores.types import  VectorStoreQueryResult, VectorStoreQueryMode, MetadataFilters
 from llama_index.core.indices.utils import embed_nodes
+from llama_index.core.vector_stores.types import MetadataFilters
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig, EmbeddingType
 from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, to_embedded_query
 from graphrag_toolkit.lexical_graph.storage.constants import INDEX_KEY
@@ -163,9 +165,9 @@ class DummyOpensearchVectorClient():
     def __init__(self):
         self._os_async_client = None
 
-    async def aindex_results(self, nodes: List[BaseNode], **kwargs: Any) -> List[str]:
+    def index_results(self, nodes: List[BaseNode], **kwargs: Any) -> List[str]:
         return []
-    async def aquery(
+    def query(
         self,
         query_mode: VectorStoreQueryMode,
         query_str: Optional[str],
@@ -274,7 +276,16 @@ class OpenSearchIndex(VectorIndex):
         
         return nodes
     
-    def top_k(self, query_bundle:QueryBundle, top_k:int=5):
+    def _get_metadata_filters(self, filter_config:FilterConfig):
+        if not filter_config or not filter_config.source_filters:
+            return None
+        
+        for f in filter_config.source_filters.filters:
+            f.key = f'source.metadata.{f.key}'
+
+        return filter_config.source_filters
+    
+    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filter_config:Optional[FilterConfig]=None):
 
         query_bundle = to_embedded_query(query_bundle, self.embed_model)
 
@@ -286,7 +297,8 @@ class OpenSearchIndex(VectorIndex):
                 VectorStoreQueryMode.DEFAULT,
                 query_str=query_bundle.query_str,
                 query_embedding=query_bundle.embedding,
-                k=top_k
+                k=top_k,
+                filters=self._get_metadata_filters(filter_config)
             )
 
             scored_nodes.extend([
@@ -356,7 +368,7 @@ class OpenSearchIndex(VectorIndex):
 
         query = {
             "terms": {
-                f'metadata.{INDEX_KEY}.key': [self._clean_id(i) for i in ids]
+                f'metadata.{INDEX_KEY}.key': [self._clean_id(i) for i in set(ids)]
             }
         }
 

@@ -6,6 +6,7 @@ from queue import PriorityQueue
 import numpy as np
 import logging
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector import VectorStore
 from graphrag_toolkit.lexical_graph.retrieval.utils.statement_utils import get_top_k, SharedEmbeddingCache
@@ -18,15 +19,16 @@ logger = logging.getLogger(__name__)
 class SemanticBeamGraphSearch(SemanticGuidedBaseRetriever):
     def __init__(
         self,
-        vector_store: VectorStore,
-        graph_store: GraphStore,
-        embedding_cache: Optional[SharedEmbeddingCache] = None,
-        max_depth: int = 3,
-        beam_width: int = 10,
-        shared_nodes: Optional[List[NodeWithScore]] = None,
+        vector_store:VectorStore,
+        graph_store:GraphStore,
+        embedding_cache:Optional[SharedEmbeddingCache]=None,
+        max_depth:int=3,
+        beam_width:int=10,
+        shared_nodes:Optional[List[NodeWithScore]]=None,
+        filter_config:Optional[FilterConfig]=None,
         **kwargs: Any,
     ) -> None:
-        super().__init__(vector_store, graph_store, **kwargs)
+        super().__init__(vector_store, graph_store, filter_config, **kwargs)
         self.embedding_cache = embedding_cache
         self.max_depth = max_depth
         self.beam_width = beam_width
@@ -101,57 +103,54 @@ class SemanticBeamGraphSearch(SemanticGuidedBaseRetriever):
         return results
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
-        try:
-            # 1. Get initial nodes (either shared or fallback)
-            initial_statement_ids = []
-            if self.shared_nodes:
-                initial_statement_ids = [
-                    n.node.metadata['statement']['statementId'] 
-                    for n in self.shared_nodes
-                ]
-            else:
-                # Fallback to vector similarity
-                results = self.vector_store.get_index('statement').top_k(
-                    query_bundle,
-                    top_k=self.beam_width * 2
-                )
-                initial_statement_ids = [
-                    r['statement']['statementId'] for r in results
-                ]
-                
-            logger.debug(f'initial_statement_ids: {initial_statement_ids}')
 
-            if not initial_statement_ids:
-                return []
-
-            # 2. Perform beam search
-            beam_results = self.beam_search(
-                query_bundle.embedding,
-                initial_statement_ids
+        # 1. Get initial nodes (either shared or fallback)
+        initial_statement_ids = []
+        if self.shared_nodes:
+            initial_statement_ids = [
+                n.node.metadata['statement']['statementId'] 
+                for n in self.shared_nodes
+            ]
+        else:
+            # Fallback to vector similarity
+            results = self.vector_store.get_index('statement').top_k(
+                query_bundle,
+                top_k=self.beam_width * 2,
+                filter_config=self.filter_config
             )
+            initial_statement_ids = [
+                r['statement']['statementId'] for r in results
+            ]
             
-            logger.debug(f'beam_results: {beam_results}')
+        logger.debug(f'initial_statement_ids: {initial_statement_ids}')
 
-            # 3. Create nodes for new statements only
-            nodes = []
-            initial_ids = set(initial_statement_ids)
-            for statement_id, path in beam_results:
-                if statement_id not in initial_ids:
-                    node = TextNode(
-                        text="",  # Placeholder
-                        metadata={
-                            'statement': {'statementId': statement_id},
-                            'search_type': 'beam_search',
-                            'depth': len(path),
-                            'path': path
-                        }
-                    )
-                    nodes.append(NodeWithScore(node=node, score=0.0))
-                    
-            logger.debug(f'nodes: {nodes}')
-
-            return nodes
-
-        except Exception as e:
-            logger.error(f"Error in SemanticBeamGraphSearch: {e}")
+        if not initial_statement_ids:
             return []
+
+        # 2. Perform beam search
+        beam_results = self.beam_search(
+            query_bundle.embedding,
+            initial_statement_ids
+        )
+        
+        logger.debug(f'beam_results: {beam_results}')
+
+        # 3. Create nodes for new statements only
+        nodes = []
+        initial_ids = set(initial_statement_ids)
+        for statement_id, path in beam_results:
+            if statement_id not in initial_ids:
+                node = TextNode(
+                    text="",  # Placeholder
+                    metadata={
+                        'statement': {'statementId': statement_id},
+                        'search_type': 'beam_search',
+                        'depth': len(path),
+                        'path': path
+                    }
+                )
+                nodes.append(NodeWithScore(node=node, score=0.0))
+                
+        logger.debug(f'nodes: {nodes}')
+
+        return nodes

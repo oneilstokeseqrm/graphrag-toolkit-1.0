@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Callable
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 
 class GraphBatchClient():
@@ -18,6 +18,9 @@ class GraphBatchClient():
 
     def node_id(self, id_name:str):
         return self.graph_client.node_id(id_name)
+    
+    def property_assigment_fn(self, key:str, value:Any) -> Callable[[str], str]:
+        return self.graph_client.property_assigment_fn(key, value)
     
     def execute_query_with_retry(self, query:str, properties:Dict[str, Any], **kwargs):
         if not self.batch_writes_enabled:

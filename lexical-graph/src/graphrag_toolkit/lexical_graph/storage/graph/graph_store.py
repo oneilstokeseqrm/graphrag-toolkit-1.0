@@ -157,9 +157,13 @@ class GraphStore(BaseModel):
     def node_id(self, id_name:str) -> NodeId:
         return format_id(id_name)
     
+    def property_assigment_fn(self, key:str, value:Any) -> Callable[[str], str]:
+        return lambda x: x
+    
     @abc.abstractmethod
     def execute_query(self, cypher, parameters={}, correlation_id=None) -> Dict[str, Any]:
         raise NotImplementedError
+
 
 
     

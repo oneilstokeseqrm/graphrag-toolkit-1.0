@@ -3,7 +3,9 @@
 
 import logging
 import queue
+from typing import Optional
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorArgs
 
@@ -11,17 +13,17 @@ from llama_index.core.schema import QueryBundle
 
 logger = logging.getLogger(__name__)
 
-def get_diverse_vss_elements(index_name:str, query_bundle: QueryBundle, vector_store:VectorStore, args:ProcessorArgs):
+def get_diverse_vss_elements(index_name:str, query_bundle: QueryBundle, vector_store:VectorStore, args:ProcessorArgs, filter_config:Optional[FilterConfig]):
 
     diversity_factor = args.vss_diversity_factor
     vss_top_k = args.vss_top_k
 
     if not diversity_factor or diversity_factor < 1:
-        return vector_store.get_index(index_name).top_k(query_bundle, top_k=vss_top_k)
+        return vector_store.get_index(index_name).top_k(query_bundle, top_k=vss_top_k, filter_config=filter_config)
 
     top_k = vss_top_k * diversity_factor
         
-    elements = vector_store.get_index(index_name).top_k(query_bundle, top_k=top_k)
+    elements = vector_store.get_index(index_name).top_k(query_bundle, top_k=top_k, filter_config=filter_config)
         
     source_map = {}
         

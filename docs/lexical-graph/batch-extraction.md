@@ -32,9 +32,6 @@ from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
 from graphrag_toolkit.lexical_graph.indexing.extract import BatchConfig
 
 from llama_index.core import SimpleDirectoryReader
-
-import nest_asyncio
-nest_asyncio.apply()
     
 def batch_extract_and_load():
     

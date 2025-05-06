@@ -1,11 +1,14 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from typing import List, Sequence, Any
+from typing import List, Sequence, Any, Optional
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, VectorIndexFactoryMethod
 
 from llama_index.core.schema import QueryBundle
+from llama_index.core.vector_stores.types import MetadataFilters
+
 
 DUMMY = 'dummy://'
 
@@ -25,8 +28,8 @@ class DummyVectorIndex(VectorIndex):
     def add_embeddings(self, nodes):
         logger.debug(f'[{self.index_name}] add embeddings for nodes: {[n.id_ for n in nodes]}')
     
-    def top_k(self, query_bundle:QueryBundle, top_k:int=5) -> Sequence[Any]:
-        logger.debug(f'[{self.index_name}] top k query: {query_bundle.query_str}, top_k: {top_k}')
+    def top_k(self, query_bundle:QueryBundle, top_k:int=5, filter_config:Optional[FilterConfig]=None) -> Sequence[Any]:
+        logger.debug(f'[{self.index_name}] top k query: {query_bundle.query_str}, top_k: {top_k}, filter_config: {filter_config}')
         return []
 
     def get_embeddings(self, ids:List[str]=[]) -> Sequence[Any]:

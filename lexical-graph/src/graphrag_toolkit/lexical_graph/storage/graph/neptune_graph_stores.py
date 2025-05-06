@@ -7,7 +7,10 @@ import logging
 import time
 import uuid
 from botocore.config import Config
-from typing import Optional, Any
+from typing import Optional, Any, Callable
+from importlib.metadata import version, PackageNotFoundError
+from dateutil.parser import parse
+
 
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStoreFactoryMethod, GraphStore, NodeId, get_log_formatting
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
@@ -27,6 +30,15 @@ def format_id_for_neptune(id_name:str):
             return NodeId(parts[1], f'id({parts[0]})', False)
         
 def create_config(config:Optional[str]=None):
+
+
+    toolkit_version = 'unknown'
+
+    try:
+        toolkit_version = version('graphrag-toolkit-lexical-graph')
+    except PackageNotFoundError:
+        pass
+
     config_args = {}
     if config:
         config_args = json.loads(config)
@@ -36,8 +48,19 @@ def create_config(config:Optional[str]=None):
             'mode': 'standard'
         }, 
         read_timeout=600,
+        user_agent_appid=f'graphrag-toolkit-lexical-graph-{toolkit_version}',
         **config_args
     )
+
+def create_property_assigment_fn_for_neptune(key:str, value:Any) -> Callable[[str], str]:
+    if key.endswith('_date') or key.endswith('_datetime'):
+        try:
+            parse(value, fuzzy=False).isoformat()
+            return lambda x: f'datetime({x})'
+        except ValueError as e:
+            return lambda x: x
+    else:
+        return lambda x: x
 
 class NeptuneAnalyticsGraphStoreFactory(GraphStoreFactoryMethod):
 
@@ -96,6 +119,9 @@ class NeptuneAnalyticsClient(GraphStore):
     
     def node_id(self, id_name:str) -> NodeId:
         return format_id_for_neptune(id_name)
+    
+    def property_assigment_fn(self, key:str, value:Any) -> Callable[[str], str]:
+        return create_property_assigment_fn_for_neptune(key, value)
  
     def execute_query(self, cypher, parameters={}, correlation_id=None):
 
@@ -157,6 +183,9 @@ class NeptuneDatabaseClient(GraphStore):
 
     def node_id(self, id_name:str) -> NodeId:
         return format_id_for_neptune(id_name)
+    
+    def property_assigment_fn(self, key:str, value:Any) -> Callable[[str], str]:
+        return create_property_assigment_fn_for_neptune(key, value)
 
     def execute_query(self, cypher, parameters={}, correlation_id=None):
 

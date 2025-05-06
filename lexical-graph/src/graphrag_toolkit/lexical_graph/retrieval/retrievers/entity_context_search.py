@@ -4,6 +4,7 @@
 import logging
 from typing import List, Optional, Type, Union
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, ScoredEntity, Entity, SearchResult
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
@@ -26,6 +27,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
                  processor_args:Optional[ProcessorArgs]=None,
                  processors:Optional[List[Type[ProcessorBase]]]=None,
                  sub_retriever:Optional[SubRetrieverType]=None,
+                 filter_config:Optional[FilterConfig]=None,
                  **kwargs):
         
         self.sub_retriever = sub_retriever or ChunkBasedSearch
@@ -35,6 +37,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
             vector_store=vector_store,
             processor_args=processor_args,
             processors=processors,
+            filter_config=filter_config,
             **kwargs
         )
 
@@ -45,7 +48,8 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         keyword_entity_search = KeywordEntitySearch(
             graph_store=self.graph_store, 
             max_keywords=self.args.max_keywords,
-            expand_entities=False
+            expand_entities=False,
+            filter_config=self.filter_config
         )
 
         entity_search_results = keyword_entity_search.retrieve(query_bundle)
@@ -164,7 +168,8 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
                             vss_top_k=2,
                             max_search_results=2,
                             vss_diversity_factor=self.args.vss_diversity_factor,
-                            include_facts=self.args.include_facts
+                            include_facts=self.args.include_facts,
+                            filter_config=self.filter_config
                         ))
         logger.debug(f'sub_retriever: {type(sub_retriever).__name__}')
         return sub_retriever

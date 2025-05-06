@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from abc import abstractmethod
-from typing import List
+from typing import List, Optional
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
 
@@ -15,10 +16,12 @@ class SemanticGuidedBaseRetriever(BaseRetriever):
     def __init__(self, 
                 vector_store:VectorStore,
                 graph_store:GraphStore,
+                filter_config:Optional[FilterConfig]=None,
                 **kwargs):
         
         self.graph_store = graph_store
         self.vector_store = vector_store
+        self.filter_config = filter_config or FilterConfig()
 
     @abstractmethod
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:

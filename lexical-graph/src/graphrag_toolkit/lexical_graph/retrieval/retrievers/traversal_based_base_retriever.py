@@ -6,6 +6,7 @@ import abc
 import time
 from typing import List, Any, Type, Optional
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, ScoredEntity
@@ -13,6 +14,7 @@ from graphrag_toolkit.lexical_graph.retrieval.processors import *
 
 from llama_index.core.base.base_retriever import BaseRetriever
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
+from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
                  processors:Optional[List[Type[ProcessorBase]]]=None,
                  formatting_processors:Optional[List[Type[ProcessorBase]]]=None,
                  entities:Optional[List[ScoredEntity]]=None,
+                 filter_config:FilterConfig=None,
                  **kwargs):
         
         self.args = processor_args or ProcessorArgs(**kwargs)
@@ -53,6 +56,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
         self.processors = processors if processors is not None else DEFAULT_PROCESSORS
         self.formatting_processors = formatting_processors if formatting_processors is not None else DEFAULT_FORMATTING_PROCESSORS
         self.entities = entities or []
+        self.filter_config = filter_config or FilterConfig()
         
     def create_cypher_query(self, match_clause):
 
