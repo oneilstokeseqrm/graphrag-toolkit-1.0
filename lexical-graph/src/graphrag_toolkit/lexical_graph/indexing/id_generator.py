@@ -9,7 +9,10 @@ from graphrag_toolkit.lexical_graph import TenantId
 from llama_index.core.bridge.pydantic import BaseModel, Field
 
 class IdGenerator(BaseModel):
-    tenant_id:TenantId = Field(default_factory=lambda: TenantId())
+    tenant_id:TenantId
+    
+    def __init__(self, tenant_id:TenantId=None):
+        super().__init__(tenant_id=tenant_id or TenantId())
 
     def _get_hash(self, s):
         return hashlib.md5(s.encode('utf-8')).digest().hex()
