@@ -4,7 +4,7 @@ build-backend = "pbr.build"
 
 [project]
 name = "graphrag-toolkit-lexical-graph"
-version = "3.5.1"
+version = "3.6.0"
 description = "AWS GraphRAG Toolkit, lexical graph"
 readme = "README.md"
 requires-python = ">=3.10"
