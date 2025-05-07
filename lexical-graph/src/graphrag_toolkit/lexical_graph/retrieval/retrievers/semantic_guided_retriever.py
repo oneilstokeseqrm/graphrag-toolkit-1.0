@@ -36,8 +36,6 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
     ) -> None:
         super().__init__(vector_store, graph_store, filter_config, **kwargs)
 
-        self.debug_results = kwargs.pop('debug_results', None) is not None
-
         self.share_results = share_results
         
         # Create shared embedding cache

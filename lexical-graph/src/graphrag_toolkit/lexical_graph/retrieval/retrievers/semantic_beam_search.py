@@ -121,8 +121,12 @@ class SemanticBeamGraphSearch(SemanticGuidedBaseRetriever):
             initial_statement_ids = [
                 r['statement']['statementId'] for r in results
             ]
-            
-        logger.debug(f'initial_statement_ids: {initial_statement_ids}')
+
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:    
+            logger.debug(f'initial_statement_ids: {initial_statement_ids}')
+        else:
+            logger.debug(f'num initial_statement_ids: {len(initial_statement_ids)}')
+        
 
         if not initial_statement_ids:
             return []
@@ -133,7 +137,10 @@ class SemanticBeamGraphSearch(SemanticGuidedBaseRetriever):
             initial_statement_ids
         )
         
-        logger.debug(f'beam_results: {beam_results}')
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:  
+            logger.debug(f'beam_results: {beam_results}')
+        else:
+            logger.debug(f'num beam_results: {len(beam_results)}')
 
         # 3. Create nodes for new statements only
         nodes = []
@@ -150,7 +157,10 @@ class SemanticBeamGraphSearch(SemanticGuidedBaseRetriever):
                     }
                 )
                 nodes.append(NodeWithScore(node=node, score=0.0))
-                
-        logger.debug(f'nodes: {nodes}')
+
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:      
+            logger.debug(f'nodes: {nodes}')
+        else:
+            logger.debug(f'num nodes: {len(nodes)}')
 
         return nodes

@@ -22,6 +22,7 @@ class SemanticGuidedBaseRetriever(BaseRetriever):
         self.graph_store = graph_store
         self.vector_store = vector_store
         self.filter_config = filter_config or FilterConfig()
+        self.debug_results = kwargs.pop('debug_results', None) is not None
 
     @abstractmethod
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
