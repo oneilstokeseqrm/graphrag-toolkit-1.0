@@ -5,6 +5,7 @@ import logging
 from typing import Dict, Callable, Union, List, Any
 from string import Template
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, ProcessorArgs
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, Source
 
@@ -37,8 +38,8 @@ def source_info_keys(keys:List[str]) -> Callable[[Dict[str, Any]], str]:
     return source_info_keys_fn
 
 class FormatSources(ProcessorBase):
-    def __init__(self, args:ProcessorArgs):
-        super().__init__(args)
+    def __init__(self, args:ProcessorArgs, filter_config:FilterConfig):
+        super().__init__(args, filter_config)
 
         formatter = self.args.source_formatter or default_source_formatter_fn
 

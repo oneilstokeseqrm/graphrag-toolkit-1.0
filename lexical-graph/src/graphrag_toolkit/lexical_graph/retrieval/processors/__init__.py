@@ -7,6 +7,7 @@ from .clear_chunks import ClearChunks
 from .clear_scores import ClearScores
 from .dedup_results import DedupResults
 from .disaggregate_results import DisaggregateResults
+from .filter_by_metadata import FilterByMetadata
 from .format_sources import FormatSources
 from .populate_statement_strs import PopulateStatementStrs
 from .prune_results import PruneResults

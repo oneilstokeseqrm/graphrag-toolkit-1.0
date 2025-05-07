@@ -13,6 +13,7 @@ from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector import VectorStore
 
+from graphrag_toolkit.lexical_graph.retrieval.processors.filter_by_metadata import apply_filters
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.semantic_guided_base_retriever import SemanticGuidedBaseRetriever
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.keyword_ranking_search import KeywordRankingSearch
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.statement_cosine_seach import StatementCosineSimilaritySearch
@@ -178,13 +179,25 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
         else:
             logger.debug(f'num final_nodes: {len(final_nodes)}')
 
-        # 6. Group by source for better context
+        # 6. Apply metadata filters
+        filtered_nodes = [
+            node 
+            for node in final_nodes 
+            if apply_filters(self.filter_config, node.node.metadata['source']['metadata'])
+        ]
+
+        if logger.isEnabledFor(logging.DEBUG) and self.debug_results:       
+            logger.debug(f'filter_nodes: {filtered_nodes}')
+        else:
+            logger.debug(f'num filter_nodes: {len(filtered_nodes)}')
+
+        # 7. Group by source for better context
         source_nodes = defaultdict(list)
-        for node in final_nodes:
+        for node in filtered_nodes:
             source_id = node.node.metadata['source']['sourceId']
             source_nodes[source_id].append(node)
 
-        # 7. Create final ordered list
+        # 8. Create final ordered list
         ordered_nodes = []
         for source_id, nodes in source_nodes.items():
             nodes.sort(key=lambda x: x.score or 0.0, reverse=True)

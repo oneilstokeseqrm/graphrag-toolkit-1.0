@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PROCESSORS = [
     DedupResults,
-    DisaggregateResults,                
+    DisaggregateResults, 
+    FilterByMetadata,               
     PopulateStatementStrs,
     RerankStatements,
     RescoreResults,
@@ -98,12 +99,12 @@ class TraversalBasedBaseRetriever(BaseRetriever):
         end_retrieve = time.time()
 
         for processor in self.processors:
-            search_results = processor(self.args).process_results(search_results, query_bundle, type(self).__name__)
+            search_results = processor(self.args, self.filter_config).process_results(search_results, query_bundle, type(self).__name__)
 
         formatted_search_results = search_results.model_copy(deep=True)
         
         for processor in self.formatting_processors:
-            formatted_search_results = processor(self.args).process_results(formatted_search_results, query_bundle, type(self).__name__)
+            formatted_search_results = processor(self.args, self.filter_config).process_results(formatted_search_results, query_bundle, type(self).__name__)
         
         end_processing = time.time()
 

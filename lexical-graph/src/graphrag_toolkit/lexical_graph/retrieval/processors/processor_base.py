@@ -5,6 +5,8 @@ import logging
 import abc
 from typing import Callable
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, Topic
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorArgs
 
@@ -14,8 +16,9 @@ logger = logging.getLogger(__name__)
 
 class ProcessorBase(object):
 
-    def __init__(self, args:ProcessorArgs):
+    def __init__(self, args:ProcessorArgs, filter_config:FilterConfig):
         self.args = args
+        self.filter_config = filter_config
 
     def _log_results(self, retriever_name:str, title:str, search_results:SearchResultCollection):
         processor_name = type(self).__name__
