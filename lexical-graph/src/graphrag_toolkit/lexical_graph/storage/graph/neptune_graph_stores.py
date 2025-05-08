@@ -12,7 +12,7 @@ from importlib.metadata import version, PackageNotFoundError
 from dateutil.parser import parse
 
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStoreFactoryMethod, GraphStore, NodeId, get_log_formatting
-from graphrag_toolkit.lexical_graph.utils.metadata_utils import format_datetime, is_datetime_key
+from graphrag_toolkit.lexical_graph.metadata import format_datetime, is_datetime_key
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
 from llama_index.core.bridge.pydantic import PrivateAttr
 

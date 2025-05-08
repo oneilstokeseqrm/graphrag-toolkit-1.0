@@ -14,8 +14,8 @@ from graphrag_toolkit.lexical_graph.indexing.utils.pipeline_utils import run_pip
 from graphrag_toolkit.lexical_graph.indexing.model import SourceType, SourceDocument, source_documents_from_source_types
 from graphrag_toolkit.lexical_graph.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.lexical_graph.indexing.build.checkpoint import Checkpoint, CheckpointWriter
-from graphrag_toolkit.lexical_graph.indexing.build.metadata_to_nodes import MetadataToNodes
-from graphrag_toolkit.lexical_graph.indexing.build.build_filter import BuildFilter
+from graphrag_toolkit.lexical_graph.indexing.build.node_builders import NodeBuilders
+from graphrag_toolkit.lexical_graph.indexing.build.build_filters import BuildFilters
 
 from llama_index.core.utils import iter_batch
 from llama_index.core.ingestion import IngestionPipeline
@@ -108,7 +108,7 @@ class BuildPipeline():
         self.batch_writes_enabled = batch_writes_enabled
         self.batch_write_size = batch_write_size
         self.include_domain_labels = include_domain_labels
-        self.metadata_to_nodes = MetadataToNodes(builders=builders, filter=filter, id_generator=IdGenerator(tenant_id=tenant_id))
+        self.node_builders = NodeBuilders(builders=builders, filters=filter, id_generator=IdGenerator(tenant_id=tenant_id))
         self.node_filter = NodeFilter() if not checkpoint else checkpoint.add_filter(NodeFilter())
         self.pipeline_kwargs = kwargs
     
@@ -124,7 +124,7 @@ class BuildPipeline():
             ]
 
             node_batches = [
-                self.metadata_to_nodes(chunk_nodes) 
+                self.node_builders(chunk_nodes) 
                 for chunk_nodes in chunk_node_batches if chunk_nodes
             ]
 

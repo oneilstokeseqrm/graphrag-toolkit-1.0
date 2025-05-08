@@ -4,26 +4,25 @@
 import logging
 from typing import List, Any
 from graphrag_toolkit.lexical_graph.indexing import IdGenerator
-from graphrag_toolkit.lexical_graph.indexing.build.build_filter import BuildFilter
+from graphrag_toolkit.lexical_graph.indexing.build.build_filters import BuildFilters
 from graphrag_toolkit.lexical_graph.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.lexical_graph.indexing.build.source_node_builder import SourceNodeBuilder
 from graphrag_toolkit.lexical_graph.indexing.build.chunk_node_builder import ChunkNodeBuilder
 from graphrag_toolkit.lexical_graph.indexing.build.topic_node_builder import TopicNodeBuilder
 from graphrag_toolkit.lexical_graph.indexing.build.statement_node_builder import StatementNodeBuilder
 
-from llama_index.core.schema import BaseNode
-from llama_index.core.schema import NodeRelationship
+from llama_index.core.schema import BaseNode, NodeRelationship
 
 logger = logging.getLogger(__name__)
 
-class MetadataToNodes():
+class NodeBuilders():
 
-    def __init__(self, builders:List[NodeBuilder]=[], filter:BuildFilter=None, id_generator:IdGenerator=None):
+    def __init__(self, builders:List[NodeBuilder]=[], filters:BuildFilters=None, id_generator:IdGenerator=None):
 
         id_generator = id_generator or IdGenerator()
 
         self.builders = builders or self.default_builders(id_generator)
-        self.filter = filter or BuildFilter()
+        self.filters = filters or BuildFilters()
         self.id_generator = id_generator
 
         logger.debug(f'Node builders: {[type(b).__name__ for b in self.builders]}')
@@ -38,7 +37,7 @@ class MetadataToNodes():
         
     @classmethod
     def class_name(cls) -> str:
-        return 'MetadataToNodes'
+        return 'NodeBuilders'
     
     def get_nodes_from_metadata(self, input_nodes: List[BaseNode], **kwargs: Any) -> List[BaseNode]:
         
@@ -72,18 +71,29 @@ class MetadataToNodes():
 
         results = []
 
+        filtered_nodes = [
+            node 
+            for node in input_nodes 
+            if self.filters.filter_source_metadata_dictionary(node.relationships[NodeRelationship.SOURCE].metadata) 
+        ]
+
+        pre_processed_nodes = [
+            pre_process(node) 
+            for node in filtered_nodes
+        ]
+
         for builder in self.builders:
             try:
                 
-                filtered_input_nodes = [
-                    pre_process(node) 
-                    for node in input_nodes 
+                builder_specific_nodes = [
+                    node
+                    for node in pre_processed_nodes 
                     if any(key in builder.metadata_keys() for key in node.metadata)
                 ]
                 
-                results.extend(builder.build_nodes(filtered_input_nodes, self.filter))
+                results.extend(builder.build_nodes(builder_specific_nodes, self.filters))
             except Exception as e:
-                    logger.exception('An error occurred while building nodes from metadata')
+                    logger.exception('An error occurred while building nodes from chunks')
                     raise e
             
         results.extend(input_nodes) # Always add the original nodes after derived nodes    

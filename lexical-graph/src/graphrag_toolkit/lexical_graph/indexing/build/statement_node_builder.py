@@ -6,7 +6,7 @@ from typing import List
 from llama_index.core.schema import TextNode, BaseNode
 from llama_index.core.schema import NodeRelationship, RelatedNodeInfo
 
-from graphrag_toolkit.lexical_graph.indexing.build.build_filter import BuildFilter
+from graphrag_toolkit.lexical_graph.indexing.build.build_filters import BuildFilters
 from graphrag_toolkit.lexical_graph.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.lexical_graph.indexing.model import TopicCollection
 from graphrag_toolkit.lexical_graph.indexing.constants import TOPICS_KEY
@@ -22,7 +22,7 @@ class StatementNodeBuilder(NodeBuilder):
     def metadata_keys(cls) -> List[str]:
         return [TOPICS_KEY]
     
-    def build_nodes(self, nodes:List[BaseNode], filter:BuildFilter):
+    def build_nodes(self, nodes:List[BaseNode], filters:BuildFilters):
 
         statement_nodes = {}
         fact_nodes = {}
@@ -50,7 +50,7 @@ class StatementNodeBuilder(NodeBuilder):
 
             for topic in topics.topics:
 
-                if filter.ignore_topic(topic.value):
+                if filters.ignore_topic(topic.value):
                     continue
 
                 topic_id = self.id_generator.create_node_id('topic', source_id, topic.value) # topic identity defined by source, not chunk, so that we can connect same topic to multiple chunks in scope of single source
@@ -59,7 +59,7 @@ class StatementNodeBuilder(NodeBuilder):
                 
                 for statement in topic.statements:
 
-                    if filter.ignore_statement(statement.value):
+                    if filters.ignore_statement(statement.value):
                         continue
 
                     statement_id = self.id_generator.create_node_id('statement', topic_id, statement.value)

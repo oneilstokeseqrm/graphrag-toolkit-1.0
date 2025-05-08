@@ -51,10 +51,18 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                                    **kwargs):
         
         tenant_id = to_tenant_id(tenant_id)
+        filter_config = filter_config or FilterConfig()
         
-        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id) 
+        graph_store =  MultiTenantGraphStore.wrap(
+            GraphStoreFactory.for_graph_store(graph_store), 
+            tenant_id
+        ) 
+        
         vector_store = ReadOnlyVectorStore.wrap( 
-            MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
+            MultiTenantVectorStore.wrap(
+                VectorStoreFactory.for_vector_store(vector_store), 
+                tenant_id
+            )
         )
         
         retriever = CompositeTraversalBasedRetriever(
@@ -86,10 +94,18 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                                    **kwargs):
         
         tenant_id = to_tenant_id(tenant_id)
+        filter_config = filter_config or FilterConfig()
         
-        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id) 
+        graph_store =  MultiTenantGraphStore.wrap(
+            GraphStoreFactory.for_graph_store(graph_store), 
+            tenant_id
+        )
+
         vector_store = ReadOnlyVectorStore.wrap( 
-            MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
+            MultiTenantVectorStore.wrap(
+                VectorStoreFactory.for_vector_store(vector_store), 
+                tenant_id
+            )
         )
         
         retrievers = retrievers or [

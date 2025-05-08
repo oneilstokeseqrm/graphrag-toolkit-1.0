@@ -19,7 +19,10 @@ def default_source_formatter_fn(source:Source):
     if source.metadata:
         source_strs = [str(v) for v in source.metadata.values()]
         source_strs.sort(key=len, reverse=True)
-        return ' '.join(source_strs)
+        if len(source_strs) > 1:
+            return f"{source_strs[0]} ({', '.join(source_strs[1:])})"
+        else:
+            return source_strs[0]
     else:
         return source.sourceId
 

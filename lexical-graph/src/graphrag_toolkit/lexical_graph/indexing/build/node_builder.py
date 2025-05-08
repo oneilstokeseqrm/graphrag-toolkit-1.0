@@ -6,7 +6,7 @@ from typing import Dict, List
 from llama_index.core.schema import BaseNode, BaseComponent
 
 from graphrag_toolkit.lexical_graph.indexing import IdGenerator
-from graphrag_toolkit.lexical_graph.indexing.build.build_filter import BuildFilter
+from graphrag_toolkit.lexical_graph.indexing.build.build_filters import BuildFilters
 from graphrag_toolkit.lexical_graph.indexing.constants import DEFAULT_CLASSIFICATION
 
 class NodeBuilder(BaseComponent):
@@ -24,7 +24,7 @@ class NodeBuilder(BaseComponent):
         pass
 
     @abc.abstractmethod
-    def build_nodes(self, nodes:List[BaseNode], filter:BuildFilter) -> List[BaseNode]:
+    def build_nodes(self, nodes:List[BaseNode], filters:BuildFilters) -> List[BaseNode]:
         pass
     
     def _clean_id(self, s):

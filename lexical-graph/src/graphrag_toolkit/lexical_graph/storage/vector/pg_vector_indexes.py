@@ -9,9 +9,8 @@ from pgvector.psycopg2 import register_vector
 from typing import List, Sequence, Dict, Any, Optional, Callable
 from urllib.parse import urlparse
 
-from graphrag_toolkit.lexical_graph.metadata import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig, type_name_for_key_value, format_datetime
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig, EmbeddingType
-from graphrag_toolkit.lexical_graph.utils.metadata_utils import type_name_for_key_value, format_datetime
 from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, to_embedded_query
 from graphrag_toolkit.lexical_graph.storage.constants import INDEX_KEY
 
@@ -67,45 +66,7 @@ def formatter_for_type(type_name:str) -> Callable[[Any], str]:
         return lambda x:x
     else:
         raise ValueError(f'Unsupported type name: {type_name}')
-        
-    
-def filters_to_sql_where_clause(filter_config:FilterConfig) -> str:
 
-    if filter_config is None or filter_config.source_filters is None:
-        return ''
-
-    def to_key(key: str) -> str:
-        return f"metadata->'source'->'metadata'->>'{key}'" 
-    
-    def to_sql_where_clause(f: MetadataFilter) -> str:
-        key = to_key(f.key)
-        type_name = type_name_for_key_value(f.key, f.value)
-        type_formatter = formatter_for_type(type_name)
-        (operator, operator_formatter) = to_sql_operator(f.operator)
-
-        if f.operator == FilterOperator.IS_EMPTY:
-            return f"({key})::{type_name} {operator}"
-        else:
-            return f"({key})::{type_name} {operator} {type_formatter(operator_formatter(str(f.value)))}"
-        
-
-    if len(filter_config.source_filters.filters) == 1:
-        f = filter_config.source_filters.filters[0]
-        where_clause = to_sql_where_clause(f)
-    else:
-        if filter_config.source_filters.condition == FilterCondition.AND:
-            condition = 'AND'
-        elif filter_config.source_filters.condition == FilterCondition.OR:
-            condition = 'OR'
-        else:
-            raise ValueError(f'Unsupported filters condition: {filter_config.source_filters.condition}')
-        
-        where_clause = f' {condition} '.join([
-            f"{to_sql_where_clause(f)}\n"
-            for f in filter_config.source_filters.filters
-        ])
-
-    return f'WHERE {where_clause}'
 
 def parse_metadata_filters_recursive(metadata_filters:MetadataFilters) -> str:
 
@@ -113,12 +74,16 @@ def parse_metadata_filters_recursive(metadata_filters:MetadataFilters) -> str:
         return f"metadata->'source'->'metadata'->>'{key}'" 
     
     def to_sql_filter(f: MetadataFilter) -> str:
-        key = to_key(f.key)
-        type_name = type_name_for_key_value(f.key, f.value)
-        type_formatter = formatter_for_type(type_name)
-        (operator, operator_formatter) = to_sql_operator(f.operator)
         
-        return f"({key})::{type_name} {operator} {type_formatter(operator_formatter(str(f.value)))}"
+        key = to_key(f.key)
+        (operator, operator_formatter) = to_sql_operator(f.operator)
+
+        if f.operator == FilterOperator.IS_EMPTY:
+            return f"({key}) {operator}"
+        else:
+            type_name = type_name_for_key_value(f.key, f.value)
+            type_formatter = formatter_for_type(type_name)
+            return f"({key})::{type_name} {operator} {type_formatter(operator_formatter(str(f.value)))}"
     
     condition = metadata_filters.condition.value
 
@@ -373,8 +338,10 @@ class PGIndex(VectorIndex):
 
         try:
 
-            where_clause =  filters_to_sql_where_clause(filter_config)
+            where_clause =  filter_config_to_sql_filters(filter_config)
             where_clause = f'WHERE {where_clause}' if where_clause else ''
+
+            logger.debug(f'filter: {where_clause}')
 
             query_bundle = to_embedded_query(query_bundle, self.embed_model)
 

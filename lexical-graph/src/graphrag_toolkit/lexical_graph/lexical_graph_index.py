@@ -52,9 +52,9 @@ class ExtractionConfig():
 
 class BuildConfig():
     def __init__(self,
-                 filter:Optional[BuildFilter]=None,
+                 filters:Optional[BuildFilter]=None,
                  include_domain_labels:Optional[bool]=None):
-        self.filter = filter
+        self.filters = filters
         self.include_domain_labels = include_domain_labels
         
 class IndexingConfig():
@@ -295,7 +295,7 @@ class LexicalGraphIndex():
             ],
             show_progress=show_progress,
             checkpoint=checkpoint,
-            filter=self.indexing_config.build.filter,
+            filter=self.indexing_config.build.filters,
             include_domain_labels=self.indexing_config.build.include_domain_labels,
             tenant_id=self.tenant_id,
             **kwargs
@@ -348,7 +348,7 @@ class LexicalGraphIndex():
             ],
             show_progress=show_progress,
             checkpoint=checkpoint,
-            filter=self.indexing_config.build.filter,
+            filter=self.indexing_config.build.filters,
             include_domain_labels=self.indexing_config.build.include_domain_labels,
             tenant_id=self.tenant_id,
             **kwargs
