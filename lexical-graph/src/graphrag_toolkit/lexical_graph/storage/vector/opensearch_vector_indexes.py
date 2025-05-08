@@ -14,6 +14,7 @@ from llama_index.core.indices.utils import embed_nodes
 from llama_index.core.vector_stores.types import MetadataFilters
 
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
+from graphrag_toolkit.lexical_graph.utils.metadata_utils import is_datetime_key, format_datetime
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig, EmbeddingType
 from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, to_embedded_query
 from graphrag_toolkit.lexical_graph.storage.constants import INDEX_KEY
@@ -282,6 +283,8 @@ class OpenSearchIndex(VectorIndex):
         
         for f in filter_config.source_filters.filters:
             f.key = f'source.metadata.{f.key}'
+            if is_datetime_key(f.key):
+                f.value = format_datetime(f.value)
 
         return filter_config.source_filters
     

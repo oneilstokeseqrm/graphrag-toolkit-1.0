@@ -4,11 +4,9 @@
 import os
 import json
 import boto3
-import contextlib
 from dataclasses import dataclass, field
-from typing import Optional, Union, Dict, Set
+from typing import Optional, Union, Dict, Set, List
 from boto3 import Session as Boto3Session
-from botocore.session import Session as BotocoreSession
 
 from llama_index.llms.bedrock_converse import BedrockConverse
 from llama_index.embeddings.bedrock import BedrockEmbedding
@@ -33,6 +31,7 @@ DEFAULT_BUILD_BATCH_WRITE_SIZE = 25
 DEFAULT_BATCH_WRITES_ENABLED = True
 DEFAULT_INCLUDE_DOMAIN_LABELS = False
 DEFAULT_ENABLE_CACHE = False
+DEFAULT_METADATA_DATETIME_SUFFIXES = ['_date', '_datetime']
 
 def _is_json_string(s):
     try:
@@ -72,6 +71,7 @@ class _GraphRAGConfig:
     _batch_writes_enabled: Optional[bool] = None
     _include_domain_labels: Optional[bool] = None
     _enable_cache: Optional[bool] = None
+    _metadata_datetime_suffixes: Optional[List[str]] = None
 
     def _get_or_create_client(self, service_name: str) -> boto3.client:
         """
@@ -343,6 +343,16 @@ class _GraphRAGConfig:
     @enable_cache.setter
     def enable_cache(self, enable_cache:bool) -> None:
         self._enable_cache = enable_cache
+
+    @property
+    def metadata_datetime_suffixes(self) -> List[str]:
+        if self._metadata_datetime_suffixes is None:
+            self.metadata_datetime_suffixes = DEFAULT_METADATA_DATETIME_SUFFIXES  
+        return self._metadata_datetime_suffixes
+
+    @metadata_datetime_suffixes.setter
+    def metadata_datetime_suffixes(self, metadata_datetime_suffixes:List[str]) -> None:
+        self._metadata_datetime_suffixes = metadata_datetime_suffixes
 
     def _to_llm(self, llm: LLMType):
         if isinstance(llm, LLM):

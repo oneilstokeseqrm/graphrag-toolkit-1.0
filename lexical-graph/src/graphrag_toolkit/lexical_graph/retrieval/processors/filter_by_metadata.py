@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Callable, Any, Dict
+from typing import Callable, Any, Dict, List
 from dateutil.parser import parse
 
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
@@ -9,7 +9,7 @@ from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, P
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult
 
 from llama_index.core.schema import QueryBundle
-from llama_index.core.vector_stores.types import FilterCondition, FilterOperator
+from llama_index.core.vector_stores.types import FilterCondition, FilterOperator, MetadataFilter, MetadataFilters
 
 def apply_filter_operator(
         operator: FilterOperator, metadata_value: Any, value: Any 
@@ -69,18 +69,15 @@ def formatter_for_type(type_name:str) -> Callable[[Any], str]:
         return lambda x:float(x)
     else:
         raise ValueError(f'Unsupported type name: {type_name}')
-        
-def apply_filters(filter_config:FilterConfig, metadata:Dict[str, Any]) -> bool:
     
-    results = []
+def apply_metadata_filters_recursive(metadata_filters:MetadataFilters, metadata:Dict[str, Any]) -> bool:
     
-    if filter_config is None or filter_config.source_filters is None:
-        return True
-    
-    for f in filter_config.source_filters.filters:
+    results:List[bool] = []
+
+    def get_filter_result(f:MetadataFilter, metadata:Dict[str, Any]):
         metadata_value = metadata.get(f.key, None)
         if f.operator == FilterOperator.IS_EMPTY:
-            result = (
+            return (
                 metadata_value is None
                 or metadata_value == ''
                 or metadata_value == []
@@ -90,22 +87,36 @@ def apply_filters(filter_config:FilterConfig, metadata:Dict[str, Any]) -> bool:
             formatter = formatter_for_type(type_name)
             value = formatter(f.value)
             metadata_value = formatter(metadata_value)
-            result = apply_filter_operator(
+            return apply_filter_operator(
                 operator=f.operator,
                 metadata_value=metadata_value,
                 value=value  
             )
-            
-        results.append(result)
-        
-    filter_condition = filter_config.source_filters.condition
 
-    if filter_condition == FilterCondition.AND:
+    for metadata_filter in metadata_filters.filters:
+        if isinstance(metadata_filter, MetadataFilter):
+            if metadata_filters.condition == FilterCondition.NOT:
+                raise ValueError(f'Expected MetadataFilters for FilterCondition.NOT, but found MetadataFilter')
+            results.append(get_filter_result(metadata_filter, metadata))
+        elif isinstance(metadata_filter, MetadataFilters):
+            results.append(apply_metadata_filters_recursive(metadata_filter, metadata))
+        else:
+            raise ValueError(f'Invalid metadata filter type: {type(metadata_filter)}')
+        
+    if metadata_filters.condition == FilterCondition.NOT:
+        return not all(results)
+    elif metadata_filters.condition == FilterCondition.AND:
         return all(results)
-    elif filter_condition == FilterCondition.OR:
+    elif metadata_filters.condition == FilterCondition.OR:
         return any(results)
     else:
-        raise ValueError(f'Unsupported filters condition: {filter_condition}')
+        raise ValueError(f'Unsupported filters condition: {metadata_filters.condition}')
+
+def apply_filters(filter_config:FilterConfig, metadata:Dict[str, Any]) -> bool:
+    if filter_config is None or filter_config.source_filters is None:
+        return True
+    return apply_metadata_filters_recursive(filter_config.source_filters, metadata)
+    
 
 class FilterByMetadata(ProcessorBase):
     def __init__(self, args:ProcessorArgs, filter_config:FilterConfig):
