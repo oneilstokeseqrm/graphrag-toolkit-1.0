@@ -2,6 +2,26 @@
 
 ## Metadata Filtering
 
+### Topics
+
+  - [Overview](#overview)
+  - [Adding metadata when indexing](#adding-metadata-when-indexing)
+    - [Adding metadata to web pages](#adding-metadata-to-web-pages)
+    - [Adding metadata to JSON documents](#adding-metadata-to-json-documents)
+    - [Adding metadata to PDF documents](#adding-metadata-to-pdf-documents)
+    - [Restrictions](#restrictions)
+  - [Using metadata to filter queries](#using-metadata-to-filter-queries)
+    - [How are metadata filters applied?](#how-are-metadata-filters-applied)
+    - [Complex and nested filter expressions](#complex-and-nested-filter-expressions)
+    - [Supported filter operators](#supported-filter-operators)
+  - [Dates and datetimes](#dates-and-datetimes)
+  - [Using metadata to filter documents in the extract and build stages](#using-metadata-to-filter-documents-in-the-extract-and-build-stages)
+    - [Using metadata filtering in the extract stage](#using-metadata-filtering-in-the-extract-stage)
+    - [Using metadata filtering in the build stage](#using-metadata-filtering-in-the-build-stage)
+  - [Metadata and document identity](#metadata-and-document-identity)
+  - [Metadata filtering and multi-tenancy](#metadata-filtering-and-multi-tenancy)
+
+
 ### Overview
 
 Metadata filtering allows you to retrieve a constrained set of sources, topics and statements based on metadata filters and associated values when querying a lexical graph.
