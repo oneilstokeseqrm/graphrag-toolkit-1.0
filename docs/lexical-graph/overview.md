@@ -49,6 +49,17 @@ Query steps:
 
 The lexical-graph library's [multi-tenancy](./multi-tenancy.md) feature allows an application to host multiple separate lexical graphs in the same underlying graph and vector stores. Tenant graphs may correspond to different domains, collections of documents, or individual users.
 
+### Metadata filtering
+
+The lexical-graph supports [metadata filtering](./metadata-filtering.md). Metadata filtering constrains the set of sources, topics and statements retrieved when querying a graph based on metadata filters and associated values. 
+
+There are two parts to metadata filtering:
+
+  - **Indexing** Add metadata to source documents passed to the indexing process
+  - **Querying** Supply metadata filters when querying a lexical graph
+  
+Metadata filtering can also be used to [filter documents and chunks during the extract and build stages](./metadata-filtering.md#using-metadata-to-filter-documents-in-the-extract-and-build-stages) of the indexing process.
+
 ### Security
 
 Implementers using the lexical-graph library are responsible for securing access to the data sources they wish to index, and for provisioning and securing the underlying AWS resources, such as Neptune and OpenSearch, used by the library. The documentation includes [guidance](./security.md) on using AWS Identity and Access Management (IAM) policies to control access to Amazon Neptune, Amazon OpenSearch Serverless, and Amazon Bedrock.
