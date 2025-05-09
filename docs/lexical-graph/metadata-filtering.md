@@ -4,14 +4,14 @@
 
 ### Overview
 
-Metadata filtering allows you to retrieve a constrained set of sources, topics and statements based on metadata filters and associated values when querying the lexical graph.
+Metadata filtering allows you to retrieve a constrained set of sources, topics and statements based on metadata filters and associated values when querying a lexical graph.
 
-Metadata is any data added to the metadata dictionary of a source document. Depending on the source doucment, examples of metadata may include _title_, _url_, _filepath_, _date published_, and _author_. A source document's metadata is then associated with any chunks, topics and statements extracted from that document.
+Metadata is any data added to the metadata dictionary of a source document. Depending on the source document, examples of metadata may include _title_, _url_, _filepath_, _date published_, and _author_. A source document's metadata is then associated with any chunks, topics and statements extracted from that document.
 
 There are two parts to metadata filtering:
 
   - **Indexing** Add metadata to source documents passed to the indexing process
-  - **Querying** Supply metadata filters when querying the lexical graph
+  - **Querying** Supply metadata filters when querying a lexical graph
   
 You can also use metadata filtering to [filter documents and chunks during the extract and build stages](#using-metadata-to-filter-documents-in-the-extract-and-build-stages) of the indexing process.
   
@@ -48,7 +48,7 @@ docs = SimpleWebPageReader(
 
 #### Adding metadata to JSON documents
 
-The `JSONArrayReader` allow to to split a JSON array document into separate documents, one per element in the array, and extract metadata from each individual document. The following example splits a JSON source document containing news articles into separate documents, one per article. The `get_text()` and `get_metadata()` functions extract each article's body text and associated metadata.
+The `JSONArrayReader` allows you to split a JSON array document into separate documents, one per element in the array, and extract metadata from each sub-document. The following example splits a JSON source document containing news articles into separate documents, one per article. The `get_text()` and `get_metadata()` functions extract each article's body text and associated metadata.
 
 
 ```python
@@ -72,7 +72,7 @@ docs = JSONArrayReader(
 
 #### Adding metadata to PDF documents
 
-The following example shows one way of laoding PDF documents and attaching metadata to each document.
+The following example shows one way of loading PDF documents and attaching metadata to each document.
 
 ```python
 from pathlib import Path
@@ -136,7 +136,7 @@ Metadata filters that you supply to a query engine are applied at two points in 
   - The filters are applied to all vector store top-k queries. The vector store is typically used to find starting points for graph traversals: filters therefore effectively constrain a retriever's entry points into the graph. 
   - The filters are subsequently applied to all the results returned from the graph.
   
-By its very nature, a graph can often connect disparate sources: traversals can hop from topics and statements belonging to one source, to topics and statements associated with an entirely different source. It's not sufficient, therefore, to simply limit the starting points for a traversal; the retriever must also filter the results. The benefit of the dual application of a metadata filter is that it restricts the semantic similarity-based lookups that provide the start points of a query to a well-defined set of sources, but then allows the query to access structurally relevant but semantically dissimlar parts of the lexical graph, some of which may be allowed by the filter, some disallowed, before finally constraining the results to only those elements that pass the filter criteria.
+By its very nature, a graph can often connect disparate sources: traversals can hop from topics and statements belonging to one source, to topics and statements associated with an entirely different source. It's not sufficient, therefore, to simply limit the starting points for a traversal; the retriever must also filter the results. The benefit of the dual application of a metadata filter is that it restricts the semantic similarity-based lookups that provide the start points of a query to a well-defined set of sources, but then allows the query to access structurally relevant but semantically dissimilar parts of the lexical graph, some of which may be allowed by the filter, some disallowed, before finally constraining the results to only those elements that pass the filter criteria.
 
 #### Complex and nested filter expressions
 
@@ -146,7 +146,7 @@ A `MetadataFilters` object can hold a collection of `MetadataFilter` objects as 
 
 `MetadataFilters` also supports a third condition: `FilterCondition.NOT`. If you use the `FilterCondition.NOT` condition with a `MetadataFilters` object, the `filters` collection of that object must contain a single nested `MetadataFilters` object.
 
-The following example shows the use of a nested `MetadataFilters` object to express a complex condition: either the source must be from _https://docs.aws.amazon.com/neptune/latest/userguide/intro.html_, OR its publication date must fall between _2024-01-01_ and _2024-12-31_:
+The following example shows the use of a nested `MetadataFilters` object to express a complex condition: either the source must be from `https://docs.aws.amazon.com/neptune/latest/userguide/intro.html`, OR its publication date must fall between `2024-01-01` and `2024-12-31`:
 
 ```python
 FilterConfig(
@@ -230,9 +230,9 @@ The following operators are not supported:
 Matadata filtering supports filtering by date and datetime values. There are two ways in which you can ensure datetime filtering is applied during indexing and querying:
 
   - Supply Python  `date`  or `datetime` objects in the metadata fields attached to source documents, and in the metadata filters applied when querying.
-  - Indicate that a field is to be treated as a datetime value by suffixing with `_date` or `_datetime`. You can then supply either `date` or `datetime` objects, or string representations of dates and datetime values, when indexing and querying.
+  - Indicate that a field is to be treated as a datetime value by suffixing the field name with `_date` or `_datetime`. You can then supply either `date` or `datetime` objects, or string representations of dates and datetime values, when indexing and querying.
 
-In the build stage, Python `date` and `datetime` metadata values are converted to ISO-formatted datetime values before being persisted to the graph and vector stores. During querying, Python `date` and `datetime` metadata values are similarly converted to ISO-formatted datetime values before being applied in a filter.  `date` and `datetime` Pyton objects explictly communicate that a value should be treated as a date or datetime. With this approach, you do not need to add a `_date` or `_datetime` suffix to a metadata field name. However, you should ensure that  `date`  and/or `datetime` objects are used both during indexing and querying: if one or other of these stages receives a string representation of a date or datetime, filtering may not work as intended.
+In the build stage, Python `date` and `datetime` metadata values are converted to ISO-formatted datetime values before being persisted to the graph and vector stores. During querying, Python `date` and `datetime` metadata values are similarly converted to ISO-formatted datetime values before being applied in a filter.  `date` and `datetime` Pyton objects explictly communicate that a value should be treated as a date or datetime. With this approach, you do not need to add a `_date` or `_datetime` suffix to a metadata field name. However, you must ensure that  `date`  and/or `datetime` objects are used both during indexing and querying: if one or other of these stages receives a string representation of a date or datetime, filtering may not work as intended.
 
 Metadata fields that end with `_date` or `_datetime` are converted to ISO-formatted datetime values before being persisted to the graph and vector stores. Similarly, the values of metadata filters whose keys end with `_date` or `_datetime` are converted to ISO-formatted datetime values before being evaluated.
 
@@ -244,7 +244,7 @@ Besides using metadata filtering to constrain the retrieval process, you can als
 
 You can filter the documents that pass through the extract stage by supplying filter criteria to the `extraction_filters` of an `ExtractionConfig` object. `extraction_filters` accepts either a `MetadataFilters` object, a single `MetadataFilter` or a list of `MetadataFilter` objects.
 
-The following example shows how to filter source documents so that only documents with an _email_ metadata field containing an _amazon.com_ email address proceeed through the extraction pipeline. All other source documents will be discarded.
+The following example shows how to filter source documents so that only documents with an `email` metadata field containing an `amazon.com` email address proceeed through the extraction pipeline. All other source documents will be discarded.
 
 ```python
 from graphrag_toolkit.lexical_graph import LexicalGraphIndex, ExtractionConfig 
@@ -263,13 +263,13 @@ graph_index = LexicalGraphIndex(
 )
 ```
 
-Use extraction stage metadata filtering if you only want to extract a lexical graph from a subset of documents, but can't control which documenst are submitted to the ingestion process.
+Use extraction stage metadata filtering if you only want to extract a lexical graph from a subset of documents, but can't control which documents are submitted to the ingestion process.
 
 #### Using metadata filtering in the build stage
 
 You can filter the documents that are used to build a lexical graph by supplying a `BuildFilters` object whose `source_filters` property contains filter criteria to a `BuildConfig` object. `source_filters` accepts either a `MetadataFilters` object, a single `MetadataFilter` or a list of `MetadataFilter` objects.
 
-The following example shows how to filter extracted documents so that only documents whose _url_ metadata field contains _https://docs.aws.amazon.com/neptune/_ will proceed through the build pipeline. All other extracted documents will be ignored. The resulting lexical graph is assigned to the _neptune_tenant.
+The following example shows how to filter extracted documents so that only documents whose `url` metadata field contains `https://docs.aws.amazon.com/neptune/` will proceed through the build pipeline. All other extracted documents will be ignored. The resulting lexical graph is assigned to the `neptune` tenant.
 
 ```python
 from graphrag_toolkit.lexical_graph import LexicalGraphIndex, BuildConfig
@@ -292,15 +292,15 @@ graph_index = LexicalGraphIndex(
 )
 ```
 
-Build-stage metadata filtering works well in an extract-once, build-many-times workload. You can extract the entire corpus to an `S3BasedDocs` sink or `FileBasedDocs` sink (see [Run the extract and build stages separately](./indexing.md#run-the-extract-and-build-stages-separately)),a nd then build multiple lexical graphs from the extracted documents. Using different sets of filtering criteria and the [multi-tenancy](./multi-tenancy.md) feature, you can build multiple, discrete lexical graphs with different contents from the same underlying sources.
+Build-stage metadata filtering works well in an extract-once, build-many-times workload. You can extract the entire corpus to an `S3BasedDocs` sink or `FileBasedDocs` sink (see [Run the extract and build stages separately](./indexing.md#run-the-extract-and-build-stages-separately)), and then build multiple lexical graphs from the extracted documents. Using different sets of filtering criteria and the [multi-tenancy](./multi-tenancy.md) feature, you can build multiple, discrete lexical graphs with different contents from the same underlying sources.
 
 ### Metadata and document identity
 
-The metadata associated with a source document comprises part of that document's identity. A source document's id is a function of the contents of the document and the metadata. Chunk, topic and statement ids are in turn a function of the source id. If you change a sourec document's metadata (adding or removing fields, or changing field values), and reprocess the document, it will be indexed into new source, chunk, topic and statement nodes in the lexical graph.
+The metadata associated with a source document comprises part of that document's identity. A source document's id is a function of the contents of the document and the metadata. Chunk, topic and statement ids are in turn a function of the source id. If you change a source document's metadata (adding or removing fields, or changing field values), and reprocess the document, it will be indexed into new source, chunk, topic and statement nodes in the lexical graph.
 
 ### Metadata filtering and multi-tenancy
 
-Metadata filtering constrains retrieval to one or more subgraphs within a particular lexical graph. [Multi tenancy](./multi-tenancy.md) creates wholly separate lexical graphs within the same underlying graph and vector stores. Metadata filtering and multi-tenancy work well together. As [described above](#using-metadata-filtering-in-the-build-stage), you can use metadata filtering to buidl different tenant graphs from the same extracted corpus. You can also use metadata filtering and multi tenancy when querying. The following example applies metadata filtering to a query in the context of the _neptune_ tenant's lexical graph:
+Metadata filtering constrains retrieval to one or more subgraphs within a particular lexical graph. [Multi tenancy](./multi-tenancy.md) creates wholly separate lexical graphs within the same underlying graph and vector stores. Metadata filtering and multi-tenancy work well together. As [described above](#using-metadata-filtering-in-the-build-stage), you can use metadata filtering to build different tenant graphs from the same extracted corpus. You can also use metadata filtering and multi tenancy when querying. The following example applies metadata filtering to a query in the context of the `neptune` tenant's lexical graph:
 
 ```python
 from graphrag_toolkit.lexical_graph import LexicalGraphQueryEngine
