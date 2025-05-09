@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
-from typing import List, Any
+from typing import List, Any, Optional, Callable, Dict
+from graphrag_toolkit.lexical_graph.metadata import SourceMetadataFormatter, DefaultSourceMetadataFormatter
 from graphrag_toolkit.lexical_graph.indexing import IdGenerator
 from graphrag_toolkit.lexical_graph.indexing.build.build_filters import BuildFilters
 from graphrag_toolkit.lexical_graph.indexing.build.node_builder import NodeBuilder
@@ -17,22 +18,32 @@ logger = logging.getLogger(__name__)
 
 class NodeBuilders():
 
-    def __init__(self, builders:List[NodeBuilder]=[], filters:BuildFilters=None, id_generator:IdGenerator=None):
+    def __init__(
+            self, 
+            builders:List[NodeBuilder]=[], 
+            build_filters:BuildFilters=None, 
+            source_metadata_formatter:Optional[SourceMetadataFormatter]=None,
+            id_generator:IdGenerator=None
+        ):
 
         id_generator = id_generator or IdGenerator()
+        build_filters = build_filters or BuildFilters()
+        source_metadata_formatter = source_metadata_formatter or DefaultSourceMetadataFormatter()
 
-        self.builders = builders or self.default_builders(id_generator)
-        self.filters = filters or BuildFilters()
+        self.build_filters = build_filters
         self.id_generator = id_generator
+        self.builders = builders or self.default_builders(id_generator, build_filters, source_metadata_formatter)
 
         logger.debug(f'Node builders: {[type(b).__name__ for b in self.builders]}')
     
-    def default_builders(self, id_generator:IdGenerator):
+    def default_builders(self, id_generator:IdGenerator, build_filters:BuildFilters, source_metadata_formatter:SourceMetadataFormatter):
         return [
-            SourceNodeBuilder(id_generator=id_generator),
-            ChunkNodeBuilder(id_generator=id_generator),
-            TopicNodeBuilder(id_generator=id_generator),
-            StatementNodeBuilder(id_generator=id_generator)
+            node_builder(
+                id_generator=id_generator, 
+                build_filters=build_filters, 
+                source_metadata_formatter=source_metadata_formatter
+            )
+            for node_builder in [SourceNodeBuilder, ChunkNodeBuilder, TopicNodeBuilder, StatementNodeBuilder]
         ]
         
     @classmethod
@@ -74,7 +85,7 @@ class NodeBuilders():
         filtered_nodes = [
             node 
             for node in input_nodes 
-            if self.filters.filter_source_metadata_dictionary(node.relationships[NodeRelationship.SOURCE].metadata) 
+            if self.build_filters.filter_source_metadata_dictionary(node.relationships[NodeRelationship.SOURCE].metadata) 
         ]
 
         pre_processed_nodes = [
@@ -91,7 +102,7 @@ class NodeBuilders():
                     if any(key in builder.metadata_keys() for key in node.metadata)
                 ]
                 
-                results.extend(builder.build_nodes(builder_specific_nodes, self.filters))
+                results.extend(builder.build_nodes(builder_specific_nodes))
             except Exception as e:
                     logger.exception('An error occurred while building nodes from chunks')
                     raise e

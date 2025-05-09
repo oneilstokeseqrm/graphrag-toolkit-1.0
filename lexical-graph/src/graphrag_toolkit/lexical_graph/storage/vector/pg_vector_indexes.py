@@ -79,11 +79,11 @@ def parse_metadata_filters_recursive(metadata_filters:MetadataFilters) -> str:
         (operator, operator_formatter) = to_sql_operator(f.operator)
 
         if f.operator == FilterOperator.IS_EMPTY:
-            return f"({key}) {operator}"
+            return f"({key} {operator})"
         else:
             type_name = type_name_for_key_value(f.key, f.value)
             type_formatter = formatter_for_type(type_name)
-            return f"({key})::{type_name} {operator} {type_formatter(operator_formatter(str(f.value)))}"
+            return f"(({key})::{type_name} {operator} {type_formatter(operator_formatter(str(f.value)))})"
     
     condition = metadata_filters.condition.value
 
@@ -100,7 +100,7 @@ def parse_metadata_filters_recursive(metadata_filters:MetadataFilters) -> str:
             raise ValueError(f'Invalid metadata filter type: {type(metadata_filter)}')
         
     if metadata_filters.condition == FilterCondition.NOT:
-        return f"NOT ({' '.join(filter_strs)})"
+        return f"(NOT {' '.join(filter_strs)})"
     elif metadata_filters.condition == FilterCondition.AND or metadata_filters.condition == FilterCondition.OR:
         condition = f' {metadata_filters.condition.value.upper()} '
         return f"({condition.join(filter_strs)})"

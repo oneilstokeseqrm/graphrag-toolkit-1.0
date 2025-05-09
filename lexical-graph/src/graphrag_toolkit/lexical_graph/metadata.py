@@ -2,12 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
+import abc
 from typing import Callable, Any, Dict, List, Optional, Union
 from dateutil.parser import parse
+from datetime import datetime, date
 
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
 
 from llama_index.core.vector_stores.types import FilterCondition, FilterOperator, MetadataFilter, MetadataFilters
+from llama_index.core.bridge.pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -16,12 +19,15 @@ MetadataFiltersType = Union[MetadataFilters, MetadataFilter, List[MetadataFilter
 def is_datetime_key(key):
     return key.endswith(tuple(GraphRAGConfig.metadata_datetime_suffixes))
 
-def format_datetime(s):
-    return parse(s, fuzzy=False).isoformat()
+def format_datetime(s:Any):
+    if isinstance(s, datetime) or isinstance(s, date):
+        return s.isoformat()
+    else:
+        return parse(s, fuzzy=False).isoformat()
 
 def type_name_for_key_value(key:str, value:Any) -> str:
 
-    if isinstance(value, list):
+    if isinstance(value, list) or isinstance(value, dict) or isinstance(value, set):
         raise ValueError(f'Unsupported value type: {type(value)}')
     
     if isinstance(value, int):
@@ -29,7 +35,9 @@ def type_name_for_key_value(key:str, value:Any) -> str:
     elif isinstance(value, float):
         return 'float'
     else:
-        if is_datetime_key(key):
+        if isinstance(value, datetime) or isinstance(value, date):
+            return 'timestamp'
+        elif is_datetime_key(key):
             try:
                 parse(value, fuzzy=False)
                 return 'timestamp'
@@ -49,31 +57,61 @@ def formatter_for_type(type_name:str) -> Callable[[Any], str]:
             return lambda x:float(x)
         else:
             raise ValueError(f'Unsupported type name: {type_name}')
-
-class FilterConfig():
-    def __init__(self, source_filters:Optional[MetadataFiltersType]=None):
         
+class SourceMetadataFormatter(BaseModel):
+
+    @abc.abstractmethod
+    def format(self, metadata:Dict[str, Any]) -> Dict[str, Any]:
+        raise NotImplementedError()
+
+class DefaultSourceMetadataFormatter(SourceMetadataFormatter):
+    def format(self, metadata:Dict[str, Any]) -> Dict[str, Any]:
+        formatted_metadata = {}
+        for k, v in metadata.items():
+            try:
+                type_name = type_name_for_key_value(k, v)
+                formatter = formatter_for_type(type_name)
+                value = formatter(v)
+                formatted_metadata[k] = value
+            except ValueError as e:
+                formatted_metadata[k] = v
+        return formatted_metadata
+
+class FilterConfig(BaseModel):
+
+    source_filters:Optional[MetadataFilters]
+    source_metadata_dictionary_filter_fn:Callable[[Dict[str,Any]], bool]
+
+    def __init__(self, source_filters:Optional[MetadataFiltersType]=None):
+
         if not source_filters:
-            self.source_filters = None
+            source_filters = None
         elif isinstance(source_filters, MetadataFilters):
-            self.source_filters = source_filters
+            source_filters = source_filters
         elif isinstance(source_filters, MetadataFilter):
-            self.source_filters = MetadataFilters(filters=[source_filters])
+            source_filters = MetadataFilters(filters=[source_filters])
         elif isinstance(source_filters, list):
-            self.source_filters = MetadataFilters(filters=source_filters)
+            source_filters = MetadataFilters(filters=source_filters)
         else:
             raise ValueError(f'Invalid source filters type: {type(source_filters)}')
         
-        self.source_metadata_dictionary_filter_fn = DictionaryFilter(self.source_filters) if self.source_filters else lambda x:True
+        super().__init__(
+            source_filters=source_filters,
+            source_metadata_dictionary_filter_fn = DictionaryFilter(source_filters) if source_filters else lambda x:True
+        )
+        
 
     def filter_source_metadata_dictionary(self, d:Dict[str, Any]) -> bool:
         result = self.source_metadata_dictionary_filter_fn(d)
         logger.debug(f'filter result: [{str(d)}: {result}]')
         return result
         
-class DictionaryFilter():
+class DictionaryFilter(BaseModel):
+
+    metadata_filters:MetadataFilters
+
     def __init__(self, metadata_filters:MetadataFilters):
-        self.metadata_filters = metadata_filters
+        super().__init__(metadata_filters=metadata_filters)
 
     def _apply_filter_operator(self, operator: FilterOperator, metadata_value: Any, value: Any) -> bool:
             if metadata_value is None:

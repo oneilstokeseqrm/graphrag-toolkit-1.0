@@ -6,7 +6,6 @@ from typing import List
 from llama_index.core.schema import TextNode, BaseNode
 from llama_index.core.schema import NodeRelationship
 
-from graphrag_toolkit.lexical_graph.indexing.build.build_filters import BuildFilters
 from graphrag_toolkit.lexical_graph.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.lexical_graph.indexing.constants import TOPICS_KEY
 from graphrag_toolkit.lexical_graph.storage.constants import INDEX_KEY
@@ -21,7 +20,7 @@ class SourceNodeBuilder(NodeBuilder):
     def metadata_keys(cls) -> List[str]:
         return [TOPICS_KEY]
     
-    def build_nodes(self, nodes:List[BaseNode], filters:BuildFilters):
+    def build_nodes(self, nodes:List[BaseNode]):
         
         source_nodes = {}
 
@@ -39,7 +38,7 @@ class SourceNodeBuilder(NodeBuilder):
                 }
                 
                 if source_info.metadata:
-                    metadata['source']['metadata'] = filters.format_metadata(source_info.metadata)
+                    metadata['source']['metadata'] = self.source_metadata_formatter.format(source_info.metadata)
                     
                 metadata[INDEX_KEY] = {
                     'index': 'source',

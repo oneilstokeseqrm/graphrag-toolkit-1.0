@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from llama_index.core.bridge.pydantic import PrivateAttr
 from llama_index.core.schema import BaseNode, NodeWithScore, QueryBundle
-from llama_index.core.vector_stores.types import  VectorStoreQueryResult, VectorStoreQueryMode, MetadataFilters
+from llama_index.core.vector_stores.types import  VectorStoreQueryResult, VectorStoreQueryMode, MetadataFilters, MetadataFilter
 from llama_index.core.indices.utils import embed_nodes
 from llama_index.core.vector_stores.types import MetadataFilters
 
@@ -276,16 +276,28 @@ class OpenSearchIndex(VectorIndex):
         
         return nodes
     
+    def _update_filters_recursive(self, filters:MetadataFilters):
+        for f in filters.filters:
+            if isinstance(f, MetadataFilter):
+                f.key = f'source.metadata.{f.key}'
+                if is_datetime_key(f.key):
+                    f.value = format_datetime(f.value)
+            elif isinstance(f, MetadataFilters):
+                f = self._update_filters_recursive(f)
+            else:
+                raise ValueError(f'Unexpected filter type: {type(f)}')
+        return filters
+                
     def _get_metadata_filters(self, filter_config:FilterConfig):
         if not filter_config or not filter_config.source_filters:
             return None
         
-        for f in filter_config.source_filters.filters:
-            f.key = f'source.metadata.{f.key}'
-            if is_datetime_key(f.key):
-                f.value = format_datetime(f.value)
+        filters_copy = filter_config.source_filters.model_copy(deep=True) 
+        filters_copy = self._update_filters_recursive(filters_copy)
+                
+        logger.debug(f'filters: {filters_copy.model_dump_json()}')
 
-        return filter_config.source_filters
+        return filters_copy
     
     def top_k(self, query_bundle:QueryBundle, top_k:int=5, filter_config:Optional[FilterConfig]=None):
 

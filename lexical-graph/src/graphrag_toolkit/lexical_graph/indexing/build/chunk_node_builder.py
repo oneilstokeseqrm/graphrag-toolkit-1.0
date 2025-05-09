@@ -21,7 +21,7 @@ class ChunkNodeBuilder(NodeBuilder):
     def metadata_keys(cls) -> List[str]:
         return [TOPICS_KEY]
     
-    def build_nodes(self, nodes:List[BaseNode], filters:BuildFilters):
+    def build_nodes(self, nodes:List[BaseNode]):
 
         chunk_nodes = []
 
@@ -34,7 +34,7 @@ class ChunkNodeBuilder(NodeBuilder):
             topics = [
                 topic['value'] 
                 for topic in node.metadata.get(TOPICS_KEY, {}).get('topics', []) 
-                if not filters.ignore_topic(topic['value'])
+                if not self.build_filters.ignore_topic(topic['value'])
             ]
 
             source_info = node.relationships[NodeRelationship.SOURCE]

@@ -35,12 +35,12 @@ class TopicNodeBuilder(NodeBuilder):
         
         return node
     
-    def _add_statements(self, node:TextNode, statements:List[Statement], filters:BuildFilters):
+    def _add_statements(self, node:TextNode, statements:List[Statement]):
         
         existing_statements = dict.fromkeys(node.metadata['statements'])
                 
         for statement in statements:
-            if filters.ignore_statement(statement.value):
+            if self.build_filters.ignore_statement(statement.value):
                 continue
             existing_statements[statement.value] = None
             
@@ -49,7 +49,7 @@ class TopicNodeBuilder(NodeBuilder):
         return node
 
 
-    def build_nodes(self, nodes:List[BaseNode], filters:BuildFilters):
+    def build_nodes(self, nodes:List[BaseNode]):
 
         topic_nodes:Dict[str, TextNode] = {}
 
@@ -69,7 +69,7 @@ class TopicNodeBuilder(NodeBuilder):
 
             for topic in topics.topics:
 
-                if filters.ignore_topic(topic.value):
+                if self.build_filters.ignore_topic(topic.value):
                     continue
                 
                 topic_id =  self.id_generator.create_node_id('topic', source_id, topic.value) # topic identity defined by source, not chunk, so that we can connect same topic to multiple chunks in scope of single source
@@ -104,7 +104,7 @@ class TopicNodeBuilder(NodeBuilder):
                 topic_node = topic_nodes[topic_id]
                 
                 topic_node = self._add_chunk_id(topic_node, chunk_id)
-                topic_node = self._add_statements(topic_node, topic.statements, filters)
+                topic_node = self._add_statements(topic_node, topic.statements)
             
                 topic_nodes[topic_id] = topic_node
 

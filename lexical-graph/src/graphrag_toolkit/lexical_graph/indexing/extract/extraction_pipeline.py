@@ -7,6 +7,7 @@ from typing import List, Optional, Sequence, Dict, Iterable, Any
 
 from graphrag_toolkit.lexical_graph import TenantId
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.indexing import IdGenerator
 from graphrag_toolkit.lexical_graph.indexing.utils.pipeline_utils import run_pipeline
 from graphrag_toolkit.lexical_graph.indexing.model import SourceType, SourceDocument, source_documents_from_source_types
@@ -21,7 +22,7 @@ from llama_index.core.utils import iter_batch
 from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.extractors.interface import BaseExtractor
 from llama_index.core.schema import TransformComponent
-from llama_index.core.schema import BaseNode
+from llama_index.core.schema import BaseNode, Document
 from llama_index.core.schema import NodeRelationship
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,7 @@ class ExtractionPipeline():
                show_progress=False, 
                checkpoint:Optional[Checkpoint]=None,
                tenant_id:Optional[TenantId]=None,
+               extraction_filters:Optional[FilterConfig]=None,
                **kwargs:Any):
         
         return Pipe(
@@ -60,6 +62,7 @@ class ExtractionPipeline():
                 show_progress=show_progress,
                 checkpoint=checkpoint,
                 tenant_id=tenant_id,
+                extraction_filters=extraction_filters,
                 **kwargs
             ).extract
         )
@@ -73,6 +76,7 @@ class ExtractionPipeline():
                  show_progress=False, 
                  checkpoint:Optional[Checkpoint]=None,
                  tenant_id:Optional[TenantId]=None,
+                 extraction_filters:Optional[FilterConfig]=None,
                  **kwargs:Any):
         
         components = components or []
@@ -108,6 +112,7 @@ class ExtractionPipeline():
         self.batch_size = batch_size
         self.show_progress = show_progress
         self.id_rewriter = IdRewriter(id_generator=IdGenerator(tenant_id=tenant_id))
+        self.extraction_filters = extraction_filters or FilterConfig()
         self.pipeline_kwargs = kwargs
     
     def _source_documents_from_base_nodes(self, nodes:Sequence[BaseNode]) -> List[SourceDocument]:
@@ -123,6 +128,12 @@ class ExtractionPipeline():
         return list(results.values())
     
     def extract(self, inputs: Iterable[SourceType]):
+        
+        def get_source_metadata(node):
+            if isinstance(node, Document):
+                return node.metadata
+            else:
+                return node.relationships[NodeRelationship.SOURCE].metadata
 
         input_source_documents = source_documents_from_source_types(inputs)
 
@@ -139,12 +150,18 @@ class ExtractionPipeline():
                 for sd in source_documents
                 for n in sd.nodes
             ]
+            
+            filtered_input_nodes = [
+                node 
+                for node in input_nodes 
+                if self.extraction_filters.filter_source_metadata_dictionary(get_source_metadata(node)) 
+            ]
 
             logger.info(f'Running extraction pipeline [batch_size: {self.batch_size}, num_workers: {self.num_workers}]')
             
             node_batches = self.ingestion_pipeline._node_batcher(
                 num_batches=self.num_workers, 
-                nodes=input_nodes
+                nodes=filtered_input_nodes
             )
                         
             output_nodes = run_pipeline(
