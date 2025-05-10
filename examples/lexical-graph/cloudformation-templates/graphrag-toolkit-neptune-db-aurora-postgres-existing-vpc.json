@@ -659,7 +659,7 @@
       "Type": "AWS::Neptune::DBCluster",
       "Properties": {
         "DBClusterIdentifier": { "Fn::Sub": "${ApplicationId}-neptune-cluster" },
-        "EngineVersion": "1.4.1.0",
+        "EngineVersion": "1.4.5.0",
         "DBSubnetGroupName": { "Ref": "NeptuneDBSubnetGroup" },
         "VpcSecurityGroupIds": [{ "Ref": "NeptuneSecurityGroup" }],
         "DBClusterParameterGroupName": { "Ref": "NeptuneDBClusterParameterGroup" },
@@ -806,6 +806,10 @@
                     "echo \"export AWS_REGION=",
                     { "Ref": "AWS::Region" },
                     "\" >> ~/.bashrc\n\n",
+                    "echo \"export LOCAL_EXTRACT_S3=",
+                    { "Ref": "GraphRAGS3BucketArn" },
+                    "\" >> ~/.bashrc\n",
+                    "\n",
                     "aws s3 cp s3://",
                     {
                       "Fn::If": [
@@ -907,6 +911,9 @@
                         }
                       ]
                     },
+                    "\" >> .env\n",
+                    "  echo \"export LOCAL_EXTRACT_S3=",
+                    { "Ref": "GraphRAGS3BucketArn" },
                     "\" >> .env\n",
                     "fi\n",
                     "EOF"
