@@ -190,15 +190,6 @@ cat << EOF > identity-permissions-policy.json
                 "iam:PassRole"
             ],
             "Resource": "arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "dynamodb:PutItem",
-                "dynamodb:Query",
-                "dynamodb:Scan"
-            ],
-            "Resource": "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/${TABLE_NAME}"
         }
     ]
 }
