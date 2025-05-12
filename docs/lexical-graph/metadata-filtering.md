@@ -138,7 +138,7 @@ from llama_index.core.vector_stores.types import FilterOperator, MetadataFilter
 
 query_engine = LexicalGraphQueryEngine.for_traversal_based_search(
     graph_store, 
-    vector_store
+    vector_store,
     filter_config = FilterConfig(
         MetadataFilter(
             key='url',
@@ -329,7 +329,7 @@ from llama_index.core.vector_stores.types import FilterOperator, MetadataFilter
 
 query_engine = LexicalGraphQueryEngine.for_traversal_based_search(
     graph_store, 
-    vector_store
+    vector_store,
     filter_config = FilterConfig(
         MetadataFilter(
             key='url',
