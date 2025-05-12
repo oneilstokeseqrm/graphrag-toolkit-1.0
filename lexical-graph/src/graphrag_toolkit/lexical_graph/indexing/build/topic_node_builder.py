@@ -6,7 +6,7 @@ from typing import List, Dict
 from llama_index.core.schema import TextNode, BaseNode
 from llama_index.core.schema import NodeRelationship
 
-from graphrag_toolkit.lexical_graph.indexing.build.build_filter import BuildFilter
+from graphrag_toolkit.lexical_graph.indexing.build.build_filters import BuildFilters
 from graphrag_toolkit.lexical_graph.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.lexical_graph.indexing.model import TopicCollection, Topic, Statement
 from graphrag_toolkit.lexical_graph.indexing.constants import TOPICS_KEY
@@ -35,12 +35,12 @@ class TopicNodeBuilder(NodeBuilder):
         
         return node
     
-    def _add_statements(self, node:TextNode, statements:List[Statement], filter:BuildFilter):
+    def _add_statements(self, node:TextNode, statements:List[Statement]):
         
         existing_statements = dict.fromkeys(node.metadata['statements'])
                 
         for statement in statements:
-            if filter.ignore_statement(statement.value):
+            if self.build_filters.ignore_statement(statement.value):
                 continue
             existing_statements[statement.value] = None
             
@@ -49,7 +49,7 @@ class TopicNodeBuilder(NodeBuilder):
         return node
 
 
-    def build_nodes(self, nodes:List[BaseNode], filter:BuildFilter):
+    def build_nodes(self, nodes:List[BaseNode]):
 
         topic_nodes:Dict[str, TextNode] = {}
 
@@ -69,7 +69,7 @@ class TopicNodeBuilder(NodeBuilder):
 
             for topic in topics.topics:
 
-                if filter.ignore_topic(topic.value):
+                if self.build_filters.ignore_topic(topic.value):
                     continue
                 
                 topic_id =  self.id_generator.create_node_id('topic', source_id, topic.value) # topic identity defined by source, not chunk, so that we can connect same topic to multiple chunks in scope of single source
@@ -104,7 +104,7 @@ class TopicNodeBuilder(NodeBuilder):
                 topic_node = topic_nodes[topic_id]
                 
                 topic_node = self._add_chunk_id(topic_node, chunk_id)
-                topic_node = self._add_statements(topic_node, topic.statements, filter)
+                topic_node = self._add_statements(topic_node, topic.statements)
             
                 topic_nodes[topic_id] = topic_node
 

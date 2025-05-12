@@ -13,6 +13,7 @@
     - [Configuring the extract and build stages](#configuring-the-extract-and-build-stages)
     - [Custom prompts](#custom-prompts)
     - [Batch extraction](#batch-extraction)
+    - [Metadata filtering](#metadata-filtering)
     - [Checkpoints](#checkpoints)
   - [Advanced graph construction](#advanced-graph-construction)
     
@@ -342,6 +343,9 @@ topic: topic
 
 You can use [Amazon Bedrock batch inference](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-inference.html) with the extract stage of the indexing process. See [Batch Extraction](./batch-extraction.md) for more details.
 
+#### Metadata filtering
+
+You can add metadata to source documents on ingest, and then use this metadata to filter documents during the extract and build stages. Source metadata is also used for metadata filtering when querying a lexical graph. See the [Metadata Filtering](./metadata-filtering.md) section for more details.
 
 #### Checkpoints
 

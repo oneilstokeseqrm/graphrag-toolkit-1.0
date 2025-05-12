@@ -6,7 +6,7 @@ from typing import List
 from llama_index.core.schema import BaseNode, DEFAULT_TEXT_NODE_TMPL
 from llama_index.core.schema import NodeRelationship
 
-from graphrag_toolkit.lexical_graph.indexing.build.build_filter import BuildFilter
+from graphrag_toolkit.lexical_graph.indexing.build.build_filters import BuildFilters
 from graphrag_toolkit.lexical_graph.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.lexical_graph.indexing.constants import TOPICS_KEY
 from graphrag_toolkit.lexical_graph.storage.constants import INDEX_KEY
@@ -21,7 +21,7 @@ class ChunkNodeBuilder(NodeBuilder):
     def metadata_keys(cls) -> List[str]:
         return [TOPICS_KEY]
     
-    def build_nodes(self, nodes:List[BaseNode], filter:BuildFilter):
+    def build_nodes(self, nodes:List[BaseNode]):
 
         chunk_nodes = []
 
@@ -34,7 +34,7 @@ class ChunkNodeBuilder(NodeBuilder):
             topics = [
                 topic['value'] 
                 for topic in node.metadata.get(TOPICS_KEY, {}).get('topics', []) 
-                if not filter.ignore_topic(topic['value'])
+                if not self.build_filters.ignore_topic(topic['value'])
             ]
 
             source_info = node.relationships[NodeRelationship.SOURCE]

@@ -11,8 +11,8 @@ from typing import Optional, Any, Callable
 from importlib.metadata import version, PackageNotFoundError
 from dateutil.parser import parse
 
-
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStoreFactoryMethod, GraphStore, NodeId, get_log_formatting
+from graphrag_toolkit.lexical_graph.metadata import format_datetime, is_datetime_key
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
 from llama_index.core.bridge.pydantic import PrivateAttr
 
@@ -30,7 +30,6 @@ def format_id_for_neptune(id_name:str):
             return NodeId(parts[1], f'id({parts[0]})', False)
         
 def create_config(config:Optional[str]=None):
-
 
     toolkit_version = 'unknown'
 
@@ -53,9 +52,9 @@ def create_config(config:Optional[str]=None):
     )
 
 def create_property_assigment_fn_for_neptune(key:str, value:Any) -> Callable[[str], str]:
-    if key.endswith('_date') or key.endswith('_datetime'):
+    if is_datetime_key(key):
         try:
-            parse(value, fuzzy=False).isoformat()
+            format_datetime(value)
             return lambda x: f'datetime({x})'
         except ValueError as e:
             return lambda x: x

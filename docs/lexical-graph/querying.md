@@ -14,6 +14,7 @@
     - [Configuring the SemanticGuidedRetriever](#configuring-the-semanticguidedretriever)
     - [SemanticGuidedRetriever with a reranking beam search](#semanticguidedretriever-with-a-reranking-beam-search)
   - [Postprocessors](#postprocessors)
+  - [Metadata filtering](#metadata-filtering)
   
 ### Overview   
 
@@ -418,3 +419,7 @@ response = query_engine.query("What are the differences between Neptune Database
 
 print(response.response)
 ```
+
+### Metadata filtering
+
+Metadata filtering allows you to retrieve a constrained set of sources, topics and statements based on metadata filters and associated values when querying a lexical graph. See the [Metadata Filtering](./metadata-filtering.md) section for more details.

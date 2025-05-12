@@ -6,12 +6,12 @@ from typing import List, Optional, Union, Any
 from pipe import Pipe
 
 from graphrag_toolkit.lexical_graph.tenant_id import TenantId, TenantIdType, DEFAULT_TENANT_ID, to_tenant_id
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig, SourceMetadataFormatter, DefaultSourceMetadataFormatter, MetadataFiltersType
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory, GraphStoreType
 from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory, VectorStoreType
 from graphrag_toolkit.lexical_graph.storage.graph import MultiTenantGraphStore
 from graphrag_toolkit.lexical_graph.storage.graph import DummyGraphStore
 from graphrag_toolkit.lexical_graph.storage.vector import MultiTenantVectorStore
-from graphrag_toolkit.lexical_graph.storage.constants import LEXICAL_GRAPH_LABELS
 from graphrag_toolkit.lexical_graph.indexing.extract import BatchConfig
 from graphrag_toolkit.lexical_graph.indexing import NodeHandler
 from graphrag_toolkit.lexical_graph.indexing import sink
@@ -26,7 +26,7 @@ from graphrag_toolkit.lexical_graph.indexing.build import BuildPipeline
 from graphrag_toolkit.lexical_graph.indexing.build import VectorIndexing
 from graphrag_toolkit.lexical_graph.indexing.build import GraphConstruction
 from graphrag_toolkit.lexical_graph.indexing.build import Checkpoint
-from graphrag_toolkit.lexical_graph.indexing.build import BuildFilter
+from graphrag_toolkit.lexical_graph.indexing.build import BuildFilters
 from graphrag_toolkit.lexical_graph.indexing.build.null_builder import NullBuilder
 
 from llama_index.core.node_parser import SentenceSplitter, NodeParser
@@ -42,20 +42,27 @@ class ExtractionConfig():
                  preferred_entity_classifications:List[str]=DEFAULT_ENTITY_CLASSIFICATIONS,
                  infer_entity_classifications:Union[InferClassificationsConfig, bool]=False,
                  extract_propositions_prompt_template:Optional[str]=None,
-                 extract_topics_prompt_template:Optional[str]=None):
+                 extract_topics_prompt_template:Optional[str]=None,
+                 extraction_filters:Optional[MetadataFiltersType]=None):
         
         self.enable_proposition_extraction = enable_proposition_extraction
         self.preferred_entity_classifications = preferred_entity_classifications
         self.infer_entity_classifications = infer_entity_classifications
         self.extract_propositions_prompt_template = extract_propositions_prompt_template
         self.extract_topics_prompt_template = extract_topics_prompt_template
+        self.extraction_filters = FilterConfig(extraction_filters)
 
 class BuildConfig():
+
+
     def __init__(self,
-                 filter:Optional[BuildFilter]=None,
-                 include_domain_labels:Optional[bool]=None):
-        self.filter = filter
-        self.include_domain_labels = include_domain_labels
+                 build_filters:Optional[BuildFilters]=None,
+                 include_domain_labels:Optional[bool]=None,
+                 source_metadata_formatter:Optional[SourceMetadataFormatter]=None):
+
+        self.build_filters = build_filters or BuildFilters()
+        self.include_domain_labels = include_domain_labels or False
+        self.source_metadata_formatter = source_metadata_formatter or DefaultSourceMetadataFormatter()
         
 class IndexingConfig():
     def __init__(self,
@@ -78,6 +85,28 @@ def get_topic_scope(node:BaseNode):
         return DEFAULT_SCOPE
     else:
         return source.node_id
+    
+IndexingConfigType = Union[IndexingConfig, ExtractionConfig, BuildConfig, BatchConfig, List[NodeParser]]
+
+def to_indexing_config(indexing_config:Optional[IndexingConfigType]=None) -> IndexingConfig:
+    if not indexing_config:
+        return IndexingConfig()
+    if isinstance(indexing_config, IndexingConfig):
+        return indexing_config
+    elif isinstance(indexing_config, ExtractionConfig):
+        return IndexingConfig(extraction=indexing_config)
+    elif isinstance(indexing_config, BuildConfig):
+        return IndexingConfig(build=indexing_config)
+    elif isinstance(indexing_config, BatchConfig):
+        return IndexingConfig(batch_config=indexing_config)
+    elif isinstance(indexing_config, list):
+        for np in indexing_config:
+            if not isinstance(np, NodeParser):
+                raise ValueError(f'Invalid indexing config type: {type(np)}')
+        return IndexingConfig(chunking=indexing_config)
+    else:
+        raise ValueError(f'Invalid indexing config type: {type(indexing_config)}')
+
 
 class LexicalGraphIndex():
     """
@@ -92,7 +121,7 @@ class LexicalGraphIndex():
             Tenant id. Defaults to None (default tenant).
         extraction_dir (List[TransformComponent], optional):
             Directory to which intermediate artefacts (e.g. checkpoints) will be written. Defaults to DEFAULT_EXTRACTION_DIR.
-        indexing_config (Optional[IndexingConfig], optional):
+        indexing_config (Optional[Union[IndexingConfig, ExtractionConfig, BuildConfig, BatchConfig, List[NodeParser]]], optional):
             If None, defaults to using default IndexingConfig values.
 
     Examples:
@@ -113,7 +142,7 @@ class LexicalGraphIndex():
             vector_store:Optional[VectorStoreType]=None,
             tenant_id:Optional[TenantIdType]=None,
             extraction_dir:Optional[str]=None,
-            indexing_config:Optional[IndexingConfig]=None,
+            indexing_config:Optional[IndexingConfigType]=None,
         ):
 
         tenant_id = to_tenant_id(tenant_id)
@@ -122,7 +151,7 @@ class LexicalGraphIndex():
         self.vector_store = MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
         self.tenant_id = tenant_id or TenantId()
         self.extraction_dir = extraction_dir or DEFAULT_EXTRACTION_DIR
-        self.indexing_config = indexing_config or IndexingConfig()
+        self.indexing_config = to_indexing_config(indexing_config)
 
         (pre_processors, components) = self._configure_extraction_pipeline(self.indexing_config)
 
@@ -244,6 +273,7 @@ class LexicalGraphIndex():
             checkpoint=checkpoint,
             num_workers=1 if self.allow_batch_inference else None,
             tenant_id=DEFAULT_TENANT_ID,
+            extraction_filters=self.indexing_config.extraction.extraction_filters,
             **kwargs
         )
 
@@ -288,6 +318,8 @@ class LexicalGraphIndex():
         ```
         """
 
+        build_config = self.indexing_config.build
+
         build_pipeline = BuildPipeline.create(
             components=[
                 GraphConstruction.for_graph_store(self.graph_store),
@@ -295,8 +327,9 @@ class LexicalGraphIndex():
             ],
             show_progress=show_progress,
             checkpoint=checkpoint,
-            filter=self.indexing_config.build.filter,
-            include_domain_labels=self.indexing_config.build.include_domain_labels,
+            build_filters=build_config.build_filters,
+            source_metadata_formatter=build_config.source_metadata_formatter,
+            include_domain_labels=build_config.include_domain_labels,
             tenant_id=self.tenant_id,
             **kwargs
         )
@@ -338,8 +371,11 @@ class LexicalGraphIndex():
             checkpoint=checkpoint,
             num_workers=1 if self.allow_batch_inference else None,
             tenant_id=DEFAULT_TENANT_ID,
+            extraction_filters=self.indexing_config.extraction.extraction_filters,
             **kwargs
         )
+
+        build_config = self.indexing_config.build
         
         build_pipeline = BuildPipeline.create(
             components=[
@@ -348,8 +384,9 @@ class LexicalGraphIndex():
             ],
             show_progress=show_progress,
             checkpoint=checkpoint,
-            filter=self.indexing_config.build.filter,
-            include_domain_labels=self.indexing_config.build.include_domain_labels,
+            build_filters=build_config.build_filters,
+            source_metadata_formatter=build_config.source_metadata_formatter,
+            include_domain_labels=build_config.include_domain_labels,
             tenant_id=self.tenant_id,
             **kwargs
         )

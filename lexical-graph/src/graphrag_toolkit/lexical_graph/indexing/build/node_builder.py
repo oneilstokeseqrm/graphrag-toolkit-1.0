@@ -2,16 +2,19 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import abc
-from typing import Dict, List
+from typing import List
 from llama_index.core.schema import BaseNode, BaseComponent
 
+from graphrag_toolkit.lexical_graph.metadata import SourceMetadataFormatter
 from graphrag_toolkit.lexical_graph.indexing import IdGenerator
-from graphrag_toolkit.lexical_graph.indexing.build.build_filter import BuildFilter
+from graphrag_toolkit.lexical_graph.indexing.build.build_filters import BuildFilters
 from graphrag_toolkit.lexical_graph.indexing.constants import DEFAULT_CLASSIFICATION
 
 class NodeBuilder(BaseComponent):
-
+    
     id_generator:IdGenerator
+    build_filters:BuildFilters
+    source_metadata_formatter:SourceMetadataFormatter
 
     @classmethod
     @abc.abstractmethod
@@ -24,7 +27,7 @@ class NodeBuilder(BaseComponent):
         pass
 
     @abc.abstractmethod
-    def build_nodes(self, nodes:List[BaseNode], filter:BuildFilter) -> List[BaseNode]:
+    def build_nodes(self, nodes:List[BaseNode]) -> List[BaseNode]:
         pass
     
     def _clean_id(self, s):

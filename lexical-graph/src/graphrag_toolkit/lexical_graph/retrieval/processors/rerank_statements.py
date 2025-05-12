@@ -7,6 +7,7 @@ import tfidf_matcher as tm
 from typing import List, Dict
 from dateutil.parser import parse
 
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.retrieval.model import Source
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, ProcessorArgs
@@ -31,9 +32,9 @@ def default_reranking_source_metadata_fn(source:Source):
     return ', '.join([format_value(v) for v in source.metadata.values()])
 
 class RerankStatements(ProcessorBase):
-    def __init__(self, args:ProcessorArgs, reranking_model=None):
+    def __init__(self, args:ProcessorArgs, filter_config:FilterConfig, reranking_model=None):
         self.reranking_model = reranking_model or GraphRAGConfig.reranking_model
-        super().__init__(args)
+        super().__init__(args, filter_config)
         self.reranking_source_metadata_fn = self.args.reranking_source_metadata_fn or default_reranking_source_metadata_fn
 
     def _score_values_with_tfidf(self, values:List[str], query:QueryBundle, entities:List[ScoredEntity]):

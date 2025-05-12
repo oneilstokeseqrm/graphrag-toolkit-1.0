@@ -4,9 +4,8 @@
 import string
 import logging
 from typing import Any, List, Optional, Callable
-from dateutil.parser import parse
 
-from graphrag_toolkit.lexical_graph.metadata import FilterConfig
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig, type_name_for_key_value, format_datetime
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore, MultiTenantGraphStore
@@ -16,7 +15,7 @@ from graphrag_toolkit.lexical_graph.storage.vector import VectorIndex, VectorInd
 
 from llama_index.core.indices.utils import embed_nodes
 from llama_index.core.schema import QueryBundle
-from llama_index.core.vector_stores.types import FilterCondition, FilterOperator, MetadataFilter
+from llama_index.core.vector_stores.types import FilterCondition, FilterOperator, MetadataFilter, MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +36,10 @@ def to_opencypher_operator(operator: FilterOperator) -> tuple[str, Callable[[Any
         #FilterOperator.NIN: ('nin', default_value_formatter),  # Not in array (string or number)
         #FilterOperator.ANY: ('any', default_value_formatter),  # Contains any (array of strings)
         #FilterOperator.ALL: ('all', default_value_formatter),  # Contains all (array of strings)
-        #FilterOperator.TEXT_MATCH: ('LIKE', lambda x: f"%%{x}%%"),
-        #FilterOperator.TEXT_MATCH_INSENSITIVE: ('~*', default_value_formatter),
+        FilterOperator.TEXT_MATCH: ('CONTAINS', default_value_formatter),
+        FilterOperator.TEXT_MATCH_INSENSITIVE: ('CONTAINS', lambda x: x.lower()),
         #FilterOperator.CONTAINS: ('contains', default_value_formatter),  # metadata array contains value (string or number)
-        #FilterOperator.IS_EMPTY: ('is_empty', default_value_formatter),  # the field is not exist or empty (null or empty array)
+        FilterOperator.IS_EMPTY: ('IS NULL', default_value_formatter),  # the field is not exist or empty (null or empty array)
     }
 
     if operator not in operator_map:
@@ -48,68 +47,65 @@ def to_opencypher_operator(operator: FilterOperator) -> tuple[str, Callable[[Any
     
     return operator_map[operator]
 
-def type_name_for_value(value:Any) -> str:
-    
-    if isinstance(value, list):
-        raise ValueError(f'Unsupported value type: {type(value)}')
-    
-    if isinstance(value, int):
-        return 'number'
-    elif isinstance(value, float):
-        return 'number'
-    else:
-        try:
-            parse(value, fuzzy=False)
-            return 'timestamp'
-        except ValueError as e:
-            return 'text'
-
 def formatter_for_type(type_name:str) -> Callable[[Any], str]:
     if type_name == 'text':
         return lambda x: f"'{x}'"
     elif type_name == 'timestamp':
-        return lambda x: f"datetime('{parse(x, fuzzy=False).isoformat()}')"
+        return lambda x: f"datetime('{format_datetime(x)}')"
     elif type_name == 'number':
         return lambda x:x
     else:
         raise ValueError(f'Unsupported type name: {type_name}')
-        
-    
-def filters_to_opencypher_where_clause(filter_config:FilterConfig) -> str:
 
-    if filter_config is None or filter_config.source_filters is None:
-        return ''
+def parse_metadata_filters_recursive(metadata_filters:MetadataFilters) -> str:
 
     def to_key(key: str) -> str:
         return f"source.{key}" 
     
-    def to_opencypher_where_clause(f: MetadataFilter) -> str:
+    def metadata_filter_to_opencypher_filter(f: MetadataFilter) -> str:
+        
         key = to_key(f.key)
-        type_name = type_name_for_value(f.value)
-        type_formatter = formatter_for_type(type_name)
         (operator, operator_formatter) = to_opencypher_operator(f.operator)
-        
-        return f"({key}) {operator} {type_formatter(operator_formatter(str(f.value)))}"
-        
 
-    if len(filter_config.source_filters.filters) == 1:
-        f = filter_config.source_filters.filters[0]
-        where_clause = to_opencypher_where_clause(f)
-    else:
-        if filter_config.source_filters.condition == FilterCondition.AND:
-            condition = 'AND'
-        elif filter_config.source_filters.condition == FilterCondition.OR:
-            condition = 'OR'
+        if f.operator == FilterOperator.IS_EMPTY:
+            return f"({key} {operator})"
         else:
-            raise ValueError(f'Unsupported filters condition: {filter_config.source_filters.condition}')
+            type_name = type_name_for_key_value(f.key, f.value)
+            type_formatter = formatter_for_type(type_name)
+            if f.operator == FilterOperator.TEXT_MATCH_INSENSITIVE:
+                return f"({key}.toLower() {operator} {type_formatter(operator_formatter(str(f.value)))})"
+            else:
+                return f"({key} {operator} {type_formatter(operator_formatter(str(f.value)))})"
+ 
+    
+    condition = metadata_filters.condition.value
+
+    filter_strs = []
+
+    for metadata_filter in metadata_filters.filters:
+        if isinstance(metadata_filter, MetadataFilter):
+            if metadata_filters.condition == FilterCondition.NOT:
+                raise ValueError(f'Expected MetadataFilters for FilterCondition.NOT, but found MetadataFilter')
+            filter_strs.append(metadata_filter_to_opencypher_filter(metadata_filter))
+        elif isinstance(metadata_filter, MetadataFilters):
+            filter_strs.append(parse_metadata_filters_recursive(metadata_filter))
+        else:
+            raise ValueError(f'Invalid metadata filter type: {type(metadata_filter)}')
         
-        where_clause = f' {condition} '.join([
-            f"{to_opencypher_where_clause(f)}\n"
-            for f in filter_config.source_filters.filters
-        ])
+    if metadata_filters.condition == FilterCondition.NOT:
+        return f"(NOT {' '.join(filter_strs)})"
+    elif metadata_filters.condition == FilterCondition.AND or metadata_filters.condition == FilterCondition.OR:
+        condition = f' {metadata_filters.condition.value.upper()} '
+        return f"({condition.join(filter_strs)})"
+    else:
+        raise ValueError(f'Unsupported filters condition: {metadata_filters.condition}')
 
-    return f'WHERE {where_clause}'
 
+def filter_config_to_opencypher_filters(filter_config:FilterConfig) -> str:
+    if filter_config is None or filter_config.source_filters is None:
+        return ''
+    return parse_metadata_filters_recursive(filter_config.source_filters)
+    
 class NeptuneAnalyticsVectorIndexFactory(VectorIndexFactoryMethod):
     def try_create(self, index_names:List[str], vector_index_info:str, **kwargs) -> List[VectorIndex]:
         graph_id = None
@@ -214,6 +210,11 @@ class NeptuneIndex(VectorIndex):
 
         tenant_specific_label = self.tenant_id.format_label(self.label).replace('`', '')
 
+        where_clause =  filter_config_to_opencypher_filters(filter_config)
+        where_clause = f'WHERE {where_clause}' if where_clause else ''
+
+        logger.debug(f'filter: {where_clause}')
+
         cypher = f'''
         CALL neptune.algo.vectors.topKByEmbedding(
             {query_bundle.embedding},
@@ -226,7 +227,7 @@ class NeptuneIndex(VectorIndex):
         WITH node as {self.index_name}, score WHERE '{tenant_specific_label}' in labels({self.index_name}) 
         WITH {self.index_name}, score ORDER BY score ASC LIMIT {top_k}
         MATCH {self.path}
-        {filters_to_opencypher_where_clause(filter_config)}
+        {where_clause}
         RETURN {{
             score: score,
             {self.return_fields}

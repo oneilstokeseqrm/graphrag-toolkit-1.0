@@ -9,13 +9,14 @@ from pipe import Pipe
 
 from graphrag_toolkit.lexical_graph import TenantId
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
+from graphrag_toolkit.lexical_graph.metadata import SourceMetadataFormatter, DefaultSourceMetadataFormatter
 from graphrag_toolkit.lexical_graph.indexing import NodeHandler, IdGenerator
 from graphrag_toolkit.lexical_graph.indexing.utils.pipeline_utils import run_pipeline
 from graphrag_toolkit.lexical_graph.indexing.model import SourceType, SourceDocument, source_documents_from_source_types
 from graphrag_toolkit.lexical_graph.indexing.build.node_builder import NodeBuilder
 from graphrag_toolkit.lexical_graph.indexing.build.checkpoint import Checkpoint, CheckpointWriter
-from graphrag_toolkit.lexical_graph.indexing.build.metadata_to_nodes import MetadataToNodes
-from graphrag_toolkit.lexical_graph.indexing.build.build_filter import BuildFilter
+from graphrag_toolkit.lexical_graph.indexing.build.node_builders import NodeBuilders
+from graphrag_toolkit.lexical_graph.indexing.build.build_filters import BuildFilters
 
 from llama_index.core.utils import iter_batch
 from llama_index.core.ingestion import IngestionPipeline
@@ -39,7 +40,8 @@ class BuildPipeline():
                builders:Optional[List[NodeBuilder]]=[], 
                show_progress=False, 
                checkpoint:Optional[Checkpoint]=None,
-               filter:Optional[BuildFilter]=None,
+               build_filters:Optional[BuildFilters]=None,
+               source_metadata_formatter:Optional[SourceMetadataFormatter]=None,
                include_domain_labels:Optional[bool]=None,
                tenant_id:Optional[TenantId]=None,
                **kwargs:Any
@@ -54,7 +56,8 @@ class BuildPipeline():
                 builders=builders,
                 show_progress=show_progress,
                 checkpoint=checkpoint,
-                filter=filter,
+                build_filters=build_filters,
+                source_metadata_formatter=source_metadata_formatter,
                 include_domain_labels=include_domain_labels,
                 tenant_id=tenant_id,
                 **kwargs
@@ -70,7 +73,8 @@ class BuildPipeline():
                  builders:Optional[List[NodeBuilder]]=[], 
                  show_progress=False, 
                  checkpoint:Optional[Checkpoint]=None,
-                 filter:Optional[BuildFilter]=None,
+                 build_filters:Optional[BuildFilters]=None,
+                 source_metadata_formatter:Optional[SourceMetadataFormatter]=None,
                  include_domain_labels:Optional[bool]=None,
                  tenant_id:Optional[TenantId]=None,
                  **kwargs:Any
@@ -82,6 +86,7 @@ class BuildPipeline():
         batch_writes_enabled = batch_writes_enabled or GraphRAGConfig.batch_writes_enabled
         batch_write_size = batch_write_size or GraphRAGConfig.build_batch_write_size
         include_domain_labels = include_domain_labels or GraphRAGConfig.include_domain_labels
+        source_metadata_formatter = source_metadata_formatter or DefaultSourceMetadataFormatter()
         
         for c in components:
             if isinstance(c, NodeHandler):
@@ -108,7 +113,12 @@ class BuildPipeline():
         self.batch_writes_enabled = batch_writes_enabled
         self.batch_write_size = batch_write_size
         self.include_domain_labels = include_domain_labels
-        self.metadata_to_nodes = MetadataToNodes(builders=builders, filter=filter, id_generator=IdGenerator(tenant_id=tenant_id))
+        self.node_builders = NodeBuilders(
+            builders=builders, 
+            build_filters=build_filters, 
+            source_metadata_formatter=source_metadata_formatter, 
+            id_generator=IdGenerator(tenant_id=tenant_id)
+        )
         self.node_filter = NodeFilter() if not checkpoint else checkpoint.add_filter(NodeFilter())
         self.pipeline_kwargs = kwargs
     
@@ -124,7 +134,7 @@ class BuildPipeline():
             ]
 
             node_batches = [
-                self.metadata_to_nodes(chunk_nodes) 
+                self.node_builders(chunk_nodes) 
                 for chunk_nodes in chunk_node_batches if chunk_nodes
             ]
 
