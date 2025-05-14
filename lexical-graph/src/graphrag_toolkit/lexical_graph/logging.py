@@ -107,6 +107,12 @@ BASE_LOGGING_CONFIG = {
             'stream': 'ext://sys.stdout',
             'filters': ['moduleFilter'],
             'formatter': 'default'
+        },
+        'file_handler': {
+            'formatter': 'default',
+            'class': 'logging.FileHandler',
+            'filename': 'output.log',
+            'mode': 'a',
         }
     },
     'loggers': {'': {'handlers': ['stdout'], 'level': logging.INFO}},
@@ -115,12 +121,14 @@ BASE_LOGGING_CONFIG = {
 def set_logging_config(
     logging_level:Union[str, LoggingLevel],
     debug_include_modules:Optional[Union[str, List[str]]]=None,
-    debug_exclude_modules:Optional[Union[str, List[str]]]=None
+    debug_exclude_modules:Optional[Union[str, List[str]]]=None,
+    filename:Optional[str]=None
 ) -> None:
     set_advanced_logging_config(
         logging_level,
         included_modules={logging.DEBUG: debug_include_modules} if debug_include_modules is not None else None,
         excluded_modules={logging.DEBUG: debug_exclude_modules} if debug_exclude_modules is not None else None,
+        filename=filename
     )
 
 def set_advanced_logging_config(
@@ -129,6 +137,7 @@ def set_advanced_logging_config(
     excluded_modules:Optional[Dict[LoggingLevel, Union[str, List[str]]]]=None,
     included_messages:Optional[Dict[LoggingLevel, Union[str, List[str]]]]=None,
     excluded_messages:Optional[Dict[LoggingLevel, Union[str, List[str]]]]=None,
+    filename:Optional[str]=None
 ) -> None:
     if not _is_valid_logging_level(logging_level):
         warnings.warn(f'Unknown logging level {logging_level!r} provided.', UserWarning)
@@ -141,6 +150,11 @@ def set_advanced_logging_config(
     config['filters']['moduleFilter']['excluded_modules'].update(excluded_modules or dict())
     config['filters']['moduleFilter']['included_messages'].update(included_messages or dict())
     config['filters']['moduleFilter']['excluded_messages'].update(excluded_messages or dict())
+    
+    if filename:
+        config['handlers']['file_handler']['filename'] = filename
+        config['loggers']['']['handlers'].append('file_handler')
+    
     logging.config.dictConfig(config)
 
 def _is_valid_logging_level(level: Union[str, LoggingLevel]) -> bool:

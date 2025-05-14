@@ -114,6 +114,24 @@
 				}
 			]
 		},
+		"IsS3ExampleNotebooksURL": {
+			"Fn::Equals": [
+				{
+					"Fn::Select": [
+						0,
+						{
+							"Fn::Split": [
+								":",
+								{
+									"Ref": "ExampleNotebooksURL"
+								}
+							]
+						}
+					]
+				},
+				"s3"
+			]
+		},
 		"IsIadRegion": {
 			"Fn::Equals": [
 				{
@@ -1114,6 +1132,11 @@
 										"sudo -u ec2-user -i <<'EOF'\n",
 										"\n",
 										"sudo pip install packaging==24.2\n",
+										"echo \"export STACK_ID=",
+										{
+											"Ref": "AWS::StackId"
+										},
+										"\" >> ~/.bashrc\n",
 										"echo \"export EXTRACTION_MODEL=",
 										{
 											"Fn::Sub": [
@@ -1287,17 +1310,36 @@
 											"Fn::If": [
 												"ExampleNotebooksURLIsNotBlank",
 												{
-													"Fn::Join": [
-														"",
-														[
-															"  curl -LO \"",
-															{
-																"Ref": "ExampleNotebooksURL"
-															},
-															"\" -o lexical-graph-examples.zip\n",
-															"  unzip lexical-graph-examples.zip -d graphrag-toolkit\n",
-															"  rm -rf lexical-graph-examples.zip\n"
-														]
+													"Fn::If": [
+														"IsS3ExampleNotebooksURL",
+														{
+															"Fn::Join": [
+																"",
+																[
+																	"  aws s3 cp \"",
+																	{
+																		"Ref": "ExampleNotebooksURL"
+																	},
+																	"\" .\n",
+																	"  unzip lexical-graph-examples.zip -d graphrag-toolkit\n",
+																	"  rm -rf lexical-graph-examples.zip\n"
+																]
+															]
+														},
+														{
+															"Fn::Join": [
+																"",
+																[
+																	"  curl -LO \"",
+																	{
+																		"Ref": "ExampleNotebooksURL"
+																	},
+																	"\" -o lexical-graph-examples.zip\n",
+																	"  unzip lexical-graph-examples.zip -d graphrag-toolkit\n",
+																	"  rm -rf lexical-graph-examples.zip\n"
+																]
+															]
+														}
 													]
 												},
 												{
@@ -1306,6 +1348,11 @@
 											]
 										},
 										"  cd graphrag-toolkit\n",
+										"  echo \"export STACK_ID=",
+										{
+											"Ref": "AWS::StackId"
+										},
+										"\" >> .env\n",
 										"  echo \"export GRAPH_STORE=",
 										{
 											"Fn::Sub": [
@@ -1431,6 +1478,13 @@
 											]
 										},
 										"\" >> .env\n",
+										"  if [ -f \"./run_test_suite.sh\" ]\n",
+										"  then\n",
+										"    echo \"Running test suite\"\n",
+										"    sh run_test_suite.sh &\n",
+										"  else\n",
+										"    echo \"No test suite\"\n",
+										"  fi\n",
 										"fi\n",
 										"EOF"
 									]
