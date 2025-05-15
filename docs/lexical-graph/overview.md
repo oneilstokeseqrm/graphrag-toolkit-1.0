@@ -87,13 +87,32 @@ The lexical-graph library implements two high-level processes: [_indexing_](./in
 
 #### Indexing
 
-The indexing process is further split into two pipeline stages: [_extract_](./indexing.md#extract) and [_build_](./indexing.md#build). The extract stage ingests data from unstructured sources, chunks the content, and then uses an LLM to extract sets of topics, statements, facts and entities from these chunks. The build stage uses the results of the extract stage to populate a graph and create and index embeddings for some of the content. 
+Indexing is split into two pipeline stages: [*extract*](./indexing.md#extract) and [*build*](./indexing.md#build).
 
-Extraction uses two LLM calls per chunk. The first 'cleans up' the content by extracting sets of well-formed, self-contained propositions from the chunked text. The second call then extracts topics, statements, facts, and entities and their relations from these propositions. Proposition extraction is optional: the second LLM call can be perfomed against the raw content, but the quality of the extraction tends to improve if the proposition extraction is performed first.
+* The **Extract** stage is typically run on AWS using SageMaker and Amazon Bedrock. It:
 
-The overall indexing process uses a micro-batching approach to progress data through the extract and build pipelines. This allows the host application to persist extracted information emitted by the extract pipeline, either to the filesystem or to Amazon S3, and/or inspect the contents, and if necessary filter and transform the extracted elements prior to consuming them in the build pipeline. Indexing can be run in a continuous-ingest fashion, or as separate extract and build steps. Both modes allow you to take advantage of Amazon Bedrock's batch inference capabilities to perform [batch extraction](./batch-extraction.md) over collections of documents.
+  * Loads and chunks documents
+  * Performs two LLM-based extraction steps:
 
-The following diagram shows a high-level view of the indexing process:
+    1. **Proposition extraction**: Converts chunked text into well-formed statements
+    2. **Topic/entity/fact extraction**: Identifies relations and concepts
+  * Results are stored in Amazon S3 for use in the Build stage
+
+* The **Build** stage runs locally using Docker:
+
+  * Loads extracted outputs from S3 or shared volumes
+  * Builds a lexical graph using FalkorDB
+  * Generates embeddings using a local embedding model or cloud-based Bedrock endpoint
+  * Stores embeddings in a local PostgreSQL+pgvector instance
+
+This hybrid design allows for:
+
+* Cloud-scale compute for language model inference
+* Fast, iterative, and cost-effective graph/index building in a local environment
+* Optional round-tripping of built artifacts to the cloud
+
+> Indexing can be executed in batch or continuous ingestion mode. Extracted artifacts can be inspected and optionally transformed before graph construction.
+
 
 ![Indexing](../../images/hybrid-extract-and-build.png)
 
