@@ -148,3 +148,7 @@ Choose from the following templates:
    - Amazon Neptune Database cluster with a single Neptune serverless instance
    - Amazon Aurora Postgres Database cluster with a single serverless instance
    - Amazon SageMaker notebook with sample code
+ - [`graphrag-toolkit-neptune-db-aurora-postgres-existing-vpc.json`](../../examples/lexical-graph/cloudformation-templates/graphrag-toolkit-neptune-db-aurora-postgres.json) creates the following lexical-graph environment:
+   - Amazon Neptune Database cluster with a single Neptune serverless instance
+   - Amazon Aurora Postgres Database cluster with a single serverless instance
+   - Amazon SageMaker notebook with sample code
