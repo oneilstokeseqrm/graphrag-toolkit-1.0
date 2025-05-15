@@ -88,7 +88,7 @@ The overall indexing process uses a micro-batching approach to progress data thr
 
 The following diagram shows a high-level view of the indexing process:
 
-![Indexing](../../images/extract-and-build.png)
+![Indexing](../../images/hybrid-extract-and-build.png)
 
 #### Querying
 
