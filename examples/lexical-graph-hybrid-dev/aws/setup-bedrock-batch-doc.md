@@ -5,7 +5,7 @@ This script automates the provisioning of the necessary AWS resources to perform
 
 ---
 
-## 🛠️ What the Script Does
+## What the Script Does
 
 1. **Checks AWS Credentials**  
    Validates that the AWS CLI is authenticated using either:
@@ -42,7 +42,7 @@ This script automates the provisioning of the necessary AWS resources to perform
 
 ---
 
-## 🔐 Output Resources
+## Output Resources
 
 | Resource | Description |
 |---------|-------------|
@@ -53,7 +53,7 @@ This script automates the provisioning of the necessary AWS resources to perform
 
 ---
 
-## 👥 Usage
+## Usage
 
 ```bash
 bash setup-bedrock-batch.sh padmin
@@ -63,7 +63,7 @@ If no profile is specified, it defaults to `padmin`.
 
 ---
 
-## 🔑 Manual IAM Setup Required (SSO Users)
+## Manual IAM Setup Required (SSO Users)
 
 If you're using AWS SSO, the script will print:
 ```
@@ -78,7 +78,7 @@ If you're using static credentials, you must manually attach the identity policy
 
 ---
 
-## 📄 Related Policies
+## Related Policies
 
 ### Trust Policy (Role)
 ```json
@@ -123,7 +123,7 @@ If you're using static credentials, you must manually attach the identity policy
 
 ---
 
-## ✅ Prerequisites
+## Prerequisites
 
 - AWS CLI installed
 - AWS credentials configured for the profile (via SSO or `aws configure`)
