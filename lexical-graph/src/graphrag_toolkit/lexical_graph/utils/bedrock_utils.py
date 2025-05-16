@@ -10,7 +10,7 @@ from tenacity import (
     retry,
     retry_if_exception_type,
     stop_after_attempt,
-    wait_exponential,
+    wait_random_exponential,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ def _create_retry_decorator(client: Any, max_retries: int) -> Callable[[Any], An
     return retry(
         reraise=True,
         stop=stop_after_attempt(max_retries),
-        wait=wait_exponential(multiplier=1, min=min_seconds, max=max_seconds),
+        wait=wait_random_exponential(multiplier=1, min=min_seconds, max=max_seconds),
         retry=(
             retry_if_exception_type(client.exceptions.ThrottlingException) | 
             retry_if_exception_type(client.exceptions.ModelTimeoutException) |
