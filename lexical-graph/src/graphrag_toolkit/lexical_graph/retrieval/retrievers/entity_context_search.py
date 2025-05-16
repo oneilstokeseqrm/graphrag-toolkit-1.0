@@ -135,7 +135,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
 
             if len(context_entities) > 1:
                 scored_entity_contexts.append({
-                    'entities': context_entities[:self.args.ec2_max_entities_per_context],
+                    'entities': context_entities[:self.args.ecs_max_entities_per_context],
                     'score': parent_score
                 })
 

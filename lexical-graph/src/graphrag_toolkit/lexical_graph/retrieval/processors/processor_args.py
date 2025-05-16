@@ -28,7 +28,7 @@ class ProcessorArgs():
         self.ecs_max_score_factor = kwargs.get('ecs_max_score_factor', 2)
         self.ecs_min_score_factor = kwargs.get('ecs_min_score_factor', 0.25)
         self.ecs_max_contexts = kwargs.get('ecs_max_contexts', 4)
-        self.ec2_max_entities_per_context = kwargs.get('ec2_max_entities_per_context', 5)
+        self.ecs_max_entities_per_context = kwargs.get('ec2_max_entities_per_context', 5)
 
   
     def to_dict(self, new_args:Dict[str, Any]={}):
