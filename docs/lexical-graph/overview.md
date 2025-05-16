@@ -98,12 +98,7 @@ The **Extract** stage runs **locally using Docker**:
   * *Topic/entity/fact extraction*: Identifies relations and concepts
 * Stores the extracted results in an **AWS S3 bucket**, serving as the transport medium between stages
 
-The **Build** stage runs **in the cloud**, typically using **SageMaker and Amazon Bedrock**:
-
-* Loads extracted outputs from S3
-* Builds a **lexical graph** using **FalkorDB** hosted in the cloud
-* Generates embeddings using either a **cloud-based Bedrock endpoint** or a specified model
-* Stores embeddings in a cloud-based **PostgreSQL+pgvector** instance
+The **Build** stage remains unchanged.
 
 
 ![Indexing](../../images/hybrid-extract-and-build.png)
