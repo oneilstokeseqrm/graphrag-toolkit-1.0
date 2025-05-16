@@ -85,76 +85,28 @@ This hybrid configuration enables flexible deployment: high-throughput LLM infer
 
 The lexical-graph library implements two high-level processes: [_indexing_](./indexing.md) and [_querying_](./querying.md). The indexing process ingests and extracts information from unstuctured, text-based source documents and then builds a graph and accompanying vector indexes. The query process retrieves content from the graph and vector indexes, and then supplies this content as context to an LLM to answer a user question.
 
-#### Indexing
+### Indexing
 
-Indexing is split into two pipeline stages: [*extract*](./indexing.md#extract) and [*build*](./indexing.md#build).
+Indexing is split into two pipeline stages: **Extract** and **Build**.
 
-* The **Extract** stage is typically run on AWS using SageMaker and Amazon Bedrock. It:
+The **Extract** stage runs **locally using Docker**:
 
-  * Loads and chunks documents
-  * Performs two LLM-based extraction steps:
+* Loads and chunks documents
+* Performs two LLM-based extraction steps:
 
-    1. **Proposition extraction**: Converts chunked text into well-formed statements
-    2. **Topic/entity/fact extraction**: Identifies relations and concepts
-  * Results are stored in Amazon S3 for use in the Build stage
+  * *Proposition extraction*: Converts chunked text into well-formed statements
+  * *Topic/entity/fact extraction*: Identifies relations and concepts
+* Stores the extracted results in an **AWS S3 bucket**, serving as the transport medium between stages
 
-* The **Build** stage runs locally using Docker:
+The **Build** stage runs **in the cloud**, typically using **SageMaker and Amazon Bedrock**:
 
-  * Loads extracted outputs from S3 or shared volumes
-  * Builds a lexical graph using FalkorDB
-  * Generates embeddings using a local embedding model or cloud-based Bedrock endpoint
-  * Stores embeddings in a local PostgreSQL+pgvector instance
-
-This hybrid design allows for:
-
-* Cloud-scale compute for language model inference
-* Fast, iterative, and cost-effective graph/index building in a local environment
-* Optional round-tripping of built artifacts to the cloud
-
-> Indexing can be executed in batch or continuous ingestion mode. Extracted artifacts can be inspected and optionally transformed before graph construction.
+* Loads extracted outputs from S3
+* Builds a **lexical graph** using **FalkorDB** hosted in the cloud
+* Generates embeddings using either a **cloud-based Bedrock endpoint** or a specified model
+* Stores embeddings in a cloud-based **PostgreSQL+pgvector** instance
 
 
 ![Indexing](../../images/hybrid-extract-and-build.png)
-
-#### Querying
-
-Querying is a two-step process consisting of _retrieval_ and _generation_. Retrieval queries the graph and vector stores to fetch content relevant to answering a user question. Generation then supplies this content as context to an LLM to generate a response. The lexical-graph query engine allows an application to apply the retrieve operation by itself, which simply returns the search results fetched from the graph, or run an end-to-end query, which retrieves search results and then generates a response. 
-
-The lexical-graph contains two different retrievers: a [semantic-guided](./querying.md#semanticguidedretriever) strategy, which is optimized for precise, detailed queries requiring fine-grained evidence, and a [traversal-based](./querying.md#traversalbasedretriever) strategy, which is optimized for retrieving broader, thematically related information distributed across multiple documents.
-
-The following diagram shows a high-level view of the end-to-end query process:
-
-![Querying](../../images/question-answering.png)
-
-Query steps:
-
-  1. The application submits a user question the lexical graph query engine.
-  2. The engine generates an embedding for the user question.
-  3. This embedding is used to perform a topK vector similarity search against embedded content in the vector store.
-  4. The results of the similarity search are used to anchor one or more graph queries that retrieve relevant content from the graph.
-  5. The engine supplies this retrieved content togther with the user question to an LLM, which generates a response.
-  6. The query engine returns this response to the application.
-
-### Multi tenancy
-
-The lexical-graph library's [multi-tenancy](./multi-tenancy.md) feature allows an application to host multiple separate lexical graphs in the same underlying graph and vector stores. Tenant graphs may correspond to different domains, collections of documents, or individual users.
-
-### Metadata filtering
-
-The lexical-graph supports [metadata filtering](./metadata-filtering.md). Metadata filtering constrains the set of sources, topics and statements retrieved when querying a graph based on metadata filters and associated values. 
-
-There are two parts to metadata filtering:
-
-  - **Indexing** Add metadata to source documents passed to the indexing process
-  - **Querying** Supply metadata filters when querying a lexical graph
-  
-Metadata filtering can also be used to [filter documents and chunks during the extract and build stages](./metadata-filtering.md#using-metadata-to-filter-documents-in-the-extract-and-build-stages) of the indexing process.
-
-### Security
-
-Implementers using the lexical-graph library are responsible for securing access to the data sources they wish to index, and for provisioning and securing the underlying AWS resources, such as Neptune and OpenSearch, used by the library. The documentation includes [guidance](./security.md) on using AWS Identity and Access Management (IAM) policies to control access to Amazon Neptune, Amazon OpenSearch Serverless, and Amazon Bedrock.
-
-Irrespective of the policies applied to the identity under which the a lexical-graph application runs, the library always Sigv4 signs requests to AWS resources. Connections always use TLS version 1.3.
 
 ### Getting started
 
