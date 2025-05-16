@@ -39,7 +39,7 @@ check_aws_credentials
 get_account_details
 
 APPLICATION_ID="graphrag-toolkit"
-BUCKET_NAME="ccms-rag-extract-${ACCOUNT_ID}"  # Using account ID to ensure uniqueness
+BUCKET_NAME="local-rag-extract-${ACCOUNT_ID}"  # Using account ID to ensure uniqueness
 ROLE_NAME="bedrock-batch-inference-role"
 POLICY_NAME="bedrock-batch-inference-policy"
 MODEL_ID="anthropic.claude-v2"  # Example model ID, adjust as needed
