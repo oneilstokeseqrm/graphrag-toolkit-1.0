@@ -130,6 +130,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
         search_results = [
             SearchResult.model_validate(result['result']) 
             for result in results
+            if result['result'].get('source', None)
         ]
 
         return SearchResultCollection(results=search_results)
