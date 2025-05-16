@@ -771,7 +771,7 @@
       "Type": "AWS::Neptune::DBCluster",
       "Properties": {
         "DBClusterIdentifier": { "Fn::Sub": "${ApplicationId}-neptune-cluster" },
-        "EngineVersion": "1.4.5.0",
+        "EngineVersion": "1.4.1.0",
         "DBSubnetGroupName": { "Ref": "NeptuneDBSubnetGroup" },
         "VpcSecurityGroupIds": [{ "Ref": "NeptuneSecurityGroup" }],
         "DBClusterParameterGroupName": { "Ref": "NeptuneDBClusterParameterGroup" },
