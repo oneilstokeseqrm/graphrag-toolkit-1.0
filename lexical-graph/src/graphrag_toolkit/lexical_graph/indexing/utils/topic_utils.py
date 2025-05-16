@@ -32,7 +32,7 @@ def strip_full_stop(s):
     return s[:-1] if s and s.endswith('.') else s
     
 def strip_parentheses(s):
-    return re.sub('\(.*\)', '', s).replace('  ', ' ').strip()
+    return re.sub(r'\(.*\)', '', s).replace('  ', ' ').strip()
 
 def parse_extracted_topics(raw_text:str) -> Tuple[TopicCollection, List[str]]:
     

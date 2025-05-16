@@ -112,6 +112,7 @@ BASE_LOGGING_CONFIG = {
             'formatter': 'default',
             'class': 'logging.FileHandler',
             'filename': 'output.log',
+            'filters': ['moduleFilter'],
             'mode': 'a',
         }
     },

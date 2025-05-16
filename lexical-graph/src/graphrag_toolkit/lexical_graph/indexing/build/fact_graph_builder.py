@@ -56,7 +56,8 @@ class FactGraphBuilder(GraphBuilder):
                 'statement_id': fact.statementId,
                 'fact_id': fact.factId,
                 's_id': fact.subject.entityId,
-                'fact': node.text
+                'fact': node.text,
+                'p': fact.predicate.value
             }
 
             if fact.object:
