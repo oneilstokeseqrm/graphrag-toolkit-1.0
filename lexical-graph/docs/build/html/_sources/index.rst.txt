@@ -16,6 +16,15 @@ Start Here
    md/lexical-graph/README
    md/lexical-graph/overview
 
+Storage Model
+-------------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Graph Store
+
+   md/lexical-graph/storage-model
+
 Graph Store
 -----------
 
@@ -75,6 +84,15 @@ Indexing
 
    md/lexical-graph/indexing
 
+Multi Tenancy
+-------------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Indexing
+
+   md/lexical-graph/multi-tenancy
+
 Configuration
 -------------
 
@@ -83,6 +101,7 @@ Configuration
    :caption: Configuration
 
    md/lexical-graph/configuration
+   md/lexical-graph/aws-profile
 
 Batch Extraction
 ----------------

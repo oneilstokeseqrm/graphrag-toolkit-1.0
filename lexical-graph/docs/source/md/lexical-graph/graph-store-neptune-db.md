@@ -1,5 +1,3 @@
-[[Home](./)]
-
 ## Neptune Database as a Graph Store
 
 ### Topics

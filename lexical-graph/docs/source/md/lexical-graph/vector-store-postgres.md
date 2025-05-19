@@ -1,18 +1,20 @@
-[[Home](./)]
-
+(postgres-vector-store)=
 ## Postgres as a Vector Store
 
 ### Topics
 
-  - [Overview](#overview)
-  - [Install dependencies](#install-dependencies)
-  - [Creating Postgres vector store](#creating-a-postgres-vector-store)
-    - [Connecting to an IAM auth-enabled Postgres vector store](#connecting-to-an-iam-auth-enabled-postgres-vector-store)
+- {ref}`Overview <postgres-overview>`
+- {ref}`Install dependencies <install-dependencies>`
+- {ref}`Creating Postgres vector store <creating-a-postgres-vector-store>`
+  - {ref}`Connecting to an IAM auth-enabled Postgres vector store <iam-auth-enabled-postgres>`
 
+
+(postgres-overview)=
 ### Overview
 
 You can use a Postgres database with the [pgvector](https://github.com/pgvector/pgvector) extension as a vector store.
 
+(install-dependencies)=
 ### Install dependencies
 
 The Postgres vector store requires both the `psycopg2` and `pgvector` packages:

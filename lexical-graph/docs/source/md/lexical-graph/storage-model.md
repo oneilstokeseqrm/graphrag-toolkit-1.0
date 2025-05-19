@@ -1,5 +1,3 @@
-[[Home](./)]
-
 ## Storage Model
 
 ### Topics

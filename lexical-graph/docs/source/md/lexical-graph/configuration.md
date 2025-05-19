@@ -1,5 +1,3 @@
-[[Home](./)]
-
 ## Configuration
 
 ### Topics

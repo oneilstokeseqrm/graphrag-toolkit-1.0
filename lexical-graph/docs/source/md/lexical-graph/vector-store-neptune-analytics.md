@@ -1,5 +1,3 @@
-[[Home](./)]
-
 ## Neptune Analytics as a Vector Store
 
 ### Topics

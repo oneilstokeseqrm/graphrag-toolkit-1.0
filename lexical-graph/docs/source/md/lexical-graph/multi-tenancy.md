@@ -1,5 +1,3 @@
-[[Home](./)]
-
 ## Multi-Tenancy
 
 ### Topics

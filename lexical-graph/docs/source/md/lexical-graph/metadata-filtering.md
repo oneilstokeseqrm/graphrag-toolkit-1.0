@@ -1,5 +1,3 @@
-[[Home](./)]
-
 ## Metadata Filtering
 
 ### Topics

@@ -1,34 +1,37 @@
-[[Home](./)]
+(graph-model)=
+# Graph Model
 
-## Graph Model
+## Topics
 
-### Topics
+- {ref}`Overview <graph-overview>`
+  - {ref}`A three-tiered lexical graph <three-tiered-graph>`
+  - {ref}`Units of context <units-of-context>`
+- {ref}`Lineage tier <lineage-tier>`
+- {ref}`Entity-Relationship tier <entity-relationship-tier>`
+- {ref}`Summarisation tier <summarisation-tier>`
+  - {ref}`Facts <facts>`
+  - {ref}`Statements <statements>`
+  - {ref}`Topics <topics>`
 
-  - [Overview](#overview)
-    - [A three-tiered lexical graph](#a-three-tiered-lexical-graph)
-    - [Units of context](#units-of-context)
-  - [Lineage tier](#lineage-tier)
-  - [Entity-Relationship tier](#entity-relationship-tier)
-  - [Summarisation tier](#summarisation-tier)
-    - [Facts](#facts)
-    - [Statements](#statements)
-    - [Topics](#topics)
-
-### Overview
+(graph-overview)=
+## Overview
 
 The lexical-graph uses a form of hierarchical [lexical graph](https://graphr.ag/reference/knowledge-graph/lexical-graph-hierarchical-structure/), auto-generated from unstructured sources, whose job is to help question-answering systems retrieve information which is *semantically dissimilar from the question*, but nonetheless *relevant to the answer*.
 
-#### A three-tiered lexical graph
+(three-tiered-graph)=
+### A three-tiered lexical graph
+
 
 The lexical graph has three tiers:
 
-  - [**Lineage**](#lineage-tier) - Sources, chunks, and the relations between them.
-  - [**Summarisation**](#summarisation-tier) - Hierarchical summarisations and lexical units at different levels of granularity.
-  - [**Entity-Relationship**](#entity-relationship-tier) - Individual entities and relations extracted from the underlying sources.
+- {ref}`Lineage <lineage-tier>` — Sources, chunks, and their relations  
+- {ref}`Summarisation <summarisation-tier>` — Hierarchical lexical units  
+- {ref}`Entity-Relationship <entity-relationship-tier>` — Entities and relations
+
+![Lexical graph](../images/lexical-graph.png)
   
-![Lexical graph](../../images/lexical-graph.png)
-  
-#### Units of context
+(units-of-context)=
+### Units of context
 
 When using a lexical graph in a RAG application, the question arises: what size lexical unit should form the basis of the context?
 
@@ -40,11 +43,13 @@ Graphs can help question-answering systems retrieve information which is semanti
 
 Graph topology and the degree of connectivity in the graph play an important role in finding relevant information. If everything is linked to everything else, it becomes difficult to extract particularly relevant units of context from within a sea of irrelevancy. If, on the other hand, linking between elements in the graph is low, there are relatively few opportunities for discovering golden nuggets of relevant but nonetheless semantically dissimilar information. The graphrag-toolkit's graph model assigns local and global connectivity roles to different elements in the graph: topics provide thematic connectivity between statements derived from the same source; facts provide connectivity between statements derived from different sources.
   
-### Lineage tier
+(lineage-tier)=
+#### Lineage tier
 
 This tier consists of `__Source__` nodes and `__Chunk__` nodes. A source node contains metadata describing a source document (e.g. author, URL, publication date). The exact metadata varies depending on the source. Chunks contain the actual chunked text (and its embedding). Chunks are linked to previous, next, parent and child chunks.
 
-### Entity-Relationship tier
+(entity-relationship-tier)=
+#### Entity-Relationship tier
 
 This consists of `__Entity__` nodes and `__RELATION__` relationships. Entities have a value (e.g. 'Amazon') and a classification (e.g. 'Company'). Relationships have a value (e.g. 'WORKS_FOR').
 
@@ -56,13 +61,15 @@ Extraction uses a lightly guided strategy whereby the extraction process is seed
 
 Relationship values are currently unguided (though relatively concise).
 
-### Summarisation tier
+(summarisation-tier)=
+#### Summarisation tier
 
 This currently comprises `__Topic__`, `__Statement__` and `__Fact__` nodes. Proceeding from the bottom up:
 
-#### Facts
+(facts)=
+### Facts
 
-A fact summarises a single triplet or triple-like unit of meaning. For example:
+A fact summarizes a single triplet or triple-like unit of meaning. For example:
 
 ```
 Property Graph model ACCESSED WITH openCypher
@@ -82,7 +89,8 @@ Every fact `__SUPPORTS__` at least one statement. A fact can support multiple st
 
 Facts can, optionally, be embedded – and so as well as enhancing connectivity, they can also be used to provide a low-level, vector-based entry point into the graph. 
 
-#### Statements
+(statements)=
+### Statements
 
 A statement or assertion extracted from the underlying sources. Statements are the *primary unit of context returned to the question-answering LLM in the context window* – that is, the context comprises collections of statements grouped by source and topic.
 
@@ -111,7 +119,8 @@ Statements act as the primary unit of context for question answering. They are c
 
 Statements can, optionally, be embedded, and so can act as higher-level entry points in the graph based on a vector search. The semantic-guided retriever uses statement embeddings to guide its search strategies. Statement embeddings also allow statements to be used in a 'baseline RAG' manner to retrieve relatively small pieces of context for answering simple questions.
 
-#### Topics
+(topics)=
+### Topics
 
 A topic is a theme or area of focus within a specific source document. Source documents will typically have several topics. For example, one of the source documents in our Neptune documentation example has the following topics:
 
@@ -120,7 +129,7 @@ Neptune Analytics
 Loading Graph Data into Amazon Neptune Analytics
 ```
 
-Topics are scoped to individual source documents so as to provide connectivity across chunks within a single source. It's common for several chunks from the same source to be connected to the same topic.
+Topics are scoped to individual source documents to provide connectivity across chunks within a single source. It's common for several chunks from the same source to be connected to the same topic.
 
 Topics increase *connectivity between relevant chunks within a single source*, and provide a simple document-level summary mechanism.
 

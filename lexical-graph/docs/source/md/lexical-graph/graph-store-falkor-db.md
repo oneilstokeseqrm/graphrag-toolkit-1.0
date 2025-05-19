@@ -1,4 +1,3 @@
-[[Home](./)]
 
 ## FalkorDB as a Graph Store
 

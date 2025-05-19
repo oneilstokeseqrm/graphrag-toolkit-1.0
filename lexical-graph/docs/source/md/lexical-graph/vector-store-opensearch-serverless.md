@@ -1,13 +1,13 @@
-[[Home](./)]
-
+(opensearch-vector-store)=
 ## Amazon OpenSearch Serverless as a Vector Store
 
 ### Topics
 
-  - [Overview](#overview)
-  - [Install dependencies](#install-dependencies)
-  - [Creating an OpenSearch Serverless vector store](#creating-a-neptune-analytics-vector-store)
+- {ref}`Overview <opensearch-overview>`
+- {ref}`Install dependencies <opensearch-install-dependencies>`
+- {ref}`Creating an OpenSearch Serverless vector store <opensearch-create>`
 
+(opensearch-overview)=
 ### Overview
 
 You can use an Amazon OpenSearch Serverless collection as a vector store.

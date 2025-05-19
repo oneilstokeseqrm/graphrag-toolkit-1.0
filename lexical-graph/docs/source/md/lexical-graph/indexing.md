@@ -1,5 +1,3 @@
-[[Home](./)]
-
 ## Indexing
 
 ### Topics

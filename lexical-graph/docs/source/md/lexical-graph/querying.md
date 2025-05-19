@@ -1,22 +1,22 @@
-[[Home](./)]
-
+(querying)=
 ## Querying
 
 ### Topics
 
-  - [Overview](#overview)
-  - [TraversalBasedRetriever](#traversalbasedretriever)
-    - [TraversalBasedRetriever results](#traversalbasedretriever-results)
-    - [Configuring the TraversalBasedRetriever](#configuring-the-traversalbasedretriever)
-    - [Statement reranking](#statement-reranking) 
-  - [SemanticGuidedRetriever](#semanticguidedretriever)
-    - [SemanticGuidedRetriever results](#semanticguidedretriever-results)
-    - [Configuring the SemanticGuidedRetriever](#configuring-the-semanticguidedretriever)
-    - [SemanticGuidedRetriever with a reranking beam search](#semanticguidedretriever-with-a-reranking-beam-search)
-  - [Postprocessors](#postprocessors)
-  - [Metadata filtering](#metadata-filtering)
+- {ref}`Overview <overview>`
+- {ref}`TraversalBasedRetriever <traversalbasedretriever>`
+  - {ref}`TraversalBasedRetriever results <traversalbasedretriever-results>`
+  - {ref}`Configuring the TraversalBasedRetriever <configuring-traversalbasedretriever>`
+  - {ref}`Statement reranking <statement-reranking>`
+- {ref}`SemanticGuidedRetriever <semanticguidedretriever>`
+  - {ref}`SemanticGuidedRetriever results <semanticguidedretriever-results>`
+  - {ref}`Configuring the SemanticGuidedRetriever <configuring-semanticguidedretriever>`
+  - {ref}`SemanticGuidedRetriever with a reranking beam search <semanticguidedretriever-beam>`
+- {ref}`Postprocessors <postprocessors>`
+- {ref}`Metadata filtering <metadata-filtering>`
   
-### Overview   
+(overview)=
+### Overview  
 
 For the graphrag-toolkit, the primary unit of context presented to the LLM is the *statement*, which is a standalone assertion or proposition. Source documents are broken into chunks, and from these chunks are extracted statements. In the graphrag-toolkit's [graph model](./graph-model.md), statements are thematically grouped by topic, and supported by facts. At question-answering time, the lexical-graph retrieves groups of statements, and presents them in the context window to the LLM.
 
@@ -34,6 +34,7 @@ Querying supports [multi-tenancy](multi-tenancy.md), whereby you can query diffe
 
 The code examples here are formatted to run in a Jupyter notebook. If you’re building an application with a main entry point, put your application logic inside a method, and add an [`if __name__ == '__main__'` block](./faq.md#runtimeerror-please-use-nest_asyncioapply-to-allow-nested-event-loops).
 
+(traversalbasedretriever)=
 ### TraversalBasedRetriever
 
 The following example uses a `TraversalBasedRetriever` with all its default settings to query the graph:
@@ -82,6 +83,7 @@ query_engine = LexicalGraphQueryEngine.for_traversal_based_search(
 )
 ```
 
+(traversalbasedretriever-results)=
 #### TraversalBasedRetriever results
 
 The `TraversalBasedRetriever` returns one or more search results, each of which comprises a source, topic, a set of statements, and a score:
@@ -126,6 +128,7 @@ The `TraversalBasedRetriever` returns one or more search results, each of which 
 }
 ```
 
+(configuring-traversalbasedretriever)=
 #### Configuring the TraversalBasedRetriever
 
 You can configure the `TraversalBasedRetriever` by passing named arguments to the `LexicalGraphQueryEngine` factory method, or to the retriever constructor.
@@ -154,6 +157,7 @@ query_engine = LexicalGraphQueryEngine.for_traversal_based_search(
 )
 ```
 
+(statement-reranking)=
 #### Statement reranking
 
 At the end of the retrieval process, but prior to returning the results to the query engine for post-processing, the `TraversalBasedRetriever` can rerank all the statements in the results. There are two strategies available for doing this. If you set the `reranker` parameter to `model`, the retriever will use a `SentenceReranker` to rerank all the statements in the resultset. If you set the `reranker` parameter to `tfidf` (the default), the retriever uses a *term frequency-inverse document frequency* (TF-IDF) measure to rank all the statements in the resultset. `tfidf` tends to be faster than `model`. You can also turn off the reranking feature by setting `reranker` to `none`.
@@ -164,6 +168,7 @@ This traversal-based reranking is performed on a per-statement basis. To facilit
 
 You can use the traversal-based reranking *in combination* with any reranking applied during post-processing. Reranking in the post-processing stage will rerank *results* (i.e. collections of statements), whereas traversal-based reranking reranks individual *statements*. 
 
+(semanticguidedretriever)=
 ### SemanticGuidedRetriever
 
 The following example uses a `SemanticGuidedRetriever` with all its default settings to query the graph:
@@ -197,6 +202,7 @@ By default, the `SemanticGuidedRetriever` uses a composite search strategy using
   - `KeywordRankingSearch` – Gets the top k statements based on the number of matches to a specified number of keywords and synonyms extracted from the query. Statements with more keyword matches rank higher in the results.
   - `SemanticBeamGraphSearch` – A statement-based search that finds a statement's neighbouring statements based on shared entities, and retains the most promising based on the cosine similarity of the candidate statements' embeddings to the query embedding. The search is seeded with statements from other retrievers (e.g. `StatementCosineSimilaritySearch` and/or `KeywordRankingSearch`), or from an initial vector similarity search against the statement index.
 
+(semanticguidedretriever-results)=
 #### SemanticGuidedRetriever results
 
 The `SemanticGuidedRetriever` returns one or more search results, each of which comprises a source, and a set of statements:
@@ -237,6 +243,7 @@ The `SemanticGuidedRetriever` returns one or more search results, each of which 
 </source_4>
 ```
 
+(configuring-semanticguidedretriever)=
 #### Configuring the SemanticGuidedRetriever
 
 The `SemanticGuidedRetriever` behaviour can be configured by copnfiguring individual subretrievers:
@@ -253,6 +260,7 @@ The `SemanticGuidedRetriever` behaviour can be configured by copnfiguring indivi
 || `reranker` | Reranker instance that will be used to rerank statements (see below) | `None` 
 || `initial_retrievers` | List of retrievers used to see the starting statements (see below) | `None` |
 
+(semanticguidedretriever-beam)=
 #### SemanticGuidedRetriever with a reranking beam search
 
 Instead of using a `SemanticBeamGraphSearch` with the `SemanticGuidedRetriever`, you can use a `RerankingBeamGraphSearch` instead. Instead of using cosine similarity to determine which candidate statements to pursue, the `RerankingBeamGraphSearch` uses a reranker.
@@ -376,6 +384,7 @@ response = query_engine.query("What are the differences between Neptune Database
 print(response.response)
 ```
 
+(postprocessors)=
 ### Postprocessors
 
 There are a number of postprocessors you can use to further improve and format results:
@@ -420,6 +429,7 @@ response = query_engine.query("What are the differences between Neptune Database
 print(response.response)
 ```
 
+(metadata-filtering)=
 ### Metadata filtering
 
 Metadata filtering allows you to retrieve a constrained set of sources, topics and statements based on metadata filters and associated values when querying a lexical graph. See the [Metadata Filtering](./metadata-filtering.md) section for more details.

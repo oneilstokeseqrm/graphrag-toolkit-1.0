@@ -1,5 +1,3 @@
-[[Home](./)]
-
 ## FAQ
 
   - [Errors and warnings](#errors-and-warnings)
