@@ -7,7 +7,7 @@ import string
 
 from graphrag_toolkit.lexical_graph.storage.graph.graph_store import NodeId
 
-SEARCH_STRING_PATTERN = re.compile('([^\s\w]|_)+')
+SEARCH_STRING_PATTERN = re.compile(r'([^\s\w]|_)+')
 
 def search_string_from(value:str):
     value = SEARCH_STRING_PATTERN.sub('', value)

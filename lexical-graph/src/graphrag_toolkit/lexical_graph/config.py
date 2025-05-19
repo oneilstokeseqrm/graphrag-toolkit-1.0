@@ -376,7 +376,8 @@ class _GraphRAGConfig:
                     max_tokens=config.get('max_tokens', 4096),
                     botocore_session=botocore_session,
                     region_name=config.get('region_name', region),
-                    profile_name=config.get('profile_name', profile)
+                    profile_name=config.get('profile_name', profile),
+                    max_retries=50
                 )
 
             else:
@@ -386,7 +387,8 @@ class _GraphRAGConfig:
                     max_tokens=4096,
                     botocore_session=botocore_session,
                     region_name=region,
-                    profile_name=profile
+                    profile_name=profile,
+                    max_retries=50
                 )
 
         except Exception as e:
