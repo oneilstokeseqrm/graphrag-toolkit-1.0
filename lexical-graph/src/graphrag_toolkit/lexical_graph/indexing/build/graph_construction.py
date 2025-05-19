@@ -26,23 +26,65 @@ from llama_index.core.schema import BaseNode
 logger = logging.getLogger(__name__)
 
 def default_builders() -> List[GraphBuilder]:
-        return [
-            SourceGraphBuilder(),
-            ChunkGraphBuilder(),
-            TopicGraphBuilder(),
-            StatementGraphBuilder(),
-            EntityGraphBuilder(),
-            EntityRelationGraphBuilder(),
-            FactGraphBuilder(),
-            GraphSummaryBuilder()
-        ]
+    """
+    Provides a list of default graph builders for constructing various types of graphs.
+
+    This function initializes and returns a predefined collection of graph builder
+    instances. Each builder is responsible for constructing a specific type of graph
+    used in processing, analyzing, or summarizing graph data. The sequence and types
+    of builders included in the returned list are predetermined based on the expected
+    workflow of graph construction.
+
+    Returns:
+        List[GraphBuilder]: A list of instantiated graph builders in the specific
+            order of SourceGraphBuilder, ChunkGraphBuilder, TopicGraphBuilder,
+            StatementGraphBuilder, EntityGraphBuilder, EntityRelationGraphBuilder,
+            FactGraphBuilder, GraphSummaryBuilder.
+    """
+    return [
+        SourceGraphBuilder(),
+        ChunkGraphBuilder(),
+        TopicGraphBuilder(),
+        StatementGraphBuilder(),
+        EntityGraphBuilder(),
+        EntityRelationGraphBuilder(),
+        FactGraphBuilder(),
+        GraphSummaryBuilder()
+    ]
 
 GraphInfoType = Union[str, GraphStore]
 
 class GraphConstruction(NodeHandler):
+    """
+    Provides functionality for constructing and building a graph using nodes and builders.
 
+    The GraphConstruction class is a utility for managing graph construction using a set of
+    builders and a graph client. It supports functionality to batch graph operations, process
+    nodes, and utilize builders dynamically based on node metadata. This class facilitates
+    graph creation and updating in a scalable and configurable manner.
+
+    Attributes:
+        graph_client (GraphStore): The graph client used to perform operations on the graph store.
+        builders (List[GraphBuilder]): A collection of graph builders used to process nodes during
+            graph construction.
+    """
     @staticmethod
     def for_graph_store(graph_info:GraphInfoType=None, **kwargs):
+        """
+        Constructs a GraphConstruction instance either directly from a GraphStore instance
+        or by creating a GraphStore instance using GraphStoreFactory if a non-GraphStore
+        value is provided.
+
+        Args:
+            graph_info (GraphInfoType, optional): The initial graph information provided,
+                which can either be a GraphStore instance or data that can be used to
+                create a GraphStore instance.
+            **kwargs: Additional parameters required for GraphConstruction or
+                GraphStore creation.
+
+        Returns:
+            GraphConstruction: A new instance of the GraphConstruction class.
+        """
         if isinstance(graph_info, GraphStore):
             return GraphConstruction(graph_client=graph_info, **kwargs)
         else:
@@ -55,7 +97,33 @@ class GraphConstruction(NodeHandler):
     )
 
     def accept(self, nodes: List[BaseNode], **kwargs: Any):
+        """
+        Processes a list of nodes to construct a graph by utilizing builders with the
+        specified configurations, such as batch writes. Nodes can be processed with or
+        without progress visualization, and operations are applied in batches as per
+        given configurations.
 
+        Args:
+            nodes: A list of BaseNode objects to be processed and incorporated into the
+                graph. Each node is checked and processed via builders based on its
+                metadata.
+            **kwargs: Arbitrary keyword arguments for configuring the processing and
+                graph construction. Supported keys include:
+                - batch_writes_enabled (bool): Enables or disables batch write
+                  operations.
+                - batch_write_size (int): Configures the maximum size of each batch for
+                  operations.
+
+        Yields:
+            BaseNode: Nodes that have been processed by the builders and subjected to
+            batch operations, ready to be yielded back to the caller. Nodes that do not
+            meet the criteria or are ignored are not yielded.
+
+        Raises:
+            Exception: Propagates any exception that occurs during the processing of a
+                node with its assigned builders. Error details are logged before the
+                exception is raised.
+        """
         builders_dict = {}
         for b in self.builders:
             if b.index_key() not in builders_dict:

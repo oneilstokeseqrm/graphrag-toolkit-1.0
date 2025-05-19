@@ -12,17 +12,70 @@ from graphrag_toolkit.lexical_graph.indexing.constants import TOPICS_KEY
 from graphrag_toolkit.lexical_graph.storage.constants import INDEX_KEY
 
 class StatementNodeBuilder(NodeBuilder):
-    
+    """
+    Represents a specialized node builder for constructing statement and fact nodes
+    from input nodes. This class is designed for processing structured data, extracting
+    topics, statements, and facts, and creating associated metadata-enriched nodes.
+
+    The primary use of this class is to generate nodes, with appropriate relationships
+    and metadata, from a given list of base nodes. This is done by parsing topics and
+    their associated statements and facts, applying filtering criteria, and using
+    unique identifiers for linking nodes.
+
+    The output nodes may be used in larger systems where structured topics, statements,
+    and facts need to be indexed or related to other system components.
+
+    Attributes:
+        None
+    """
     @classmethod
     def name(cls) -> str:
+        """
+        Provides a way to retrieve the name of the class. This method allows obtaining the
+        specific identifier for the class when needed, especially in contexts requiring
+        dynamic class identification.
+
+        Returns:
+            str: The name of the class, "StatementNodeBuilder".
+        """
         return 'StatementNodeBuilder'
     
     @classmethod
     def metadata_keys(cls) -> List[str]:
+        """
+        Retrieves metadata keys specifically associated with the class. This method provides
+        a list of standardized metadata keys that are utilized within the class context. The
+        keys returned are constants predefined within the class, ensuring consistency and
+        avoiding hardcoding.
+
+        Returns:
+            List[str]: A list of strings representing metadata keys associated
+            with the class's operations or context.
+        """
         return [TOPICS_KEY]
     
     def build_nodes(self, nodes:List[BaseNode]):
+        """
+        Builds and processes nodes from the provided list of BaseNode objects. This method
+        constructs 'statement' and 'fact' nodes with associated metadata and relationships,
+        based on the topics, statements, and facts provided in the nodes. The constructed
+        nodes are further categorized, filtered, and structured to maintain logical
+        connections between related elements such as topics, statements, and facts.
 
+        Conditions:
+        - Topics without data in metadata are skipped.
+        - Statements or topics ignored by filters are excluded from node creation.
+        - Facts are indexed and associated with their parent statements, ensuring
+          deduplication when applicable.
+
+        Args:
+            nodes (List[BaseNode]): A list of BaseNode instances containing metadata,
+                relationships, topics, statements, and facts to parse and process.
+
+        Returns:
+            List[TextNode]: A list of TextNode objects representing 'statement' and 'fact'
+            nodes, properly structured, indexed, and enriched with metadata and relationships.
+        """
         statement_nodes = {}
         fact_nodes = {}
 

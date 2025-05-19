@@ -7,14 +7,49 @@ from llama_index.core.postprocessor.types import BaseNodePostprocessor
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 
 class BedrockContextFormat(BaseNodePostprocessor):
+    """
+    Handles the formatting and processing of nodes into an XML-structured context for better organization
+    and parsing. This class is designed to group nodes by their source, incorporate metadata, and create
+    a structured output format.
 
-    
+    Provides utility to manage nodes' details and format information in a hierarchical XML style, useful
+    for structured data contexts.
+
+    Attributes:
+        inherit_from (type): BaseNodePostprocessor: Indicates this class extends the BaseNodePostprocessor.
+    """
     @classmethod
     def class_name(cls) -> str:
+        """
+        Returns the name of the class in string format.
+
+        This method provides a way to retrieve the name of the class, which can be
+        useful for context identification or debugging purposes. It is implemented
+        as a class method, allowing it to be called directly on the class without
+        the need for an instance.
+
+        Returns:
+            str: The name of the class as a string.
+        """
         return 'BedrockContextFormat'
     
     def _format_statement(self, node: NodeWithScore) -> str:
-        """Format statement text with details as reference."""
+        """
+        Formats a statement from a given node by including its text and optional details.
+
+        The method retrieves the text associated with the `NodeWithScore` instance and
+        formats it together with additional details if available. If the node contains
+        details within its metadata, they are processed to remove extraneous whitespace
+        and newlines, and appended to the text within parentheses.
+
+        Args:
+            node (NodeWithScore): The node containing the text and metadata, including
+                optional statement details.
+
+        Returns:
+            str: The formatted representation of the node's statement, including text
+            and optional details.
+        """
         text = node.node.text
         details = node.node.metadata['statement']['details']
         if details:
@@ -27,8 +62,29 @@ class BedrockContextFormat(BaseNodePostprocessor):
         nodes: List[NodeWithScore],
         query_bundle: Optional[QueryBundle] = None,
     ) -> List[NodeWithScore]:
-        
-        """Format nodes into XML-structured context."""
+
+        """
+        Processes a list of nodes by grouping them based on their source, formatting
+        them into an XML structure, and returning the processed nodes.
+
+        If the input list of nodes is empty, a default node with placeholder text is
+        returned. Otherwise, the nodes are grouped by their source identifier, and the
+        grouped nodes are formatted with metadata and associated statements into a
+        standardized XML-like string representation. Each formatted group is then
+        wrapped in a `NodeWithScore` object and returned as a list.
+
+        Args:
+            nodes: A list of `NodeWithScore` objects, where each object contains a node
+                with metadata and potential text to process. Required for grouping and
+                generating formatted XML output for each source.
+            query_bundle: Optional additional information that might be used during
+                processing. Not actively utilized in the current implementation.
+
+        Returns:
+            A list of `NodeWithScore` objects, each containing a node formatted as an
+            XML-like structure encapsulating metadata and statements for nodes grouped
+            by their respective sources.
+        """
         if not nodes:
             return [NodeWithScore(node=TextNode(text='No relevant context'))]
 

@@ -24,6 +24,24 @@ logger = logging.getLogger(__name__)
 SemanticGuidedRetrieverType = Union[SemanticGuidedBaseRetriever, Type[SemanticGuidedBaseRetriever]]
 
 class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
+    """
+    Implementation of a retrieval class that combines semantic-guided search mechanisms to retrieve data
+    from multiple sources, such as vector and graph stores. The class integrates various retrievers for
+    initial search and graph-based expansion, offering a flexible and configurable retrieval system.
+
+    This class is designed for retrieving nodes relevant to a given query, applying semantic similarity,
+    keyword ranking, graph expansion, and filtering strategies. It ensures efficient and comprehensive
+    information retrieval, leveraging shared caches, metadata filtering, and source grouping to organize
+    the resulting nodes.
+
+    Attributes:
+        share_results (bool): Indicates if results from initial retrieval should be shared and used for
+            graph-based expansion.
+        shared_embedding_cache (SharedEmbeddingCache): Caches embeddings to optimize retrieval performance
+            across multiple retriever instances.
+        initial_retrievers (list): Contains instances of retrievers used for the initial search phase.
+        graph_retrievers (list): Contains instances of graph-based retrievers for result expansion.
+    """
     def __init__(
         self,
         vector_store:VectorStore,
@@ -33,6 +51,24 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
         filter_config:Optional[FilterConfig]=None,
         **kwargs: Any,
     ) -> None:
+        """
+        Initializes a composite retriever system that integrates multiple retriever classes for
+        semantic and keyword-based search using shared embedding caches and vector/graph
+        stores. The initialization process allows for custom retrievers or defaults to predefined
+        retrievers with specific configurations.
+
+        Args:
+            vector_store: The vector storage backend used for embedding search.
+            graph_store: The graph storage backend used for retrieving graph-based results.
+            retrievers: Optional list of retriever instances or retriever classes. If classes
+                are provided, they will be initialized with the provided `vector_store`,
+                `graph_store`, and additional keyword arguments.
+            share_results: Boolean flag indicating whether the results from different retrievers
+                should be shared.
+            filter_config: Optional configuration used for filtering retriever results.
+            **kwargs: Additional keyword arguments used to initialize retrievers.
+
+        """
         super().__init__(vector_store, graph_store, filter_config, **kwargs)
 
         self.share_results = share_results
@@ -81,6 +117,22 @@ class SemanticGuidedRetriever(SemanticGuidedBaseRetriever):
             ]
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
+        """
+        Retrieves and processes nodes based on a query, leveraging multiple retrievers and
+        optional graph expansion. The method executes in several stages, including initial
+        retrieval, deduplication of nodes, optional graph-based expansion, fetching detailed
+        statement data, filtering nodes based on metadata, and grouping nodes by their source
+        for final ordering. It returns an ordered list of nodes, maximizing relevance and
+        context.
+
+        Args:
+            query_bundle (QueryBundle): The query bundle containing the necessary information
+                for performing the retrieval process.
+
+        Returns:
+            List[NodeWithScore]: A list of nodes ordered by score, with detailed metadata
+                included for contextual relevance.
+        """
         # 1. Get initial results in parallel
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.initial_retrievers)) as p:
             initial_results = list(p.map(

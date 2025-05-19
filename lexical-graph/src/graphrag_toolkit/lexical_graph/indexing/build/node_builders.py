@@ -17,7 +17,24 @@ from llama_index.core.schema import BaseNode, NodeRelationship
 logger = logging.getLogger(__name__)
 
 class NodeBuilders():
+    """
+    Manages the creation, processing, and filtering of nodes using specified builders
+    and configuration options.
 
+    NodeBuilders is a class designed to build nodes derived from input metadata, using
+    a series of configurable `NodeBuilder` instances and processing operations. The
+    class also handles input node cleaning, ID rewriting for specific tenants, and
+    the filtering of input metadata.
+
+    Attributes:
+        build_filters (BuildFilters): An instance of BuildFilters for filtering
+            input metadata.
+        id_generator (IdGenerator): An instance of IdGenerator for managing and
+            rewriting node IDs.
+        builders (List[NodeBuilder]): A list of `NodeBuilder` instances used to
+            generate derived nodes. Defaults to a set of default builders if not
+            provided.
+    """
     def __init__(
             self, 
             builders:List[NodeBuilder]=[], 
@@ -25,7 +42,28 @@ class NodeBuilders():
             source_metadata_formatter:Optional[SourceMetadataFormatter]=None,
             id_generator:IdGenerator=None
         ):
+        """
+        Initializes the class with the provided builders, build filters, source metadata
+        formatter, and id generator. If not explicitly provided, default instances are
+        created for build filters, source metadata formatter, and id generator. This
+        ensures the necessary components are properly initialized and serves as the
+        entry-point for managing builders and their dependencies.
 
+        Args:
+            builders (List[NodeBuilder], optional): A list of NodeBuilder instances
+                responsible for constructing nodes. If not provided, default builders
+                are initialized using the id generator, build filters, and source
+                metadata formatter.
+            build_filters (BuildFilters, optional): Instance of BuildFilters used to
+                determine which nodes should be built. Defaults to a new instance of
+                BuildFilters if not provided.
+            source_metadata_formatter (Optional[SourceMetadataFormatter], optional):
+                Formatter responsible for processing source metadata. Defaults to
+                DefaultSourceMetadataFormatter if not provided.
+            id_generator (IdGenerator, optional): Instance of IdGenerator used to
+                generate unique identifiers. Defaults to a new IdGenerator instance if
+                not provided.
+        """
         id_generator = id_generator or IdGenerator()
         build_filters = build_filters or BuildFilters()
         source_metadata_formatter = source_metadata_formatter or DefaultSourceMetadataFormatter()
@@ -37,6 +75,24 @@ class NodeBuilders():
         logger.debug(f'Node builders: {[type(b).__name__ for b in self.builders]}')
     
     def default_builders(self, id_generator:IdGenerator, build_filters:BuildFilters, source_metadata_formatter:SourceMetadataFormatter):
+        """
+        Generates a list of default node builders with provided dependencies.
+
+        This function constructs a list of node builders, passing the required
+        dependencies to each builder. The dependencies include an ID generator,
+        filter builder, and metadata formatter required for node creation.
+        The node builders include SourceNodeBuilder, ChunkNodeBuilder,
+        TopicNodeBuilder, and StatementNodeBuilder.
+
+        Args:
+            id_generator: Generates unique identifiers for the nodes.
+            build_filters: Provides filter criteria used during node construction.
+            source_metadata_formatter: Formats metadata for nodes during their
+                creation.
+
+        Returns:
+            List[NodeBuilder]: A list of initialized node builder instances.
+        """
         return [
             node_builder(
                 id_generator=id_generator, 
@@ -48,12 +104,46 @@ class NodeBuilders():
         
     @classmethod
     def class_name(cls) -> str:
+        """
+        Returns the name of the class.
+
+        This method is used to retrieve the name of the current class as a
+        string. It ensures consistency when identifying the class, especially
+        useful in scenarios where the class name needs to be dynamically accessed.
+
+        Returns:
+            str: The name of the class.
+        """
         return 'NodeBuilders'
     
     def get_nodes_from_metadata(self, input_nodes: List[BaseNode], **kwargs: Any) -> List[BaseNode]:
-        
+        """
+        Processes input nodes based on specific metadata, applies tenant-specific adjustments,
+        cleans text data, and builds a collection of nodes using defined builders. The function
+        filters and processes nodes before aggregating results to include both original and new
+        nodes derived from input nodes.
+
+        Args:
+            input_nodes: List of BaseNode instances to process and build upon.
+            **kwargs: Arbitrary keyword arguments that may be required for processing.
+
+        Returns:
+            List[BaseNode]: A list containing processed nodes, both original and derived.
+        """
         def apply_tenant_rewrites(node):
-            
+            """
+            Class responsible for building and managing node structures based on provided metadata.
+            It provides a mechanism to apply tenant-specific transformations to nodes and their
+            relationships through an internal rewriting process.
+
+            Attributes:
+                id_generator (IdGenerator): An object responsible for generating or rewriting
+                    identifiers for nodes, tailored to the specific tenant context.
+
+            Methods:
+                get_nodes_from_metadata: Processes a list of input nodes to apply tenant-specific
+                    rewrites to node identifiers and their relationships.
+            """
             node.id_ =  self.id_generator.rewrite_id_for_tenant(node.id_)
 
             node_relationships = {}
@@ -72,10 +162,19 @@ class NodeBuilders():
             return node
         
         def clean_text(node):
+            """
+            A utility class that provides methods for processing and retrieving nodes
+            based on metadata and additional processing requirements. This class focuses
+            on cleaning and manipulating input nodes to generate a refined output list
+            of nodes.
+            """
             node.text = node.text.replace('\x00', '')
             return node
         
         def pre_process(node):
+            """
+            Provides functionality to process and retrieve nodes from metadata.
+            """
             node = clean_text(node)
             node = apply_tenant_rewrites(node)
             return node

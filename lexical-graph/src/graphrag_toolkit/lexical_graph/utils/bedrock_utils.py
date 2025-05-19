@@ -18,6 +18,24 @@ logger = logging.getLogger(__name__)
 
 
 def _create_retry_decorator(client: Any, max_retries: int) -> Callable[[Any], Any]:
+    """
+    Creates a retry decorator with exponential backoff strategy.
+
+    This function returns a retry decorator based on the specified maximum
+    number of retries and the provided client. It uses exponential backoff
+    and wait times between retry attempts. This ensures handling of temporary
+    failures and throttling exceptions raised by the specified client.
+
+    Args:
+        client: A client object that has exception classes for handling
+            specific errors such as ThrottlingException, ModelTimeoutException,
+            and ModelErrorException.
+        max_retries: An integer specifying the maximum number of retry attempts
+            to make before giving up.
+
+    Returns:
+        A callable retry decorator with specified retry policies.
+    """
     min_seconds = 4
     max_seconds = 30
     # Wait 2^x * 1 second between each retry starting with

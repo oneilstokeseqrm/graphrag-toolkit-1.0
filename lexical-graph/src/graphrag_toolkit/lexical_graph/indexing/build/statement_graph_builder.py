@@ -14,13 +14,44 @@ from llama_index.core.schema import NodeRelationship
 logger = logging.getLogger(__name__)
 
 class StatementGraphBuilder(GraphBuilder):
-    
+    """
+    Handles the construction of graph representations specifically for `Statement` entities.
+
+    This class extends the `GraphBuilder` and provides functionality to build a graph representation
+    from `Statement` nodes, integrating relationships and required metadata into the graph. It
+    interacts with the underlying `GraphStore` client to execute queries for creating and linking
+    `Statement` entities to other graph components (e.g., chunks, topics). It also manages previous
+    statement relationships if they exist.
+
+    Attributes:
+        None
+    """
     @classmethod
     def index_key(cls) -> str:
+        """
+        Obtains the index key associated with the class.
+
+        This method serves as a utility to retrieve a static key defining the
+        index or identifying property of the class. It is useful in scenarios
+        that require referencing or categorizing data based on a specific key.
+
+        Returns:
+            str: A static string 'statement' used as the index key.
+        """
         return 'statement'
     
     def build(self, node:BaseNode, graph_client: GraphStore, **kwargs:Any):
-            
+        """
+        Builds and inserts a `Statement` node into the graph database along with its associated relationships,
+        such as previous statements, topics, and chunks. This method validates the statement metadata, constructs
+        a Cypher query, and executes it to create or update the graph structure as necessary.
+
+        Args:
+            node (BaseNode): The input node object containing metadata and relationships related to the statement.
+            graph_client (GraphStore): The client object responsible for executing queries on the graph database.
+            **kwargs (Any): Additional optional parameters that can be passed to the method.
+
+        """
         statement_metadata = node.metadata.get('statement', {})
         
         if statement_metadata:

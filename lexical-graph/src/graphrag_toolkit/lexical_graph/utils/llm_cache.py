@@ -37,7 +37,32 @@ class LLMCache(BaseModel):
         prompt: BasePromptTemplate,
         **prompt_args: Any
     ) -> str:
-        
+        """
+        Predicts a response based on the given prompt and dynamic arguments using the configured
+        language model (LLM). Supports caching of responses to enhance efficiency for repeated
+        queries and handles verbose logging for debugging or monitoring purposes.
+
+        The function dynamically adapts caching behavior depending on the configuration. If caching
+        is disabled, responses are generated directly using the LLM. If caching is enabled, it calculates
+        a unique cache key based on the prompt and LLM configuration, then fetches responses from the
+        cache, if available, or generates and stores them for future use.
+
+        The function ensures proper handling of potential errors during model execution and writes
+        extensive logs when verbosity options are enabled, aiding in thorough tracking during execution.
+
+        Args:
+            prompt: A pre-formatted BasePromptTemplate instance containing the template definition
+                to generate the LLM response.
+            **prompt_args: Arbitrary keyword arguments that provide dynamic content to fill
+                in the placeholders of the given prompt template.
+
+        Returns:
+            str: The generated or cached response from the LLM.
+
+        Raises:
+            ModelError: If there is any exception while interacting with the LLM, detailed
+                configuration information is included to aid debugging.
+        """
         response = None
 
         if self.verbose_prompt:
