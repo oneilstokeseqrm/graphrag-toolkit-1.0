@@ -1,18 +1,113 @@
 .. graphrag-toolkit documentation master file, created by
    sphinx-quickstart and adapted for graphrag-toolkit.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
 GraphRAG-Toolkit Documentation
 ==============================
 
 The GraphRAG-Toolkit is a Python library for building graph-based Retrieval-Augmented Generation (RAG) applications on AWS. It integrates graph databases with AWS services like Amazon Neptune, Amazon S3, and Amazon Bedrock to enable efficient data retrieval and generation workflows.
 
+Start Here
+----------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: README and Overview
+
+   md/lexical-graph/README
+   md/lexical-graph/overview
+
+Graph Store
+-----------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Graph Store
+
+   md/lexical-graph/graph-model
+   md/lexical-graph/graph-store-falkor-db
+   md/lexical-graph/graph-store-neptune-analytics
+   md/lexical-graph/graph-store-neptune-db
+
+Vector Store
+------------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Vector Store
+
+   md/lexical-graph/vector-store-neptune-analytics
+   md/lexical-graph/vector-store-opensearch-serverless
+   md/lexical-graph/vector-store-postgres.md
+
+Security
+--------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Security
+
+   md/lexical-graph/security
+
+Querying
+--------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Querying
+
+   md/lexical-graph/querying
+
+Multi-tenancy
+-------------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Multi-tenancy
+
+   md/lexical-graph/metadata-filtering
+
+Indexing
+--------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Indexing
+
+   md/lexical-graph/indexing
+
+Configuration
+-------------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Configuration
+
+   md/lexical-graph/configuration
+
+Batch Extraction
+----------------
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Batch Extraction
+
+   md/lexical-graph/batch-extraction
+
+FAQ
+---
+
+.. toctree::
+   :maxdepth: 1
+   :caption: FAQ
+
+   md/lexical-graph/faq
+
 Modules
-~~~~~~~
+-------
 
 .. toctree::
    :maxdepth: 2
+   :caption: Lexical Graph API
 
    modules
 

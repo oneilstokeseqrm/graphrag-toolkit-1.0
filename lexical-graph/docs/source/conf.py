@@ -16,13 +16,17 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 # -- General configuration -----------------------------------------------------
 
 # Sphinx extensions
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx_copybutton']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx_copybutton', 'myst_parser']
 
 # Templates path relative to docs directory
 templates_path = ['_templates']
 
 # Source file suffix
-source_suffix = '.rst'
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
+}
 
 # Master toctree document
 master_doc = 'index'
