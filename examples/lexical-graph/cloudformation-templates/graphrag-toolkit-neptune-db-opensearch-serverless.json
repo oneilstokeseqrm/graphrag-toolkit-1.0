@@ -398,19 +398,24 @@
 						}
 					]
 				},
-				"ManagedPolicyArns": [
-					{
-						"Fn::If": [
-							"AddIamPolicyArn",
-							{
-								"Ref": "IamPolicyArn"
-							},
+				"ManagedPolicyArns": {
+					"Fn::If": [
+						"AddIamPolicyArn",
+						{
+							"Fn::Split": [
+								" ",
+								{
+									"Ref": "IamPolicyArn"
+								}
+							]
+						},
+						[
 							{
 								"Ref": "AWS::NoValue"
 							}
 						]
-					}
-				],
+					]
+				},
 				"Path": "/graphrag-toolkit/"
 			}
 		},
@@ -1489,7 +1494,7 @@
 										"  if [ -f \"./run_test_suite.sh\" ]\n",
 										"  then\n",
 										"    echo \"Running test suite\"\n",
-										"    sh run_test_suite.sh &\n",
+										"    screen -L -m -d sh run_test_suite.sh\n",
 										"  else\n",
 										"    echo \"No test suite\"\n",
 										"  fi\n",
