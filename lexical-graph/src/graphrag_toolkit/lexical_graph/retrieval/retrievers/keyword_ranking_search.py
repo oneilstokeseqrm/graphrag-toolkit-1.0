@@ -21,6 +21,26 @@ from llama_index.core.prompts import PromptTemplate
 logger = logging.getLogger(__name__)
 
 class KeywordRankingSearch(SemanticGuidedBaseRetriever):
+    """
+    Performs keyword-based search with ranking using a combination of keyword extraction
+    and graph-based retrieval techniques.
+
+    The class utilizes language models for extracting keywords and their synonyms from
+    queries, and leverages a graph store to retrieve and rank relevant statements. The
+    ranking is based on keyword matches and optional similarity computations. Results
+    can be limited to a specified number of top-ranked items.
+
+    Attributes:
+        embedding_cache (Optional[SharedEmbeddingCache]): A cache to store and retrieve
+            embeddings for statements. If not provided, embeddings will not be used
+            during ranking.
+        llm (LLMCacheType): Language model cache for predictions. A default model
+            is used if none is provided.
+        max_keywords (int): Maximum number of keywords to extract from the query.
+        keywords_prompt (str): Prompt template for extracting keywords from the query.
+        synonyms_prompt (str): Prompt template for extracting synonyms for the keywords.
+        top_k (int): Maximum number of ranked results to retrieve.
+    """
     def __init__(
         self,
         vector_store:VectorStore,
@@ -34,6 +54,33 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
         filter_config:Optional[FilterConfig]=None,
         **kwargs: Any,
     ) -> None:
+        """
+        Initializes a component for managing and processing natural language queries with various
+        stores and configurations. The class utilizes a vector store for search, a graph store for
+        structural data, and embedding cache mechanisms. Additionally, it incorporates interaction
+        with a language model for extracting keywords and synonyms, among other features. The
+        configuration supports customization through various prompts, limits, and filtering options.
+
+        Args:
+            vector_store: The vector store instance used for search and retrieval tasks.
+            graph_store: The graph store instance used for managing structural or relational data.
+            embedding_cache: Shared embedding cache for managing precomputed embeddings to improve
+                retrieval efficiency. Optional parameter.
+            keywords_prompt: A string prompt utilized for extracting keywords during query processing.
+                Defaults to EXTRACT_KEYWORDS_PROMPT.
+            synonyms_prompt: A string prompt used for extracting synonyms based on the context.
+                Defaults to EXTRACT_SYNONYMS_PROMPT.
+            llm: The language model or its cache instance used for processing natural language
+                queries. If none is provided, a default LLMCache instance is created.
+            max_keywords: Maximum number of keywords to be extracted during processing. Defaults to 10.
+            top_k: Defines the maximum number of results to retrieve from the vector store
+                as part of the processing workflow. Defaults to 100.
+            filter_config: Filter configuration object used to define rules for post-retrieval filtering.
+                Optional parameter.
+            **kwargs: Additional keyword arguments supporting further customization or configuration
+                as required by inherited or related classes.
+
+        """
         super().__init__(vector_store, graph_store, filter_config, **kwargs)
         self.embedding_cache = embedding_cache
         self.llm = llm if llm and isinstance(llm, LLMCache) else LLMCache(
@@ -46,7 +93,21 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
         self.top_k = top_k
 
     def get_keywords(self, query_bundle: QueryBundle) -> Set[str]:
-        """Get keywords and synonyms for the query."""
+        """
+        Extract a set of unique keywords from the provided query using multiple prompts
+        processed concurrently. The method uses a language model to process the query
+        string and extract keywords and their synonyms.
+
+        Args:
+            query_bundle: A QueryBundle object containing the query string to analyze.
+
+        Returns:
+            A set of unique keywords extracted from the query.
+
+        Raises:
+            No explicitly raised errors, but logs exceptions encountered during execution
+            and returns an empty set.
+        """
         def extract(prompt):
             response = self.llm.predict(
                 PromptTemplate(template=prompt),
@@ -69,7 +130,29 @@ class KeywordRankingSearch(SemanticGuidedBaseRetriever):
             return set()
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
+        """
+        Retrieves nodes with scores based on keyword matches and similarity scoring.
 
+        This method performs the following steps:
+        1. Extracts keywords from the provided query bundle.
+        2. Queries a graph database to find all statements matching any of the extracted keywords,
+           utilizing a Cypher query.
+        3. Groups the retrieved statements by the number of keyword matches.
+        4. Ranks statements within each group using similarity scores, if applicable.
+        5. Normalizes scores and returns the top-k ranked nodes with their scores if the `top_k`
+           attribute is specified.
+
+        The method leverages the combination of keyword-based and embedding-based scoring mechanisms
+        to rank and retrieve the most relevant nodes from the graph database.
+
+        Args:
+            query_bundle (QueryBundle): An object containing query information (e.g., textual query,
+                embeddings), which guides the retrieval process.
+
+        Returns:
+            List[NodeWithScore]: A list of nodes with their associated scores, ranked by relevance.
+                Each node includes metadata about the matched keywords and ranking methodology.
+        """
         # 1. Get keywords
         keywords = self.get_keywords(query_bundle)
         if not keywords:

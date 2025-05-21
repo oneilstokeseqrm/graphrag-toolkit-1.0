@@ -17,9 +17,37 @@ _graph_store_factories:Dict[str, GraphStoreFactoryMethod] = { c.__name__ : c() f
 
 
 class GraphStoreFactory():
+    """
+    Factory class for registering and creating GraphStore objects.
 
+    Provides methods to register custom factory implementations and retrieve
+    instances of GraphStore based on input parameters. Handles dynamic
+    factory method registration and graph store instance creation.
+
+    Attributes:
+        _graph_store_factories (dict): Internal storage of registered
+            factory methods, mapping factory names to their respective
+            instances.
+    """
     @staticmethod
     def register(factory_type:GraphStoreFactoryMethodType):
+        """
+        Registers a factory type instance or class to the internal factory registry.
+
+        This method allows registration of classes inheriting from GraphStoreFactoryMethod
+        or their instances. The input factory_type is checked for its validity as a subclass
+        or instance of GraphStoreFactoryMethod. If this condition is met, the factory
+        type is added to the registry with its class name as the key.
+
+        Args:
+            factory_type (GraphStoreFactoryMethod | type): The factory type, which can either
+                be a subclass of GraphStoreFactoryMethod or an instance of that subclass.
+
+        Raises:
+            ValueError: If factory_type is neither a subclass of GraphStoreFactoryMethod
+                nor an instance of that class. The error message will indicate the exact
+                nature of the issue.
+        """
         if isinstance(factory_type, type):
             if not issubclass(factory_type, GraphStoreFactoryMethod):
                 raise ValueError(f'Invalid factory_type argument: {factory_type.__name__} must inherit from GraphStoreFactoryMethod.')
@@ -32,7 +60,34 @@ class GraphStoreFactory():
 
     @staticmethod
     def for_graph_store(graph_info:GraphStoreType=None, **kwargs) -> GraphStore:
+        """
+        Creates and returns a GraphStore instance based on the provided connection
+        information or factory methods.
 
+        This method is responsible for initializing the GraphStore by either using
+        the given `graph_info` directly (if it is an instance of `GraphStore`) or
+        by utilizing the registered factory methods to create an appropriate
+        GraphStore instance. If factory creation is not successful, it raises a
+        `ValueError`.
+
+        Args:
+            graph_info (GraphStoreType, optional): Connection information or an
+                existing instance of `GraphStore`. If it's an instance of `GraphStore`,
+                it will be returned directly. Otherwise, it is used to create the
+                GraphStore instance.
+            **kwargs: Additional keyword arguments passed to factory methods during
+                GraphStore creation.
+
+        Returns:
+            GraphStore: An instance of `GraphStore` created using the provided
+                information.
+
+        Raises:
+            ValueError: If the `graph_info` is unrecognized or the GraphStore
+                creation fails. Provides detailed information to ensure the
+                graph store connection info is correctly formatted and a suitable
+                factory method is registered.
+        """
         if graph_info and isinstance(graph_info, GraphStore):
             return graph_info
         

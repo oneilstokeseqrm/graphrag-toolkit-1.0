@@ -17,6 +17,32 @@ from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 logger = logging.getLogger(__name__)
 
 class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
+    """
+    RerankingBeamGraphSearch class leverages a reranking mechanism combined with beam search
+    to perform graph-structured retrieval of statements. The search process is guided by
+    semantic relevance through reranking layers.
+
+    This class combines multiple retrieval strategies such as vector search, direct graph
+    neighbors traversal, and reranking to fetch statements most relevant to a given query.
+    The beam search explores graph paths to a limited depth, aiming to retrieve high-quality
+    candidates for downstream processing. An intermediate caching system for retrieved
+    statements and scores ensures improved performance across retrieval stages.
+
+    Attributes:
+        reranker (RerankerMixin): Reranking module that computes relevance scores between
+            queries and statements.
+        max_depth (int): Maximum depth of the beam search graph traversal.
+        beam_width (int): Beam width determining the number of candidates explored at
+            each depth during search.
+        shared_nodes (Optional[List[NodeWithScore]]): Predefined shared nodes available for
+            the current retriever to initialize. May be empty.
+        score_cache (Dict[str, float]): Cache storing relevance scores previously computed
+            by the reranker to optimize repeated queries.
+        statement_cache (Dict[str, Dict]): Cache mapping statement IDs to their
+            corresponding detailed metadata fetched from the graph store.
+        initial_retrievers (List[SemanticGuidedBaseRetriever]): List of initial retrievers
+            capable of providing starting statements for further reranking and beam searches.
+    """
     def __init__(
         self,
         vector_store:VectorStore,
@@ -29,6 +55,39 @@ class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
         filter_config:Optional[FilterConfig]=None,
         **kwargs: Any,
     ) -> None:
+        """
+        Initializes an object that handles retrieval, graph navigation, and reranking
+        with a beam search approach. It incorporates customization options such as initial
+        retrievers, depth constraint for exploration, and beam width for limiting
+        concurrent node evaluations. The class also supports shared nodes for result
+        aggregation and caches scores and statements for efficiency.
+
+        Args:
+            vector_store: Underlying storage mechanism for vectorized representations
+                used in approximate nearest neighbor searches.
+            graph_store: Graph representation database that stores entities,
+                relationships, or nodes with interconnections for navigation.
+            reranker: Component responsible for ranking nodes or items based on
+                customized scoring criteria.
+            initial_retrievers: Optional sequence of retriever instances or types that
+                guide the initial stage of the retrieval process before using the
+                primary retriever. Each retriever in this list must accept vector_store,
+                graph_store, and filter_config as construction parameters.
+            shared_nodes: Optional sequence of nodes with scores that are used across
+                multiple retrievals or beam searches as common input. Allows result
+                propagation or consistency.
+            max_depth: Maximum allowable depth for search or traversal within the graph.
+                Deep graphs may be restricted to this depth limit for computational
+                efficiency.
+            beam_width: The maximum number of nodes retained after each iteration
+                during the beam search; higher values expand search breadth at a cost
+                to performance.
+            filter_config: Optional configuration that defines the filtering or pruning
+                criteria applied during retrieval, ranking, or navigation.
+            **kwargs: Arbitrary additional keyword arguments, passed to base class
+                initialization or specific retriever construction.
+
+        """
         super().__init__(vector_store, graph_store, filter_config, **kwargs)
         self.reranker = reranker 
         self.max_depth = max_depth
@@ -50,7 +109,18 @@ class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
 
 
     def get_statements(self, statement_ids: List[str]) -> Dict[str, Dict]:
-        """Fetch statements, using cache when possible."""
+        """
+        Retrieves statements by their IDs, utilizing a cache for efficiency. If any of the provided
+        IDs are not found in the cache, it fetches them from the graph store, updates the cache,
+        and then returns all requested results.
+
+        Args:
+            statement_ids (List[str]): A list of statement IDs to fetch.
+
+        Returns:
+            Dict[str, Dict]: A dictionary mapping each statement ID to its corresponding statement
+            data. The data is retrieved either from the local cache or by querying the graph store.
+        """
         uncached_ids = [sid for sid in statement_ids if sid not in self.statement_cache]
         if uncached_ids:
             new_results = get_statements_query(self.graph_store, uncached_ids)
@@ -61,7 +131,19 @@ class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
         return {sid: self.statement_cache[sid] for sid in statement_ids}
         
     def get_neighbors(self, statement_id: str) -> List[str]:
-        """Get neighboring statements through entity connections."""
+        """
+        Retrieves the neighbors of a given statement in the graph database. A neighbor is
+        defined as a statement that is directly connected via shared entities acting
+        as subjects or objects across facts and supported relationships.
+
+        Args:
+            statement_id (str): The unique identifier of the statement whose neighbors
+                are to be retrieved.
+
+        Returns:
+            List[str]: A list of statement IDs representing the neighboring statements.
+
+        """
         cypher = f"""
         MATCH (e:`__Entity__`)-[:`__SUBJECT__`|`__OBJECT__`]->(:`__Fact__`)-[:`__SUPPORTS__`]->(s:`__Statement__`)
         WHERE {self.graph_store.node_id('s.statementId')} = $statementId
@@ -83,7 +165,27 @@ class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
         statement_ids: List[str],
         statement_texts: Dict[str, str]
     ) -> List[Tuple[float, str]]:
-        """Rerank statements using the provided reranker."""
+        """
+        Rerank statements based on the relevance scores generated by a reranker.
+
+        This method takes a query, a list of statement IDs, and a dictionary mapping
+        statement IDs to statement texts. For statements not yet cached, it computes
+        relevance scores using the reranker component, caches the scores, and then
+        returns the statement IDs paired with their scores, sorted in descending
+        order of relevance.
+
+        Args:
+            query (str): The query string for which the statements need to be reranked.
+            statement_ids (List[str]): A list of unique IDs corresponding to the
+                statements to be evaluated.
+            statement_texts (Dict[str, str]): A dictionary mapping each statement ID
+                to its associated text.
+
+        Returns:
+            List[Tuple[float, str]]: A list of tuples where each tuple contains the
+                score (float) and the statement ID (str), sorted in descending order
+                based on the scores.
+        """
         uncached_statements = [statement_texts[sid] for sid in statement_ids if statement_texts[sid] not in self.score_cache]
         
         if uncached_statements:
@@ -115,7 +217,21 @@ class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
         query_bundle: QueryBundle,
         start_statement_ids: List[str]
     ) -> List[Tuple[str, List[str]]]:
-        """Perform beam search using reranker for scoring."""
+        """
+        Executes a beam search algorithm using a priority queue to explore a network of statements,
+        starting from provided initial statement IDs. The method scores and prioritizes paths
+        according to a reranker function and keeps track of visited nodes to avoid revisits.
+        Results consist of statement IDs and their respective paths.
+
+        Args:
+            query_bundle (QueryBundle): A bundle containing query details such as the query string.
+            start_statement_ids (List[str]): A list of IDs representing the starting points
+                for the beam search.
+
+        Returns:
+            List[Tuple[str, List[str]]]: A list of tuples, where each tuple consists of a
+                statement ID and the path taken to reach it.
+        """
         visited: Set[str] = set()
         results: List[Tuple[str, List[str]]] = []
         queue: PriorityQueue = PriorityQueue()
@@ -174,7 +290,23 @@ class RerankingBeamGraphSearch(SemanticGuidedBaseRetriever):
         return results
     
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
-        """Retrieve statements using beam search."""
+        """
+        Retrieves a list of nodes based on the given query bundle using a combination
+        of shared nodes, initial retrievers, and beam search techniques. The retrieval
+        process utilizes metadata and cached information to generate a ranked list of
+        potential matches. The retrieved nodes are sorted by their scores in descending
+        order before returning.
+
+        Args:
+            query_bundle (QueryBundle): Contains the query data required for retrieval.
+
+        Returns:
+            List[NodeWithScore]: A list of nodes with associated scores, representing
+            relevant matches for the query.
+
+        Raises:
+            None
+        """
  
         # Get initial nodes (either shared or from initial retrievers)
         initial_statement_ids = set()

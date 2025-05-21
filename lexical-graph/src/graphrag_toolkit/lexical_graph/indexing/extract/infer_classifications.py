@@ -25,7 +25,38 @@ DEFAULT_NUM_SAMPLES = 5
 DEFAULT_NUM_ITERATIONS = 1
 
 class InferClassifications(SourceDocParser):
+    """
+    This class is responsible for inferring domain-specific classifications for a set of
+    textual nodes using a combination of sampling, prompt-based extraction via an LLM, and
+    domain-adaptation strategies. It supports iterative refinement across multiple samples
+    and customizable actions for handling pre-existing classifications.
 
+    The class integrates classification parsing, chunk splitting, LLM-based prediction,
+    and classification storage. It is designed to adaptively extend or replace existing
+    classifications for textual input nodes based on analyzed data.
+
+    Attributes:
+        classification_store (ScopedValueStore): Storage for managing the scoped
+            domain-specific classifications.
+        classification_label (str): Label associated with the classifications to be
+            inferred or modified.
+        classification_scope (str): Scope for grouping the classifications within
+            the classification store.
+        num_samples (int): Number of chunks to sample for each iteration of the
+            classification inference process.
+        num_iterations (int): The number of times to iterate over sampling and
+            classification inference.
+        splitter (Optional[SentenceSplitter]): Responsible for splitting nodes into
+            smaller chunks for processing, if provided.
+        llm (Optional[LLMCache]): The LLM used for processing and generating domain-
+            specific classifications based on the input data.
+        prompt_template (str): Prompt template for LLM interaction, used to define
+            how chunks are presented for classification analysis.
+        default_classifications (List[str]): Default classifications to use if no
+            domain-specific classifications could be inferred.
+        merge_action (OnExistingClassifications): Defines the behavior for handling
+            pre-existing classifications when processing new data.
+    """
     classification_store:ScopedValueStore = Field(
         description='Classification store'
     )
@@ -78,7 +109,31 @@ class InferClassifications(SourceDocParser):
                  default_classifications:Optional[List[str]]=None,
                  merge_action:Optional[OnExistingClassifications]=None
             ):
-        
+        """
+        Initializes an instance of the class with various parameters for classification and
+        text processing. The initializer sets default values for optional parameters when
+        none are provided and ensures that objects of specific types are created or verified
+        before being utilized in the classification process.
+
+        Args:
+            classification_store: ScopedValueStore that serves as the storage mechanism for
+                classifications.
+            classification_label: String representing the label to be used for classification tagging.
+            classification_scope: Optional string specifying the scope of classifications to be
+                applied.
+            num_samples: Optional integer specifying the number of samples to consider during
+                classification.
+            num_iterations: Optional integer indicating the number of iterations for the
+                classification process.
+            splitter: Optional SentenceSplitter object to handle sentence splitting operations.
+            llm: Optional LLMCacheType specifying the language model to be used. Defaults to an
+                internal configuration if not provided.
+            prompt_template: Optional string containing the template for prompt generation in
+                classification.
+            default_classifications: Optional list of strings specifying default classification categories.
+            merge_action: Optional OnExistingClassifications defining the action to be taken
+                on existing classifications.
+        """
         super().__init__(
             classification_store=classification_store,
             classification_label=classification_label,
@@ -98,7 +153,22 @@ class InferClassifications(SourceDocParser):
         logger.debug(f'Prompt template: {self.prompt_template}')
 
     def _parse_classifications(self, response_text:str) -> Optional[List[str]]:
+        """
+        Parses domain-specific classifications from the response text.
 
+        This function extracts classifications enclosed within the
+        <entity_classifications> tags in the given response text. It returns
+        a list of the parsed classifications or None if no classifications
+        are found.
+
+        Args:
+            response_text (str): The response text containing classifications
+                within <entity_classifications> HTML/XML tags.
+
+        Returns:
+            Optional[List[str]]: A list of classifications if successfully
+                parsed from the response text, otherwise None.
+        """
         pattern = r'<entity_classifications>(.*?)</entity_classifications>'
         match = re.search(pattern, response_text, re.DOTALL)
 
@@ -125,7 +195,22 @@ class InferClassifications(SourceDocParser):
         show_progress: bool = False,
         **kwargs: Any,
     ) -> List[BaseNode]:
-        
+        """
+        Parses the provided nodes for domain-specific classifications through multiple
+        iterations while considering existing classifications and handling results based
+        on the specified merge action. This method can leverage a splitter for chunking
+        the input nodes and uses a language model for inferring classifications.
+
+        Args:
+            nodes (Sequence[BaseNode]): A sequence of node objects to be analyzed.
+            show_progress (bool): Whether to show progress logs during the operation.
+                Defaults to False.
+            **kwargs (Any): Additional keyword arguments for future extensibility.
+
+        Returns:
+            List[BaseNode]: A list of nodes passed as input after completing the
+            classification process.
+        """
         current_values = self.classification_store.get_scoped_values(self.classification_label, self.classification_scope)
         if current_values and self.merge_action == OnExistingClassifications.RETAIN_EXISTING:
             logger.info(f'Domain-specific classifications already exist [label: {self.classification_label}, scope: {self.classification_scope}, classifications: {current_values}]')
@@ -165,7 +250,21 @@ class InferClassifications(SourceDocParser):
         return nodes
     
     def _parse_source_docs(self, source_documents):
+        """
+        Parses source documents and extracts their nodes for further parsing.
 
+        This function takes a list of source documents, extracts their nodes,
+        and passes them to an internal method `_parse_nodes` for further
+        processing. The original list of source documents is returned after
+        processing.
+
+        Args:
+            source_documents: List of source document objects. Each document should
+                have a `nodes` attribute containing a list of nodes.
+
+        Returns:
+            list: The processed list of source document objects.
+        """
         source_docs = [
             source_doc for source_doc in source_documents
         ]

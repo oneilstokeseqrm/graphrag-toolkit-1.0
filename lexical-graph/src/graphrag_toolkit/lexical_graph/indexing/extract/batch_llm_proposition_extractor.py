@@ -27,7 +27,24 @@ from llama_index.core.prompts import PromptTemplate
 logger = logging.getLogger(__name__)
 
 class BatchLLMPropositionExtractor(BaseExtractor):
+    """
+    Handles the extraction of propositions using a batch processing approach via an LLM.
 
+    This class is designed to process large sets of nodes by splitting them into smaller
+    batches, generating prompts for LLM-based proposition extraction, and handling results
+    from batch inference jobs. It manages resources such as directories, uploads and downloads
+    to/from S3, and processes responses to extract propositions. The functionality supports
+    concurrent processing of multiple batches using asynchronous methods.
+
+    Attributes:
+        batch_config (BatchConfig): Configuration for batch inference, including batch size,
+            key prefixes, and maximum concurrent batches.
+        llm (Optional[LLMCache]): The language model cache to be used for extracting propositions.
+        prompt_template (str): Template for generating prompts used in LLM extraction processes.
+        source_metadata_field (Optional[str]): Metadata field used as the source for extracting
+            text for proposition generation.
+        batch_inference_dir (str): Directory location for managing batch inputs and outputs.
+    """
     batch_config:BatchConfig = Field('Batch inference config')
     llm:Optional[LLMCache] = Field(
         description='The LLM to use for extraction'
@@ -39,6 +56,14 @@ class BatchLLMPropositionExtractor(BaseExtractor):
 
     @classmethod
     def class_name(cls) -> str:
+        """
+        Returns the name of the class as a string. This method is designed to
+        provide a human-readable representation of the class name, mainly for
+        use in debugging, logging, or other identification purposes.
+
+        Returns:
+            str: The name of the class.
+        """
         return 'BatchLLMPropositionExtractor'
     
     def __init__(self, 
@@ -64,11 +89,41 @@ class BatchLLMPropositionExtractor(BaseExtractor):
         self._prepare_directory(self.batch_inference_dir)
 
     def _prepare_directory(self, dir):
+        """
+        Ensures a specified directory exists by creating it if it does not already exist.
+
+        If the directory is not present, it is created along with any intermediate
+        directories.
+
+        Args:
+            dir (str): The path to the directory to check or create.
+
+        Returns:
+            str: The path to the directory that was confirmed to exist or newly created.
+        """
         if not os.path.exists(dir):
             os.makedirs(dir, exist_ok=True)
         return dir
     
     async def process_single_batch(self, batch_index:int, node_batch:List[TextNode], s3_client, bedrock_client):
+        """
+        Processes a single batch of proposition extraction asynchronously by performing several
+        steps including creating record files, uploading them to S3, invoking a batch job,
+        downloading output files, and processing batch results.
+
+        Args:
+            batch_index (int): The index identifier of the current batch being processed.
+            node_batch (List[TextNode]): A list of `TextNode` objects representing the data
+                batch to be processed.
+            s3_client: The S3 client instance used to upload and download files from Amazon S3.
+            bedrock_client: The Bedrock client instance used to create and run batch jobs.
+
+        Returns:
+            List[Dict]: A list of dictionaries containing the processed results of the batch.
+
+        Raises:
+            BatchJobError: If any error occurs during the batch processing.
+        """
         try:
             timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
             input_filename = f'proposition_extraction_{timestamp}_batch_{batch_index}.jsonl'
@@ -146,7 +201,9 @@ class BatchLLMPropositionExtractor(BaseExtractor):
             
             
     async def aextract(self, nodes: Sequence[BaseNode]) -> List[Dict]:
-
+        """
+        Asynchronously extracts propositions from a list of nodes. This method divides the input nodes into batches, processes
+        the batches concurrently using Bedrock or a fallback extractor, and processes the results to generate structured"""
         if len(nodes) < BEDROCK_MIN_BATCH_SIZE:
             logger.debug(f'List of nodes contains fewer records ({len(nodes)}) than the minimum required by Bedrock ({BEDROCK_MIN_BATCH_SIZE}), so running LLMPropositionExtractor instead')
             extractor = LLMPropositionExtractor(
@@ -167,6 +224,16 @@ class BatchLLMPropositionExtractor(BaseExtractor):
         semaphore = asyncio.Semaphore(self.batch_config.max_num_concurrent_batches)
 
         async def process_batch_with_semaphore(batch_index, node_batch):
+            """
+            A class for extracting propositions from a batch of nodes using a language model.
+            This class handles asynchronous extraction by processing batches of nodes with
+            a semaphore to limit concurrency. It inherits from BaseExtractor, providing
+            an implementation for extracting proposition data.
+
+            Attributes:
+                semaphore (asyncio.Semaphore): A semaphore to control the concurrency of
+                    batch processing.
+            """
             async with semaphore:
                 return await self.process_single_batch(batch_index, node_batch, s3_client, bedrock_client)
 

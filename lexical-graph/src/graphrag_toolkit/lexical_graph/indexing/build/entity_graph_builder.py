@@ -15,13 +15,53 @@ from llama_index.core.schema import BaseNode
 logger = logging.getLogger(__name__)
 
 class EntityGraphBuilder(GraphBuilder):
-    
+    """
+    Handles the process of building and interacting with a graph database for entity and fact data
+    representation. Supports operations to insert and manage entities and their relationships in the
+    graph structure. Provides mechanisms for integrating metadata into the graph storage system.
+
+    This class is designed to work with a specific graph storage client and encapsulates the logic
+    necessary for mapping entities and facts from node data to a graph database, considering the domain
+    classification when required. It assumes an ontology structure with subject and object entities
+    linked by facts.
+
+    Attributes:
+        DEFAULT_CLASSIFICATION (str): The default classification for entities when not explicitly provided.
+    """
     @classmethod
     def index_key(cls) -> str:
+        """
+        Provides a method to retrieve the index key associated with the class.
+
+        This method is a class-level function that returns the index
+        key string associated with the class. It can be used to
+        uniquely identify or categorize instances of the class in
+        various contexts.
+
+        Returns:
+            str: The index key associated with the class.
+        """
         return 'fact'
     
     def build(self, node:BaseNode, graph_client: GraphStore, **kwargs:Any):
-            
+        """
+        Processes a given node and builds the corresponding entities in the graph database.
+
+        This method extracts fact metadata from the provided node to construct nodes and
+        relationships in a graph database using Cypher queries. It validates the fact
+        metadata and leverages the graph_client to execute the queries. Properties for
+        the subject and object are set or updated based on whether they already exist in
+        the graph. Optionally, domain-specific labels can be included.
+
+        The function handles missing fact metadata by logging a warning message. It also
+        ensures reliability through query retries with controlled attempts and wait times.
+
+        Args:
+            node (BaseNode): The node from which fact metadata is to be extracted.
+            graph_client (GraphStore): The graph database client to execute queries.
+            **kwargs (Any): Additional options, such as `include_domain_labels`, which
+                determines whether domain-specific labels are added to the entities.
+        """
         fact_metadata = node.metadata.get('fact', {})
         include_domain_labels = kwargs['include_domain_labels']
 

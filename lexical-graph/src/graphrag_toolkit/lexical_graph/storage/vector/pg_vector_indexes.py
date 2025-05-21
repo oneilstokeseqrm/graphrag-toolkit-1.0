@@ -32,7 +32,25 @@ except ImportError as e:
     
 
 def to_sql_operator(operator: FilterOperator) -> tuple[str, Callable[[Any], str]]:
-    
+    """
+    Converts a filter operator into an SQL operator and its respective value formatter.
+
+    This function maps a `FilterOperator` enum value to a tuple that contains the SQL
+    representation of the operator and a callable function to format the value for use
+    in SQL queries. If the provided operator is unsupported, a `ValueError` is raised.
+
+    Args:
+        operator (FilterOperator): The filter operator to be converted to its SQL
+            equivalent.
+
+    Returns:
+        tuple[str, Callable[[Any], str]]: A tuple where the first element is the SQL
+            operator as a string, and the second element is a callable to format
+            the value for use with the SQL operator.
+
+    Raises:
+        ValueError: If the provided `operator` is not supported.
+    """
     default_value_formatter = lambda x: x
     
     operator_map = {
@@ -58,6 +76,23 @@ def to_sql_operator(operator: FilterOperator) -> tuple[str, Callable[[Any], str]
     return operator_map[operator]
 
 def formatter_for_type(type_name:str) -> Callable[[Any], str]:
+    """
+    Returns a formatter function corresponding to the given type name. The formatter
+    function takes a value as input and returns the value formatted appropriately
+    for the specified type. The supported types include 'text', 'timestamp', 'int',
+    and 'float'.
+
+    Args:
+        type_name (str): The name of the type for which the formatter function is
+            required. Supported types are 'text', 'timestamp', 'int', and 'float'.
+
+    Returns:
+        Callable[[Any], str]: A function that formats values according to the
+            specified type.
+
+    Raises:
+        ValueError: If the specified type name is not supported.
+    """
     if type_name == 'text':
         return lambda x: f"'{x}'"
     elif type_name == 'timestamp':
@@ -69,12 +104,64 @@ def formatter_for_type(type_name:str) -> Callable[[Any], str]:
 
 
 def parse_metadata_filters_recursive(metadata_filters:MetadataFilters) -> str:
+    """
+    Parses metadata filters recursively into a SQL-compatible string representation.
 
+    This function takes a `MetadataFilters` object, traverses its hierarchical
+    structure, and converts it into SQL-like conditions. It handles different
+    filter operations, logical conditions (AND, OR, NOT), and nested filters.
+
+    Args:
+        metadata_filters (MetadataFilters): A MetadataFilters object containing
+            the hierarchical structure of filters and logical conditions to
+            parse into a SQL-compatible string.
+
+    Returns:
+        str: A SQL-compatible string representation of the provided metadata
+            filters.
+
+    Raises:
+        ValueError: If invalid metadata filter types are encountered within the
+            `metadata_filters` structure, or if an unsupported filter condition
+            is provided.
+    """
     def to_key(key: str) -> str:
-        return f"metadata->'source'->'metadata'->>'{key}'" 
+        """
+        Parses metadata filters recursively into a string representation suitable for
+        a database query.
+
+        The function takes metadata filters and processes them recursively to generate
+        a string representation that can be incorporated into database queries. It
+        utilizes helper functions for converting filter keys into the specific format
+        used in the query syntax.
+
+        Args:
+            metadata_filters: MetadataFilters instance representing the metadata filters
+                to be processed.
+
+        Returns:
+            str: A string representation of the metadata filters formatted for database
+                queries.
+        """
+        return f"metadata->'source'->'metadata'->>'{key}'"
     
     def to_sql_filter(f: MetadataFilter) -> str:
-        
+        """
+        Parses metadata filters recursively to generate an SQL-compatible filter string.
+
+        This function processes a collection of metadata filters, converting them step
+        by step into a valid SQL-like filter expression. It makes use of helper
+        functions to generate the appropriate SQL syntax for filters and their
+        operators while handling specific cases like empty filters.
+
+        Args:
+            metadata_filters (MetadataFilters): A structured object containing metadata
+                filters that need to be processed into SQL-compatible expressions.
+
+        Returns:
+            str: A string representing the SQL-compatible filter derived from the
+            provided metadata filters.
+        """
         key = to_key(f.key)
         (operator, operator_formatter) = to_sql_operator(f.operator)
 
@@ -109,6 +196,20 @@ def parse_metadata_filters_recursive(metadata_filters:MetadataFilters) -> str:
 
 
 def filter_config_to_sql_filters(filter_config:FilterConfig) -> str:
+    """
+    Converts a given FilterConfig object into an SQL WHERE clause-like filter string.
+
+    This function translates the source filters provided in the FilterConfig
+    into a SQL-compatible filter representation. If the provided filter_config
+    or its source_filters attribute is None, it returns an empty string.
+
+    Args:
+        filter_config (FilterConfig): The filter configuration object containing
+            source filters to be converted into an SQL-compatible format.
+
+    Returns:
+        str: A string representation of the converted SQL-compatible filters.
+    """
     if filter_config is None or filter_config.source_filters is None:
         return ''
     return parse_metadata_filters_recursive(filter_config.source_filters)
@@ -127,8 +228,38 @@ class PGIndex(VectorIndex):
                   embed_model:EmbeddingType=None,
                   dimensions:int=None,
                   enable_iam_db_auth=False):
-        
+        """
+        Creates an instance of the `PGIndex` class based on the provided database connection
+        information, index name, and embedding configuration. It parses the `connection_string`
+        to extract overriding parameters and defaults any missing values to the provided or preset defaults.
+
+        Args:
+            index_name (str): The name of the index to create or reference.
+            connection_string (str): A database connection string (e.g., in URI format)
+            containing username, password, hostname, port, database, and optional query parameters.
+            database (str, optional): The name of the database. Defaults to 'postgres'.
+            schema_name (str, optional): The name of the database schema. Defaults to 'graphrag'.
+            host (str, optional): The database hostname. Defaults to 'localhost'.
+            port (int, optional): The port to connect to on the database host. Defaults to 5432.
+            username (str, optional): The username for database authentication. Defaults to None.
+            password (str, optional): The password for database authentication. Defaults to None.
+            embed_model (EmbeddingType, optional): The embedding model to use for generating index
+            embeddings. Defaults to None.
+            dimensions (int, optional): The dimensionality of the embeddings. Defaults to None.
+            enable_iam_db_auth (bool, optional): A flag indicating whether to enable IAM
+            database authentication. Defaults to False.
+
+        Returns:
+            PGIndex: An instance of the `PGIndex` class properly configured with the provided
+            or inferred parameters.
+        """
         def compute_enable_iam_db_auth(s, default):
+            """Representation of a PostgreSQL-based vector index for efficient querying and
+            storage of vectors in a database. This class provides functionality to interface
+            with a PostgreSQL database and manage operations such as indexing, storing, and
+            querying vector data. It supports various configurations like schema, host, port,
+            and authentication settings to offer flexible and secure database connections.
+            """
             if 'enable_iam_db_auth' in s.lower():
                 return 'enable_iam_db_auth=true' in s.lower()
             else:
@@ -170,7 +301,32 @@ class PGIndex(VectorIndex):
     initialized:bool=False
 
     def _get_connection(self):
+        """
+        Establishes a connection to the database, configures it, and optionally initializes the schema and
+        indexes required for the application. The method supports IAM-based authentication for Amazon RDS if
+        enabled. It also ensures that the schema is initialized exactly once during the lifecycle of the object,
+        creating necessary tables and indexes if they do not exist. Logs warnings for existing database objects.
 
+        Raises:
+            psycopg2.Error: Raised if there is an issue with establishing the database connection or executing
+            queries to initialize the schema and indexes.
+            Exception: Raised if there are other unforeseen errors during the schema initialization or database
+            interactions.
+
+        Attributes:
+            enable_iam_db_auth (bool): Indicates whether IAM-based authentication for AWS RDS is enabled.
+            host (str): The hostname of the database server.
+            username (str): The username for the database connection.
+            password (Optional[str]): The static password for connecting to the database if IAM is disabled.
+            port (int): The port number on which the database listens for connections.
+            database (str): The name of the database to connect to.
+            initialized (bool): Tracks whether the schema and indexes have already been initialized.
+            writeable (bool): Specifies whether the database connection should handle schema initialization and
+            updates.
+            schema_name (str): The schema name where the table resides.
+            index_name (str): Identifier used for managing and initializing the table and its related indexes.
+            dimensions (int): Dimensionality of the vector column used in the table for embeddings.
+        """
         token = None
 
         if self.enable_iam_db_auth:
@@ -250,7 +406,23 @@ class PGIndex(VectorIndex):
 
 
     def add_embeddings(self, nodes:Sequence[BaseNode]) -> Sequence[BaseNode]:
+        """
+        Adds embeddings for a sequence of nodes into the database. This method processes
+        each node by generating embeddings using the specified embedding model and
+        inserts or updates these nodes in the underlying indexed database table. The method
+        ensures write authorization before proceeding and handles exceptions related to
+        undefined tables. Nodes for a specific tenant that references non-existent tables
+        are logged as warnings without causing the entire operation to fail.
 
+        Args:
+            nodes (Sequence[BaseNode]): A sequence of nodes for which embeddings are to be
+                generated and stored in the database. Each node includes an identifier,
+                textual data, and metadata.
+
+        Returns:
+            Sequence[BaseNode]: The same sequence of nodes that were provided as input,
+                potentially with modifications or updates to their embeddings.
+        """
         if not self.writeable:
             raise IndexError(f'Index {self.index_name()} is read-only')
 
@@ -282,7 +454,25 @@ class PGIndex(VectorIndex):
         return nodes
     
     def _to_top_k_result(self, r):
-        
+        """
+        Converts a raw result into a structured Top K result dictionary.
+
+        The method processes the given input `r` to construct a dictionary containing
+        details like score, metadata, and specific index-related information. The
+        conversion ensures a clear and detailed representation of the data extracted
+        from the input.
+
+        Args:
+            r: A tuple containing the raw data to be processed. The tuple is expected
+               to follow a specific format where `r[2]` contains the score, `r[1]`
+               contains metadata (as a dictionary or JSON payload), and `r[0]` is
+               typically unused in this method.
+
+        Returns:
+            dict: A dictionary containing the transformed data, including a rounded
+                  score, associated metadata fields, and key-value pairs if index-related
+                  information is present within the metadata.
+        """
         result = {
             'score': round(r[2], 7)
         }
@@ -305,7 +495,27 @@ class PGIndex(VectorIndex):
         return result
     
     def _to_get_embedding_result(self, r):
-        
+        """
+        Converts and processes the result from an embedding query into a formatted dictionary.
+
+        The function processes the input result tuple, extracting the ID, value, embedding,
+        and metadata while ensuring proper type conversion and dictionary formatting.
+        It filters out specific metadata keys based on predefined criteria.
+
+        Args:
+            r (tuple): A tuple containing the results of an embedding query. It is
+                expected to have the following structure:
+                - Index 0: The ID associated with the result.
+                - Index 1: The value corresponding to the embedding.
+                - Index 2: Metadata information in the form of a dictionary or a
+                  JSON-formatted string.
+                - Index 3: The embedding as an array-like object.
+
+        Returns:
+            dict: A dictionary containing the processed result data with keys for 'id',
+                'value', 'embedding', and any additional metadata except those excluded
+                by filtering.
+        """
         id = r[0]
         value = r[1]
 
@@ -330,7 +540,28 @@ class PGIndex(VectorIndex):
         return result
     
     def top_k(self, query_bundle:QueryBundle, top_k:int=5, filter_config:Optional[FilterConfig]=None) -> Sequence[Dict[str, Any]]:
+        """
+        Retrieves the top K results from the database based on the provided query
+        and optional filter configuration.
 
+        This method interacts with a database to obtain the top K matching entries
+        that align with the user's query. It supports additional filtering through
+        the optional filter configuration. Results are sorted in ascending order
+        of their similarity scores.
+
+        Args:
+            query_bundle (QueryBundle): Query object containing the `embedding`
+                for similarity search.
+            top_k (int): The number of top results to fetch from the database.
+                Defaults to 5.
+            filter_config (Optional[FilterConfig]): An optional configuration
+                object defining additional filters applied to the query.
+
+        Returns:
+            Sequence[Dict[str, Any]]: A sequence of dictionaries, where each
+            dictionary represents a top result containing relevant metadata and
+            similarity scores.
+        """
         dbconn = self._get_connection()
         cur = dbconn.cursor()
 
@@ -370,7 +601,26 @@ class PGIndex(VectorIndex):
         return top_k_results
 
     def get_embeddings(self, ids:List[str]=[]) -> Sequence[Dict[str, Any]]:
-        
+        """
+        Retrieves embeddings from the database for the given list of IDs. This method
+        queries the underlying database table to fetch the corresponding embeddings,
+        metadata, and other data associated with the specified IDs. The results are
+        formatted into a list of embedding dictionaries.
+
+        Args:
+            ids (List[str], optional): A list of string IDs for which embeddings need
+                to be fetched. Defaults to an empty list.
+
+        Returns:
+            Sequence[Dict[str, Any]]: A list of dictionaries where each dictionary
+                represents an embedding, its metadata, and associated data for the
+                given IDs.
+
+        Raises:
+            UndefinedTable: Raised when the underlying table does not exist in the
+                database.
+
+        """
         dbconn = self._get_connection()
         cur = dbconn.cursor()
 

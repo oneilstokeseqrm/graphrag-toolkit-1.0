@@ -21,7 +21,20 @@ logger = logging.getLogger(__name__)
 SubRetrieverType = Union[ChunkBasedSearch, TopicBasedSearch, Type[ChunkBasedSearch], Type[TopicBasedSearch]]
 
 class EntityContextSearch(TraversalBasedBaseRetriever):
-    def __init__(self, 
+    """
+    A retriever implementation designed to perform entity-context-based search within a graph database.
+    It retrieves relevant nodes and their contexts based on the input query and employs advanced filtering
+    and scoring mechanisms to refine results.
+
+    The EntityContextSearch class inherits from TraversalBasedBaseRetriever and combines graph traversal
+    and vector search for efficient entity context retrieval. It is optimized for use in systems
+    requiring complex entity relational data processing.
+
+    Attributes:
+        sub_retriever (Optional[SubRetrieverType]): An optional sub-retriever instance or class used for
+            deeper result retrieval during the search process.
+    """
+    def __init__(self,
                  graph_store:GraphStore,
                  vector_store:VectorStore,
                  processor_args:Optional[ProcessorArgs]=None,
@@ -29,7 +42,28 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
                  sub_retriever:Optional[SubRetrieverType]=None,
                  filter_config:Optional[FilterConfig]=None,
                  **kwargs):
-        
+        """
+        Initializes an instance of the class with specified parameters. This constructor
+        sets up graph and vector stores, optional processing arguments, a list of
+        processors, a sub-retriever, and filter configuration to create a specific
+        retrieval or searching mechanism.
+
+        Args:
+            graph_store: The graph store to be used for managing graph-based data
+                structures within the entity.
+            vector_store: The vector store to be used for managing vector-based
+                representations of data.
+            processor_args: Optional arguments for processors, specifying additional
+                configuration or parameters required by the processors.
+            processors: Optional list of processor classes implementing the
+                ProcessorBase type, used to transform or handle data within the entity.
+            sub_retriever: Optional specific retriever type to be used for
+                sub-retrieval operations. Defaults to ChunkBasedSearch.
+            filter_config: Optional configuration object containing filter
+                criteria or rules for data refinement.
+            **kwargs: Additional keyword arguments that might be required for further
+                customization or parameterization.
+        """
         self.sub_retriever = sub_retriever or ChunkBasedSearch
         
         super().__init__(
@@ -42,7 +76,21 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         )
 
     def get_start_node_ids(self, query_bundle: QueryBundle) -> List[str]:
+        """
+        Retrieves the starting node IDs for an entity context search.
 
+        This method processes a given `QueryBundle` by performing an entity search
+        using the `KeywordEntitySearch` utility. The search results are used to
+        generate a list of entities along with their associated scores, and finally,
+        the method extracts and returns the entity IDs.
+
+        Args:
+            query_bundle (QueryBundle): The input query bundle containing the query
+                text and associated metadata.
+
+        Returns:
+            List[str]: A list of entity IDs that serve as the starting nodes.
+        """
         logger.debug('Getting start node ids for entity context search...')
         
         keyword_entity_search = KeywordEntitySearch(
@@ -65,7 +113,22 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         return [entity.entity.entityId for entity in entities]   
 
     def _get_entity_contexts(self, start_node_ids:List[str]) -> List[str]:
+        """
+        Fetches and processes the context of entities based on relationships and scoring criteria.
 
+        This method retrieves entity relationship data from a graph database, computes scores for
+        the relationships, and organizes the entities into contexts based on configurable thresholds
+        for scoring. The resulting entity contexts are limited in number and structured to contain
+        related entities grouped by score evaluation and hierarchy.
+
+        Args:
+            start_node_ids (List[str]): A list of starting entity node IDs for which the contexts
+                need to be retrieved.
+
+        Returns:
+            List[str]: A list of entity contexts, where each context is represented by a list of
+                entity values.
+        """
         if self.args.ecs_max_contexts < 1:
             return []
 
@@ -161,7 +224,19 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         return entity_contexts
     
     def _get_sub_retriever(self):
-        sub_retriever = (self.sub_retriever if isinstance(self.sub_retriever, TraversalBasedBaseRetriever) 
+        """
+        Retrieves or constructs a sub-retriever based on the type of the existing sub-retriever
+        or initializes a new one with the provided configuration.
+
+        This private method either returns an already initialized sub-retriever instance
+        if it adheres to a specific type or initializes a new sub-retriever object with
+        parameters derived from configuration attributes. The initialized or retrieved
+        sub-retriever is logged for debugging purposes.
+
+        Returns:
+            TraversalBasedBaseRetriever: An instance of a sub-retriever ready for use.
+        """
+        sub_retriever = (self.sub_retriever if isinstance(self.sub_retriever, TraversalBasedBaseRetriever)
                          else self.sub_retriever(
                             self.graph_store, 
                             self.vector_store, 
@@ -175,7 +250,20 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         return sub_retriever
     
     def do_graph_search(self, query_bundle:QueryBundle, start_node_ids:List[str]) -> SearchResultCollection:
+        """
+        Executes a graph-based search query starting from provided node IDs and processes the results.
 
+        This method performs an entity-context-based search using given starting node IDs, constructs
+        entity contexts, retrieves associated search results, and aggregates those results into a
+        collection. It also provides debug logs if debugging is enabled for the specific retriever.
+
+        Args:
+            query_bundle (QueryBundle): The query bundle containing the search query information.
+            start_node_ids (List[str]): A list of starting node IDs to base the search on.
+
+        Returns:
+            SearchResultCollection: A collection of search results aggregated from the entity-context-based search.
+        """
         logger.debug('Running entity-context-based search...')
 
         sub_retriever = self._get_sub_retriever()

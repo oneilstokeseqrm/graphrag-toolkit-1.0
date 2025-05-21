@@ -21,7 +21,21 @@ except ImportError as e:
         ) from e
 
 class BGEReranker(BaseNodePostprocessor, RerankerMixin):
-    """Reranks statements using the BGE reranker model."""
+    """BGEReranker class for re-ranking nodes or sentence pairs based on a model.
+
+    This class utilizes a pre-trained re-ranker model to re-rank sentence pairs or nodes
+    with scores. It uses GPU for computations if available and is designed to work with
+    the LayerWiseFlagLLMReranker model from the FlagEmbedding library.
+
+    Attributes:
+        model_name (str): Name of the pre-trained re-ranker model to use.
+        gpu_id (Optional[int]): ID of the GPU to use for computations. If None and GPUs
+            are available, the first free GPU will be used.
+        reranker (Any): The re-ranker object initialized with the specified model.
+        device (Any): The torch device to be used for computations, either CPU or GPU.
+        batch_size_internal (int): Batch size used for processing sentence pairs
+            or nodes.
+    """
 
     model_config = ConfigDict(
         protected_namespaces=(
@@ -42,6 +56,25 @@ class BGEReranker(BaseNodePostprocessor, RerankerMixin):
         gpu_id: Optional[int] = None,
         batch_size: int = 128
     ):
+        """
+        Initializes the __init__ function for configuring and setting up the reranker
+        model. This includes loading the necessary dependencies, setting GPU device,
+        and initializing key model parameters. If the required dependencies are not
+        installed or GPU is unavailable, appropriate errors are raised to handle those
+        issues.
+
+        Args:
+            model_name (str): The name of the model to be loaded. Defaults to
+                'BAAI/bge-reranker-v2-minicpm-layerwise'.
+            gpu_id (Optional[int]): The ID of the GPU to be utilized. If None, assigns
+                the first available free GPU.
+            batch_size (int): The batch size for processing inputs. Defaults to 128.
+
+        Raises:
+            ImportError: If the FlagEmbedding package is not installed.
+            Exception: If no compatible GPU is available or any error occurs during
+                initialization of the reranker model.
+        """
         super().__init__()
         try:
             from FlagEmbedding import LayerWiseFlagLLMReranker
@@ -77,6 +110,16 @@ class BGEReranker(BaseNodePostprocessor, RerankerMixin):
     
     @property
     def batch_size(self):
+        """
+        Gets the batch size for the internal configuration.
+
+        This property retrieves the value of the batch size from the internal
+        state of the object. It is commonly used to access the configured
+        batch size for operations requiring batching functionality.
+
+        Returns:
+            int: The size of the batch currently configured internally.
+        """
         return self.batch_size_internal
     
     def rerank_pairs(
@@ -84,7 +127,25 @@ class BGEReranker(BaseNodePostprocessor, RerankerMixin):
         pairs: List[Tuple[str, str]],
         batch_size: int = 128
     ) -> List[float]:
-        """Rerank pairs without creating nodes."""
+        """
+        Re-ranks a list of sentence pairs based on a pre-trained reranker model and
+        returns the computed scores. This method utilizes a single GPU for computing
+        the scores and is optimized for batch processing.
+
+        Args:
+            pairs (List[Tuple[str, str]]): A list of sentence pairs to be re-ranked.
+                Each pair includes two sentences as strings.
+            batch_size (int): The size of the batch for processing sentence pairs.
+                Defaults to 128.
+
+        Returns:
+            List[float]: A list of scores corresponding to the input sentence pairs,
+                where higher scores indicate higher relevance or similarity.
+
+        Raises:
+            Exception: If an error occurs during the re-ranking process, a detailed
+                exception is logged and re-raised.
+        """
         try:
             with torch.cuda.device(self.device):
                 scores = self.reranker.compute_score_single_gpu(
@@ -102,6 +163,24 @@ class BGEReranker(BaseNodePostprocessor, RerankerMixin):
         nodes: List[NodeWithScore],
         query_bundle: Optional[QueryBundle] = None,
     ) -> List[NodeWithScore]:
+        """
+        Postprocesses a list of nodes by reranking them based on a query using a scoring mechanism.
+
+        This method takes a list of nodes and an optional query bundle, calculates a relevance
+        score for each node based on the provided query, and sorts the nodes based on the
+        calculated scores. If the reranking process fails, it logs the error and returns
+        the original list of nodes. Additionally, the method manages CUDA memory cache if a
+        GPU is available.
+
+        Args:
+            nodes (List[NodeWithScore]): A list of nodes with initial scores to be processed.
+            query_bundle (Optional[QueryBundle]): An optional query bundle containing the query
+                string used for relevance scoring.
+
+        Returns:
+            List[NodeWithScore]: A list of nodes reranked by their calculated relevance scores.
+            If reranking fails, the returned list will be the same as the input nodes.
+        """
         if not query_bundle or not nodes:
             return nodes
             
