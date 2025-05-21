@@ -9,6 +9,7 @@
   - [Configuration](./configuration.md) 
   - [Graph Model](./graph-model.md)
   - [Security](./security.md)
+  - [Hybrid Deployment](./hybrid-deployment.md)
   - [FAQ](./faq.md)
   
 #### Code examples

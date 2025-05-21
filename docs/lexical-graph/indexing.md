@@ -15,7 +15,6 @@
     - [Batch extraction](#batch-extraction)
     - [Metadata filtering](#metadata-filtering)
     - [Checkpoints](#checkpoints)
-  - [Advanced graph construction](#advanced-graph-construction)
     
 ### Overview
 
@@ -23,7 +22,7 @@ There are two stages to indexing: extract, and build. The lexical-graph uses sep
 
 You can run the extract and build pipelines together, to provide for the continuous ingest described above. Or you can run the two pipelines separately, extracting first to file-based chunks, and then later building a graph from these chunks.
 
-The `LexicalGraphIndex` is a convenience class that allows you to run the extract and build pipelines together or separately. Alternatively, you can build your graph construction application using the underlying pipelines. This gives you more control over the configuration of each stage. We describe these two different approaches in the [Using the LexicalGraphIndex to construct a graph](#using-the-lexicalgraphindex-to-construct-a-graph) and [Advanced graph construction](#advanced-graph-construction) sections below.
+The `LexicalGraphIndex` allows you to run the extract and build pipelines together or separately. See the [Using the LexicalGraphIndex to construct a graph](#using-the-lexicalgraphindex-to-construct-a-graph) section below.
 
 Indexing supports [multi-tenancy](multi-tenancy.md), whereby you can store separate lexical graphs in the same backend graph and vector stores.
 
@@ -43,7 +42,7 @@ Only the third step here is mandatory. If your source data has already been chun
 
 Extraction uses a lightly guided strategy whereby the extraction process is seeded with a list of preferred entity classifications. The LLM is instructed to use an existing classification from the list before creating new ones. Any new classifications introduced by the LLM are then carried forward to subsequent invocations. This approach reduces but doesn't eliminate unwanted variations in entity classification.
 
-The list of `DEFAULT_ENTITY_CLASSIFICATIONS` used to seed the extraction process can be found [here](https://github.com/awslabs/graphrag-toolkit/blob/main/src/graphrag_toolkit/indexing/constants.py). If these classifications are not appropriate to your workload you can replace them (see the [Configuring the extract and build stages](#configuring-the-extract-and-build-stages) and [Advanced graph construction](#advanced-graph-construction) sections below).
+The list of `DEFAULT_ENTITY_CLASSIFICATIONS` used to seed the extraction process can be found [here](https://github.com/awslabs/graphrag-toolkit/blob/main/src/graphrag_toolkit/indexing/constants.py). If these classifications are not appropriate to your workload you can replace them (see the [Configuring the extract and build stages](#configuring-the-extract-and-build-stages) section below).
 
 Relationship values are currently unguided (though relatively concise).
 
@@ -371,101 +370,3 @@ Checkpoints do not provide any transactional guarantees. If a chunk is successfu
 
 The lexical-graph does not clean up checkpoints. If you use checkpoints, periodically clean the checkpoint directory of old checkpoint files. 
 
-### Advanced graph construction
-
-If you want more control over the extract and build stages, then instead of using a `LexicalGraphIndex`, you can use the extract and build pipelines directly: 
-
-```python
-from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
-from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory
-from graphrag_toolkit.lexical_graph.indexing import sink
-from graphrag_toolkit.lexical_graph.indexing.constants import PROPOSITIONS_KEY, DEFAULT_ENTITY_CLASSIFICATIONS
-from graphrag_toolkit.lexical_graph.indexing.extract import ExtractionPipeline
-from graphrag_toolkit.lexical_graph.indexing.extract import LLMPropositionExtractor
-from graphrag_toolkit.lexical_graph.indexing.extract import TopicExtractor
-from graphrag_toolkit.lexical_graph.indexing.extract import GraphScopedValueStore
-from graphrag_toolkit.lexical_graph.indexing.extract import ScopedValueProvider, DEFAULT_SCOPE
-from graphrag_toolkit.lexical_graph.indexing.build import Checkpoint
-from graphrag_toolkit.lexical_graph.indexing.build import BuildPipeline
-from graphrag_toolkit.lexical_graph.indexing.build import VectorIndexing
-from graphrag_toolkit.lexical_graph.indexing.build import GraphConstruction
-
-
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.readers.web import SimpleWebPageReader
-
-checkpoint = Checkpoint('advanced-construction-example', enabled=True)
-
-# Create graph and vector stores
-graph_store = GraphStoreFactory.for_graph_store(os.environ['GRAPH_STORE'])
-vector_store = VectorStoreFactory.for_vector_store(os.environ['VECTOR_STORE'])
-
-# Create extraction pipeline components
-
-# 1. Chunking using SentenceSplitter
-splitter = SentenceSplitter(
-    chunk_size=256,
-    chunk_overlap=20
-)
-
-# 2. Proposition extraction
-proposition_extractor = LLMPropositionExtractor()
-
-# 3. Topic extraction
-entity_classification_provider = ScopedValueProvider(
-    label='EntityClassification',
-    scoped_value_store=GraphScopedValueStore(graph_store=graph_store),
-    initial_scoped_values = { DEFAULT_SCOPE: DEFAULT_ENTITY_CLASSIFICATIONS }
-)
-
-topic_extractor = TopicExtractor(
-    source_metadata_field=PROPOSITIONS_KEY, # Omit this line if not performing proposition extraction
-    entity_classification_provider=entity_classification_provider # Entity classifications saved to graph between LLM invocations
-)
-
-# Create extraction pipeline
-extraction_pipeline = ExtractionPipeline.create(
-    components=[
-        splitter, 
-        proposition_extractor,
-        topic_extractor
-    ],
-    num_workers=2,
-    batch_size=4,
-    checkpoint=checkpoint,
-    show_progress=True
-)
-
-# Create build pipeline components
-graph_construction = GraphConstruction.for_graph_store(graph_store)
-vector_indexing = VectorIndexing.for_vector_store(vector_store)
-        
-# Create build pipeline        
-build_pipeline = BuildPipeline.create(
-    components=[
-        graph_construction,
-        vector_indexing
-    ],
-    num_workers=2,
-    batch_size=10,
-    batch_writes_enabled=True,
-    checkpoint=checkpoint,
-    show_progress=True   
-)
-
-# Load source documents
-doc_urls = [
-    'https://docs.aws.amazon.com/neptune/latest/userguide/intro.html',
-    'https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html',
-    'https://docs.aws.amazon.com/neptune-analytics/latest/userguide/neptune-analytics-features.html',
-    'https://docs.aws.amazon.com/neptune-analytics/latest/userguide/neptune-analytics-vs-neptune-database.html'
-]
-
-docs = SimpleWebPageReader(
-    html_to_text=True,
-    metadata_fn=lambda url:{'url': url}
-).load_data(doc_urls)
-
-# Run the build and extraction stages
-docs | extraction_pipeline | build_pipeline | sink 
-```
