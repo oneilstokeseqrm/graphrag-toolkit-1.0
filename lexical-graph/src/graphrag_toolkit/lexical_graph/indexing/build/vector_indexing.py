@@ -18,9 +18,47 @@ logger = logging.getLogger(__name__)
 VectorStoreInfoType = Union[str, VectorStore]
 
 class VectorIndexing(NodeHandler):
+    """
+    Handles vector indexing operations, including interacting with vector stores and managing batch operations.
 
+    This class provides tools to index vectors from nodes, allowing for integration with vector stores. It facilitates
+    operations such as batch writes and handling embedding indexing, making it easier to process and store large amounts
+    of vector data. The class supports flexible configuration and provides mechanisms to manage and optimize vector
+    processing using external vector stores.
+
+    Attributes:
+        vector_store (VectorStore): The vector store instance used for vector indexing and operations.
+    """
     @staticmethod
     def for_vector_store(vector_store_info:VectorStoreInfoType=None, index_names=DEFAULT_EMBEDDING_INDEXES, **kwargs):
+        """
+        Creates a VectorIndexing instance for the given vector store configuration.
+
+        This method is used to create a VectorIndexing object that wraps around
+        a vector store. The vector store can be directly passed as an instance
+        of VectorStore or indirectly specified using configuration parameters
+        through the factory method.
+
+        Args:
+            vector_store_info: Optional; Configuration or instance of the vector
+                store. If it is an instance of VectorStore, it will be directly
+                used. Otherwise, it should represent configuration parameters
+                required to create a vector store using the factory.
+            index_names: List of default index names that will be utilized for
+                embedding lookups. If not specified, defaults to
+                DEFAULT_EMBEDDING_INDEXES.
+            **kwargs: Additional keyword arguments to configure the vector store
+                when created indirectly through the factory.
+
+        Returns:
+            VectorIndexing: An instance of VectorIndexing configured with the
+            specified vector store.
+
+        Raises:
+            TypeError: If the provided arguments are not compatible with the
+            vector store configuration or creation requirements.
+
+        """
         if isinstance(vector_store_info, VectorStore):
             return VectorIndexing(vector_store=vector_store_info)
         else:
@@ -29,7 +67,32 @@ class VectorIndexing(NodeHandler):
     vector_store:VectorStore
 
     def accept(self, nodes: List[BaseNode], **kwargs: Any):
+        """
+        Processes and yields nodes for vector indexing using a batch client.
 
+        This function processes the given list of nodes to build vector indices.
+        It uses a batch client to handle batch operations if batch writes are enabled.
+        Nodes can be processed with optional progress display, and vector indexing is
+        applied based on metadata. If any error occurs during indexing, it is logged
+        and re-raised. Nodes are yielded either individually or in batches based on
+        batch operations.
+
+        Args:
+            nodes (List[BaseNode]): A list of nodes to be indexed into the vector store.
+            **kwargs (Any): Additional configuration options including:
+                - batch_writes_enabled (bool): Determines whether batch operations are
+                  enabled.
+                - batch_write_size (int): Specifies the size of batches for batch
+                  operations.
+
+        Yields:
+            BaseNode: Nodes after they are processed and indexed, either individually or
+            in batches.
+
+        Raises:
+            Exception: Re-raises any exceptions that occur during vector indexing with
+            logging.
+        """
         batch_writes_enabled = kwargs.pop('batch_writes_enabled')
         batch_write_size = kwargs.pop('batch_write_size')
 

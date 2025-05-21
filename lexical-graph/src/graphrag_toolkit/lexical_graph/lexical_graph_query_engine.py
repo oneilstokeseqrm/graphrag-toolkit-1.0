@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-        
+
 import json
 import yaml
 import logging
@@ -39,17 +39,57 @@ logger = logging.getLogger(__name__)
 RetrieverType = Union[BaseRetriever, Type[BaseRetriever]]
 PostProcessorsType = Union[BaseNodePostprocessor, List[BaseNodePostprocessor]]
 
-class LexicalGraphQueryEngine(BaseQueryEngine):
 
+class LexicalGraphQueryEngine(BaseQueryEngine):
+    """
+    Defines the LexicalGraphQueryEngine class, which serves as a query engine for retrieving and generating responses
+    from graph and vector stores using different retrieval strategies.
+
+    This class provides methods for constructing instances for traversal-based and semantic-guided search, configuring
+    retrievers, post-processors, and managing prompts for response generation. The engine processes queries, retrieves
+    relevant information from the underlying stores, formats the context, and generates responses using an LLM.
+
+    Attributes:
+        context_format (str): Format in which the retrieved context data is processed (e.g., 'json', 'text', 'bedrock_xml').
+        llm (LLMCacheType): Language model used for generating responses based on retrieved context and query.
+        chat_template (ChatPromptTemplate): Template used for constructing conversation prompts for the LLM.
+        retriever (BaseRetriever): Retriever instance used for fetching relevant data based on queries.
+        post_processors (list): List of post-processor objects for processing retrieved nodes before generating responses.
+    """
     @staticmethod
-    def for_traversal_based_search(graph_store:GraphStoreType, 
-                                   vector_store:VectorStoreType, 
-                                   tenant_id:Optional[TenantIdType]=None,
-                                   retrievers:Optional[List[WeightedTraversalBasedRetrieverType]]=None,
-                                   post_processors:Optional[PostProcessorsType]=None, 
-                                   filter_config:FilterConfig=None,
+    def for_traversal_based_search(graph_store: GraphStoreType,
+                                   vector_store: VectorStoreType,
+                                   tenant_id: Optional[TenantIdType] = None,
+                                   retrievers: Optional[List[WeightedTraversalBasedRetrieverType]] = None,
+                                   post_processors: Optional[PostProcessorsType] = None,
+                                   filter_config: FilterConfig = None,
                                    **kwargs):
-        
+        """
+        Constructs an instance of LexicalGraphQueryEngine configured for traversal-based search.
+
+        This method initializes and configures the required components such as graph store, vector store,
+        retriever, and other related configurations, ensuring compatibility with multi-tenant setups.
+
+        Args:
+            graph_store: The graph storage backend used to retrieve and store graph data. It is
+            wrapped with multi-tenant support and configured for usage within the engine.
+            vector_store: The vector storage backend used for handling vector-based search and retrieval.
+            It is wrapped with read-only and multi-tenant capability encapsulations.
+            tenant_id: Optional tenant identifier to distinguish data in a multi-tenant environment.
+            When not supplied, defaults to the current tenant context or None.
+            retrievers: Optional list of weighted traversal-based retriever instances. These are used
+            to define specific retrieval strategies and weighting within the composite retriever.
+            post_processors: Optional post-processing components applied to the results of the query
+            engine. These can be used to modify or augment the output of retrieval operations.
+            filter_config: Configurations for filtering the retrieval results, allowing for enhanced
+            query precision and customization. Defaults to a new FilterConfig instance if not provided.
+            **kwargs: Additional keyword arguments to customize or extend retrieval and processing
+                behaviors within the query engine.
+
+        Returns:
+            LexicalGraphQueryEngine: A configured instance of the query engine for traversal-based
+                search, encapsulating all specified stores, retrievers, and configurations.
+        """
         tenant_id = to_tenant_id(tenant_id)
         filter_config = filter_config or FilterConfig()
         
@@ -57,24 +97,24 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             GraphStoreFactory.for_graph_store(graph_store), 
             tenant_id
         ) 
-        
-        vector_store = ReadOnlyVectorStore.wrap( 
+
+        vector_store = ReadOnlyVectorStore.wrap(
             MultiTenantVectorStore.wrap(
-                VectorStoreFactory.for_vector_store(vector_store), 
+                VectorStoreFactory.for_vector_store(vector_store),
                 tenant_id
             )
         )
-        
+
         retriever = CompositeTraversalBasedRetriever(
-            graph_store, 
-            vector_store, 
+            graph_store,
+            vector_store,
             retrievers=retrievers,
             filter_config=filter_config,
             **kwargs
         )
-        
+
         return LexicalGraphQueryEngine(
-            graph_store, 
+            graph_store,
             vector_store,
             tenant_id=tenant_id,
             retriever=retriever,
@@ -83,31 +123,56 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             filter_config=filter_config,
             **kwargs
         )
-    
+
     @staticmethod
-    def for_semantic_guided_search(graph_store:GraphStoreType, 
-                                   vector_store:VectorStoreType, 
-                                   tenant_id:Optional[TenantIdType]=None,
-                                   retrievers:Optional[List[SemanticGuidedRetrieverType]]=None,
-                                   post_processors:Optional[PostProcessorsType]=None, 
-                                   filter_config:FilterConfig=None,
+    def for_semantic_guided_search(graph_store: GraphStoreType,
+                                   vector_store: VectorStoreType,
+                                   tenant_id: Optional[TenantIdType] = None,
+                                   retrievers: Optional[List[SemanticGuidedRetrieverType]] = None,
+                                   post_processors: Optional[PostProcessorsType] = None,
+                                   filter_config: FilterConfig = None,
                                    **kwargs):
-        
+        """
+        Creates and configures an instance of `LexicalGraphQueryEngine` for semantic-guided
+        search. This method facilitates the setup of a multi-tenant graph store and vector
+        store, along with specified or default retrievers, filter configurations, and
+        optional post-processors for the search process. This is useful for performing
+        semantic-guided search using a combination of retrievers and post processors
+        tailored for a specific tenant or configuration.
+
+        Args:
+            graph_store: The base graph store instance to be wrapped for multi-tenant usage.
+            vector_store: The base vector store instance to be wrapped for multi-tenant usage.
+            tenant_id: An optional unique identifier for the tenant. If not provided, a
+            default tenant ID is derived.
+            retrievers: An optional list of retrievers for semantic-guided search. If not
+            supplied, a default set of retrievers is created.
+            post_processors: An optional collection of post-processors to apply after
+            retrieving search results.
+            filter_config: The filtering configuration options to apply within the search
+            process. A default configuration is used if none is provided.
+            **kwargs: Additional optional keyword arguments to pass to `SemanticGuidedRetriever`
+            and `LexicalGraphQueryEngine`.
+
+        Returns:
+            LexicalGraphQueryEngine: A configured instance for performing semantic-guided search
+            on the provided graph and vector store.
+        """
         tenant_id = to_tenant_id(tenant_id)
         filter_config = filter_config or FilterConfig()
-        
-        graph_store =  MultiTenantGraphStore.wrap(
-            GraphStoreFactory.for_graph_store(graph_store), 
+
+        graph_store = MultiTenantGraphStore.wrap(
+            GraphStoreFactory.for_graph_store(graph_store),
             tenant_id
         )
 
-        vector_store = ReadOnlyVectorStore.wrap( 
+        vector_store = ReadOnlyVectorStore.wrap(
             MultiTenantVectorStore.wrap(
-                VectorStoreFactory.for_vector_store(vector_store), 
+                VectorStoreFactory.for_vector_store(vector_store),
                 tenant_id
             )
         )
-        
+
         retrievers = retrievers or [
             StatementCosineSimilaritySearch(
                 vector_store=vector_store,
@@ -129,7 +194,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                 filter_config=filter_config
             )
         ]
-        
+
         retriever = SemanticGuidedRetriever(
             vector_store=vector_store,
             graph_store=graph_store,
@@ -137,10 +202,10 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             share_results=True,
             filter_config=filter_config,
             **kwargs
-        ) 
-        
+        )
+
         return LexicalGraphQueryEngine(
-            graph_store, 
+            graph_store,
             vector_store,
             tenant_id=tenant_id,
             retriever=retriever,
@@ -150,29 +215,52 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             **kwargs
         )
 
-
-    def __init__(self, 
-                 graph_store:GraphStoreType,
-                 vector_store:VectorStoreType,
-                 tenant_id:Optional[TenantIdType]=None,
-                 llm:LLMCacheType=None,
-                 system_prompt:Optional[str]=ANSWER_QUESTION_SYSTEM_PROMPT,
-                 user_prompt:Optional[str]=ANSWER_QUESTION_USER_PROMPT,
-                 retriever:Optional[RetrieverType]=None,
-                 post_processors:Optional[PostProcessorsType]=None,
-                 callback_manager: Optional[CallbackManager]=None, 
-                 filter_config:FilterConfig=None,
+    def __init__(self,
+                 graph_store: GraphStoreType,
+                 vector_store: VectorStoreType,
+                 tenant_id: Optional[TenantIdType] = None,
+                 llm: LLMCacheType = None,
+                 system_prompt: Optional[str] = ANSWER_QUESTION_SYSTEM_PROMPT,
+                 user_prompt: Optional[str] = ANSWER_QUESTION_USER_PROMPT,
+                 retriever: Optional[RetrieverType] = None,
+                 post_processors: Optional[PostProcessorsType] = None,
+                 callback_manager: Optional[CallbackManager] = None,
+                 filter_config: FilterConfig = None,
                  **kwargs):
-        
+        """
+        Initializes an instance of the class with the given parameters and sets up necessary components such as
+        graph and vector stores, LLM, chat template, retriever, and post-processors. Handles configuration for
+        multi-tenant use cases, context formatting, and callback management.
+
+        Args:
+            graph_store: The graph store implementation used for storing and retrieving graph data.
+            vector_store: The vector store implementation used for storing and retrieving vector data.
+            tenant_id: Optional tenant identifier used to enable multi-tenant functionality. Defaults to None.
+            llm: The language model to be used. If not provided, it uses a default LLM configuration. Defaults to None.
+            system_prompt: Optional system-level prompt to be used in the chat template. Defaults to
+                ANSWER_QUESTION_SYSTEM_PROMPT.
+            user_prompt: Optional user-level prompt to be used in the chat template. Defaults to
+                ANSWER_QUESTION_USER_PROMPT.
+            retriever: Optional custom retriever implementation. If not provided, a default CompositeTraversalBasedRetriever
+                instance is created. Defaults to None.
+            post_processors: Optional list of post-processing components or a single post-processor. If not provided,
+                an empty list is initialized unless context formatting requires specific additions. Defaults to None.
+            callback_manager: Optional callback manager for managing event callbacks in the processing workflow. Defaults
+                to None.
+            filter_config: An optional configuration object specifying filter criteria for retrieving data during
+                processing. Defaults to None.
+            **kwargs: Additional arguments that may be passed for extended functionality, including custom context
+                formatting or retriever behavior.
+        """
         tenant_id = to_tenant_id(tenant_id)
-        
-        graph_store =  MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id) 
-        vector_store = ReadOnlyVectorStore.wrap( 
+
+        graph_store = MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id)
+        vector_store = ReadOnlyVectorStore.wrap(
             MultiTenantVectorStore.wrap(VectorStoreFactory.for_vector_store(vector_store), tenant_id)
         )
 
         self.context_format = kwargs.get('context_format', 'json')
-        
+
         self.llm = llm if llm and isinstance(llm, LLMCache) else LLMCache(
             llm=llm or GraphRAGConfig.response_llm,
             enable_cache=GraphRAGConfig.enable_cache
@@ -201,15 +289,29 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
         if callback_manager:
             for post_processor in self.post_processors:
                 post_processor.callback_manager = callback_manager
-        
 
         super().__init__(callback_manager)
 
     def _generate_response(
-        self, 
-        query_bundle: QueryBundle, 
-        context: str
+            self,
+            query_bundle: QueryBundle,
+            context: str
     ) -> str:
+        """
+        Generates a response to a query by utilizing a language model with the provided query
+        and context. The method applies a pre-defined chat template in conjunction with the
+        query and search results, returning the language model's prediction as a response.
+
+        Args:
+            query_bundle: An object containing structured query information, including the query
+                string needed for response generation.
+            context: A string representing context or search results that augment the query
+                information during response generation.
+
+        Returns:
+            str: The generated response provided by the language model based on the input query
+            and context.
+        """
         try:
             response = self.llm.predict(
                 prompt=self.chat_template,
@@ -220,8 +322,23 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
         except Exception:
             logger.exception(f'Error answering query [query: {query_bundle.query_str}, context: {context}]')
             raise
-            
+
     def _format_as_text(self, json_results):
+        """
+        Formats the given JSON results into a text representation with specific formatting. Each item in the JSON
+        results is processed to include its topic, associated statements, and source. The output is a concatenation
+        of these formatted components.
+
+        Args:
+            json_results (list[dict]): A list of dictionaries where each dictionary represents a result.
+                Each dictionary must contain the following keys:
+                - topic (str): The topic of the result.
+                - statements (list[str]): A list of statements related to the topic.
+                - source (str): The source where the result originated from.
+
+        Returns:
+            str: A string representation of the formatted results, including the topics, statements, and sources.
+        """
         lines = []
         for json_result in json_results:
             lines.append(f"""## {json_result['topic']}""")
@@ -229,16 +346,34 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             lines.append(f"""[Source: {json_result['source']}]""")
             lines.append('\n')
         return '\n'.join(lines)
-    
-    def _format_context(self, search_results:List[NodeWithScore], context_format:str='json'):
 
+    def _format_context(self, search_results: List[NodeWithScore], context_format: str = 'json'):
+        """
+        Formats the provided search results into the specified context format.
+
+        This method processes a list of search results in a specified format
+        (e.g., JSON, YAML, XML, text). It converts the input into the required
+        output format, enabling easier consumption of the processed data.
+
+        Args:
+            search_results (List[NodeWithScore]): A list of search result
+                objects, each containing a `text` attribute with the result
+                content.
+            context_format (str): The desired format for the output data.
+                Supported formats include 'json', 'yaml', 'xml', 'text',
+                and 'bedrock_xml'. Defaults to 'json'.
+
+        Returns:
+            str: The search results formatted as per the specified
+                `context_format`.
+        """
         if context_format == 'bedrock_xml':
             return '\n'.join([result.text for result in search_results])
-        
+
         json_results = [json.loads(result.text) for result in search_results]
-        
+
         data = None
-        
+
         if context_format == 'yaml':
             data = yaml.dump(json_results, sort_keys=False)
         elif context_format == 'xml':
@@ -247,15 +382,27 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             data = self._format_as_text(json_results)
         else:
             data = json.dumps(json_results, indent=2)
-        
-        return data
-    
-    def retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
 
+        return data
+
+    def retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
+        """
+        Retrieve nodes relevant to a given query bundle and process them using a series of
+        post-processing steps. This method facilitates retrieval and post-processing of query
+        results in order to return a set of relevant nodes with their associated scores.
+
+        Args:
+            query_bundle: A `QueryBundle` object containing details of the query to be
+                executed. If a string is provided, it is converted into a `QueryBundle`.
+
+        Returns:
+            List[NodeWithScore]: A list of nodes with their corresponding scores, sorted by
+                relevance to the provided query.
+        """
         query_bundle = QueryBundle(query_bundle) if isinstance(query_bundle, str) else query_bundle
 
         query_bundle = to_embedded_query(query_bundle, GraphRAGConfig.embed_model)
-                
+
         results = self.retriever.retrieve(query_bundle)
 
         for post_processor in self.post_processors:
@@ -263,15 +410,32 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
 
         return results
 
- 
     def _query(self, query_bundle: QueryBundle) -> RESPONSE_TYPE:
+        """
+        Executes a query against the system and processes the results to generate a
+        final response. The method applies embedding on the query, retrieves relevant
+        data, processes the data through registered post-processors, formats the
+        context, and generates a response.
 
+        Args:
+            query_bundle: An instance of QueryBundle containing the query string and
+                additional data required for the query.
+
+        Returns:
+            Response: An instance of the Response class. It contains the generated
+                response, the source nodes used for building the response, and
+                metadata such as timing details and applied configurations.
+
+        Raises:
+            Exception: If any error occurs during query processing, it is logged and
+                re-raised.
+        """
         try:
-        
+
             start = time.time()
 
             query_bundle = to_embedded_query(query_bundle, GraphRAGConfig.embed_model)
-                
+
             results = self.retriever.retrieve(query_bundle)
 
             end_retrieve = time.time()
@@ -283,13 +447,13 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
 
             context = self._format_context(results, self.context_format)
             answer = self._generate_response(query_bundle, context)
-            
+
             end = time.time()
 
-            retrieve_ms = (end_retrieve-start) * 1000
+            retrieve_ms = (end_retrieve - start) * 1000
             postprocess_ms = (end_postprocessing - end_retrieve) * 1000
-            answer_ms = (end-end_retrieve) * 1000
-            total_ms = (end-start) * 1000
+            answer_ms = (end - end_retrieve) * 1000
+            total_ms = (end - start) * 1000
 
             metadata = {
                 'retrieve_ms': retrieve_ms,
@@ -312,10 +476,10 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
         except Exception as e:
             logger.exception('Error in query processing')
             raise
-        
+
     async def _aquery(self, query_bundle: QueryBundle) -> RESPONSE_TYPE:
         pass
-        
+
     def _get_prompts(self) -> PromptDictType:
         pass
 
@@ -323,4 +487,4 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
         pass
 
     def _update_prompts(self, prompts_dict: PromptDictType) -> None:
-        pass 
+        pass

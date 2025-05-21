@@ -1,14 +1,14 @@
 [[Home](./)]
 
-## Overview
+## Overview for using SageMaker in the Cloud
 
 The graphrag-toolkit [lexical-graph](../../lexical-graph/) library provides a framework for automating the construction of a [hierarchical lexical graph](graph-model.md) (a graph representing textual elements at several levels of granularity extracted from source documents) from unstructured data, and composing question-answering strategies that query this graph when answering user questions.
 
 ### Stores and model providers
 
-The lexical-graph library depends on three backend systems: a [_graph store_](./storage-model.md#graph-store), a [_vector store_](./storage-model.md#vector-store), and a _foundation model provider_. The graph store allows an application to store and query a lexical graph that has been extracted from unstuctured, text-based sources. The vector store contains one or more indexes with emebddings for some of the elements in the lexical graph. These embeddings are primarily used to find starting points in the graph when the library runs a graph query. The foundation model provider hosts the Large Language Models (LLMs) and embedding models used to extract and embed information.
+The lexical-graph library depends on three backend systems: a [_graph store_](./storage-model.md#graph-store), a [_vector store_](./storage-model.md#vector-store), and a _foundation model provider_. The graph store allows an application to store and query a lexical graph that has been extracted from unstructured, text-based sources. The vector store contains one or more indexes with emebddings for some of the elements in the lexical graph. These embeddings are primarily used to find starting points in the graph when the library runs a graph query. The foundation model provider hosts the Large Language Models (LLMs) and embedding models used to extract and embed information.
 
-The library has built-in graph store support for [Amazon Neptune Analytics](https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html) and [Amazon Neptune Database](https://docs.aws.amazon.com/neptune/latest/userguide/intro.html), and built-in vector store support for Neptune Analytics, [Amazon OpenSearch Serverless](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless.html) and Postgres with the pgvector extension. It is configured to use Amazon Bedrock as its foundation model provider. Besides these defaults, the library can be extended to support other third-party backends.
+The library has built-in graph store support for [Amazon Neptune Analytics](https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html) and [Amazon Neptune Database](https://docs.aws.amazon.com/neptune/latest/userguide/intro.html), and built-in vector store support for Neptune Analytics, [Amazon OpenSearch Serverless](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless.html), and Postgres with the pgvector extension. It is configured to use Amazon Bedrock as its foundation model provider. Besides these defaults, the library can be extended to support other third-party backends.
 
 ### Indexing and querying
 
@@ -66,6 +66,43 @@ Implementers using the lexical-graph library are responsible for securing access
 
 Irrespective of the policies applied to the identity under which the a lexical-graph application runs, the library always Sigv4 signs requests to AWS resources. Connections always use TLS version 1.3.
 
+## Overview for using a hybrid approach, Local Desktop and SageMaker
+
+### Stores and model providers
+
+The `lexical-graph` library depends on three backend systems: a [*graph store*](./storage-model.md#graph-store), a [*vector store*](./storage-model.md#vector-store), and a *foundation model provider*. The graph store enables storage and querying of a lexical graph built from unstructured, text-based sources. The vector store contains one or more indexes with embeddings for selected graph elements, which help identify starting points for graph queries. The foundation model provider hosts the Large Language Models (LLMs) used for extraction and embedding.
+
+The library provides built-in support for:
+
+* Graph stores: [Amazon Neptune Database](https://docs.aws.amazon.com/neptune/latest/userguide/intro.html), [Amazon Neptune Analytics](https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html), and local [FalkorDB](https://falkordb.com/) (via Docker)
+* Vector stores: [Amazon OpenSearch Serverless](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless.html), [PostgreSQL with `pgvector`](https://github.com/pgvector/pgvector), Neptune Analytics, and local [PostgreSQL with `pgvector`](https://github.com/pgvector/pgvector)
+* Foundation model provider: [Amazon Bedrock](https://aws.amazon.com/bedrock/)
+
+This hybrid configuration enables flexible deployment: high-throughput LLM inference via SageMaker and Bedrock, and cost-effective local development using containerized graph/vector stores.
+
+
+### Indexing and querying
+
+The lexical-graph library implements two high-level processes: [_indexing_](./indexing.md) and [_querying_](./querying.md). The indexing process ingests and extracts information from unstuctured, text-based source documents and then builds a graph and accompanying vector indexes. The query process retrieves content from the graph and vector indexes, and then supplies this content as context to an LLM to answer a user question.
+
+### Indexing
+
+Indexing is split into two pipeline stages: **Extract** and **Build**.
+
+The **Extract** stage runs **locally using Docker**:
+
+* Loads and chunks documents
+* Performs two LLM-based extraction steps:
+
+  * *Proposition extraction*: Converts chunked text into well-formed statements
+  * *Topic/entity/fact extraction*: Identifies relations and concepts
+* Stores the extracted results in an **AWS S3 bucket**, serving as the transport medium between stages
+
+The **Build** stage remains unchanged.
+
+
+![Indexing](../../images/hybrid-extract-and-build.png)
+
 ### Getting started
 
 You can get up-and-running with a fresh AWS environment using one of the [quickstart AWS CloudFormation templates](../../examples/lexical-graph/cloudformation-templates/) supplied with the repository. Each of the quickstart templates creates an Amazon SageMaker-hosted Jupyter notebook containing several [example notebooks](../../examples/lexical-graph/notebooks/) that show you how to use the library to index and query content.
@@ -84,4 +121,7 @@ Choose from the following templates:
    - Amazon Neptune Database cluster with a single Neptune serverless instance
    - Amazon Aurora Postgres Database cluster with a single serverless instance
    - Amazon SageMaker notebook with sample code
-
+ - [`graphrag-toolkit-neptune-db-aurora-postgres-existing-vpc.json`](../../examples/lexical-graph/cloudformation-templates/graphrag-toolkit-neptune-db-aurora-postgres.json) creates the following lexical-graph environment:
+   - Amazon Neptune Database cluster with a single Neptune serverless instance
+   - Amazon Aurora Postgres Database cluster with a single serverless instance
+   - Amazon SageMaker notebook with sample code

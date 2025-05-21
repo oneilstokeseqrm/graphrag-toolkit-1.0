@@ -6,7 +6,31 @@ from typing import Optional, List
 
 @dataclass
 class BatchConfig:
-    role_arn:str 
+    """
+    Configuration for batch processing settings.
+
+    This class provides a structure for configuring batch processing, including
+    AWS settings like role ARN, region, and S3 bucket details, as well as network
+    and batch control parameters. It is designed to facilitate batch operations
+    by defining a standardized schema for batch-related configurations.
+
+    Attributes:
+        role_arn (str): ARN of the IAM role used for batch processing.
+        region (str): AWS region where the batch processing will take place.
+        bucket_name (str): Name of the S3 bucket used for storing batch-related
+            data.
+        key_prefix (Optional[str]): Optional prefix for keys in the S3 bucket.
+        s3_encryption_key_id (Optional[str]): KMS key ID used for S3 encryption,
+            if any.
+        subnet_ids (List[str]): List of subnet IDs used for the network
+            configuration of the batch processing.
+        security_group_ids (List[str]): List of security group IDs applied to the
+            batch processing tasks.
+        max_batch_size (int): Maximum size of a single batch. Default is 25000.
+        max_num_concurrent_batches (int): Maximum number of concurrent batches
+            allowed. Default is 3.
+    """
+    role_arn:str
     region:str
     bucket_name:str
     key_prefix:Optional[str]=None

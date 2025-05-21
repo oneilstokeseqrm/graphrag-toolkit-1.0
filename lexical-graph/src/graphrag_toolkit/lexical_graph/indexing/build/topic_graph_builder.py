@@ -13,13 +13,51 @@ from llama_index.core.schema import BaseNode
 logger = logging.getLogger(__name__)
 
 class TopicGraphBuilder(GraphBuilder):
-    
+    """
+    Handles the construction of a topic graph within a graph-based data store.
+
+    This class is a specialized implementation of `GraphBuilder` that focuses on
+    building and inserting topic-related information into a graph database. It
+    validates the topic metadata, constructs the necessary graph relationships
+    and nodes, and executes the insertion logic using the provided graph client.
+
+    Attributes:
+        node_id (Callable): A callable function from the `GraphStore` class used
+            to generate a unique identifier for nodes in the graph.
+
+        execute_query_with_retry (Callable): A callable function from the
+            `GraphStore` class used to execute queries with retry mechanisms.
+    """
     @classmethod
     def index_key(cls) -> str:
+        """
+        Returns the key used for indexing objects of this class.
+
+        This method is a class-level method that provides a consistent indexing
+        key for all objects belonging to this class. It ensures uniformity when
+        storing or retrieving class instances using a common key identifier.
+
+        Returns:
+            str: A string value representing the index key for the class.
+        """
         return 'topic'
     
     def build(self, node:BaseNode, graph_client: GraphStore, **kwargs:Any):
-            
+        """
+        Builds a topic node and its relationships in the graph database.
+
+        This method takes a BaseNode object, processes its metadata to extract topic
+        information, and creates or updates nodes and relationships in the graph
+        database using the provided graph client. If the metadata contains topic data,
+        it validates it, constructs the necessary query, and executes it in the graph
+        store. If no topic data exists in the metadata, a warning is logged.
+
+        Args:
+            node: A BaseNode instance containing metadata about the topic.
+            graph_client: A GraphStore instance used to execute queries against the
+                graph database.
+            **kwargs: Additional arguments for customization or further processing.
+        """
         topic_metadata = node.metadata.get('topic', {})
 
         if topic_metadata:

@@ -2,7 +2,7 @@
 
 This guide explains how to configure and use **AWS named profiles** in the lexical-graph by leveraging the `GraphRAGConfig` class.
 
-## 🔍 What is an AWS Profile?
+## What is an AWS Profile?
 
 AWS CLI and SDKs allow the use of named profiles to manage different sets of credentials. Each profile typically contains:
 - Access key ID
@@ -92,7 +92,7 @@ bedrock = GraphRAGConfig.bedrock  # Will use dev-profile in us-west-2
 
 ---
 
-## ❗Common Pitfalls
+## Common Pitfalls
 
 - **Missing Profile**: Ensure the profile exists in `~/.aws/credentials` and is not misspelled.
 - **Access Denied**: Check IAM permissions for the services you're trying to access.

@@ -28,6 +28,29 @@ from llama_index.core.prompts import PromptTemplate
 logger = logging.getLogger(__name__)
 
 class BatchTopicExtractor(BaseExtractor):
+    """
+    Handles batch topic extraction processes, utilizing LLMs and external services for generating
+    and processing topic-related data for text inputs in batches.
+
+    This class is primarily designed to facilitate the efficient processing of large datasets by
+    splitting input data into manageable batches, generating topic extraction prompts, and
+    managing asynchronous tasks for data upload, batch processing, and output handling. It
+    employs LLM (Language Model) inference and integrates with external systems like S3
+    and Bedrock for input handling, batch processing, and result retrieval.
+
+    Attributes:
+        batch_config (BatchConfig): Configuration object containing batch inference settings.
+        llm (Optional[LLMCache]): An instance of LLMCache to manage caching and interaction
+            with the specified language model.
+        prompt_template (str): A template to define the format of prompts for topic extraction.
+        source_metadata_field (Optional[str]): Metadata field used as input for topic
+            extraction, if specified.
+        batch_inference_dir (str): Directory path where batch input and result files are stored.
+        entity_classification_provider (ScopedValueProvider): Provider for retrieving entity
+            classifications in the current scope.
+        topic_provider (ScopedValueProvider): Provider for retrieving topics in the current
+            scope.
+    """
     batch_config:BatchConfig = Field('Batch inference config')
     llm:Optional[LLMCache] = Field(
         description='The LLM to use for extraction'
@@ -40,6 +63,14 @@ class BatchTopicExtractor(BaseExtractor):
 
     @classmethod
     def class_name(cls) -> str:
+        """
+        Returns the class name of the batch topic extractor.
+
+        This method is a class method and provides the name of the class as a string.
+
+        Returns:
+            str: The name of the class, which is 'BatchTopicExtractor'.
+        """
         return 'BatchTopicExtractor'
     
     def __init__(self, 
@@ -50,7 +81,23 @@ class BatchTopicExtractor(BaseExtractor):
                  batch_inference_dir:str = None,
                  entity_classification_provider:Optional[ScopedValueProvider]=None,
                  topic_provider:Optional[ScopedValueProvider]=None):
-        
+        """
+        Initializes an instance of the class with configuration details for batch processing,
+        language model, prompt templates, metadata fields, directory for batch inference,
+        entity classification provider, and topic provider.
+
+        Args:
+            batch_config: Configuration object specifying batch processing details.
+            llm: Instance of a language model cache or a language model, defining the desired
+                behavior for processing.
+            prompt_template: Template string used to create prompts for processing.
+            source_metadata_field: Optional metadata field in the source data to be considered
+                during processing.
+            batch_inference_dir: Directory path where batch inference outputs will be stored.
+            entity_classification_provider: Scoped value provider for entity classification settings.
+            topic_provider: Scoped value provider for topic settings based on the given scope.
+
+        """
         super().__init__(
             batch_config = batch_config,
             llm = llm if llm and isinstance(llm, LLMCache) else LLMCache(
@@ -69,15 +116,68 @@ class BatchTopicExtractor(BaseExtractor):
         self._prepare_directory(self.batch_inference_dir)
 
     def _prepare_directory(self, dir):
+        """
+        Prepares a directory by creating it if it does not already exist.
+
+        This function ensures that the specified directory exists. If the directory
+        does not exist, it is created with the specified permissions.
+
+        Args:
+            dir (str): The path of the directory to prepare.
+
+        Returns:
+            str: The path to the prepared directory.
+        """
         if not os.path.exists(dir):
             os.makedirs(dir, exist_ok=True)
         return dir
     
     def _get_metadata_or_default(self, metadata, key, default):
+        """
+        Retrieve the value associated with a given key from the metadata
+        dictionary. If the key does not exist, return the provided default.
+        The function ensures that if the retrieved value is falsy, the
+        default value is returned instead.
+
+        Args:
+            metadata (dict): The metadata dictionary to search.
+            key (Any): The key whose value needs to be retrieved.
+            default (Any): The default value to return if the key is not
+                found or its value is falsy.
+
+        Returns:
+            Any: The value associated with the given key or the default
+            value if the key is not present or its value is falsy.
+        """
         value = metadata.get(key, default)
         return value or default
     
     async def process_single_batch(self, batch_index:int, node_batch:List[TextNode], s3_client, bedrock_client):
+        """
+        Processes a single batch of text nodes through multiple workflow stages, including record creation, S3 bucket
+        upload, batch job invocation using Bedrock, and result processing.
+
+        This function performs the following steps:
+        1. Creates input files for batch inference, including formatting text based on metadata, generating message prompts,
+           and preparing JSONL files.
+        2. Uploads the generated input files to an AWS S3 bucket based on the configuration.
+        3. Invokes a Bedrock batch job for topic extraction using the prepared inputs.
+        4. Downloads and processes the output files generated during the batch job.
+        5. Returns the processed batch results for further utilization.
+
+        Args:
+            batch_index (int): The index of the current batch being processed.
+            node_batch (List[TextNode]): A list of text nodes to process in this batch.
+            s3_client: The S3 client instance used for file handling with the S3 bucket.
+            bedrock_client: The Bedrock client instance for invoking and interacting with the batch job.
+
+        Returns:
+            List: The results after processing the outputs of the batch job.
+
+        Raises:
+            BatchJobError: If any error occurs during batch processing, an exception is raised, providing details
+            of the batch index and error context.
+        """
         try:
             timestamp = datetime.now().strftime("%Y%m%d-%H%M%S") 
             input_filename = f'topic_extraction_{timestamp}_{batch_index}.jsonl'
@@ -175,7 +275,20 @@ class BatchTopicExtractor(BaseExtractor):
             raise BatchJobError(f'Error processing batch {batch_index}: {str(e)}') from e 
         
     async def aextract(self, nodes: Sequence[BaseNode]) -> List[Dict]:
+        """
+        Asynchronously processes a sequence of nodes, extracting topics based on Bedrock configurations
+        or fallback TopicExtractor, and parallelizes processing in batches for performance efficiency.
 
+        Args:
+            nodes (Sequence[BaseNode]): A sequence of nodes to process and extract topics from.
+
+        Returns:
+            List[Dict]: A list of dictionaries containing extracted topics for each node.
+
+        Raises:
+            No specific exceptions explicitly raised by this function.
+
+        """
         if len(nodes) < BEDROCK_MIN_BATCH_SIZE:
             logger.debug(f'List of nodes contains fewer records ({len(nodes)}) than the minimum required by Bedrock ({BEDROCK_MIN_BATCH_SIZE}), so running TopicExtractor instead')
             extractor = TopicExtractor( 
@@ -186,7 +299,7 @@ class BatchTopicExtractor(BaseExtractor):
             )
             return await extractor.aextract(nodes)
 
-        #TODO: Review
+
         s3_client = GraphRAGConfig.s3
         bedrock_client = GraphRAGConfig.bedrock
 
@@ -199,6 +312,16 @@ class BatchTopicExtractor(BaseExtractor):
         semaphore = asyncio.Semaphore(self.batch_config.max_num_concurrent_batches)
 
         async def process_batch_with_semaphore(batch_index, node_batch):
+            """
+            An asynchronous extractor that processes batches of nodes to perform topic
+            extraction. This class extends the BaseExtractor and provides functionality
+            to handle batch extraction in an asynchronous manner. It leverages semaphores
+            to control concurrent access to shared resources while processing batches.
+
+            Methods:
+                aextract: The main asynchronous function to extract topics from a
+                sequence of nodes in batches.
+            """
             async with semaphore:
                 return await self.process_single_batch(batch_index, node_batch, s3_client, bedrock_client)
 

@@ -14,7 +14,29 @@ from llama_index.core.schema import QueryBundle
 logger = logging.getLogger(__name__)
 
 def get_diverse_vss_elements(index_name:str, query_bundle: QueryBundle, vector_store:VectorStore, args:ProcessorArgs, filter_config:Optional[FilterConfig]):
+    """
+    Retrieve diverse elements from a vector search system (VSS) by applying a diversity
+    factor to limit redundancy among results.
 
+    This function queries a vector store using the provided query, index, and filter
+    configuration, then applies a diversity mechanism to return results with more
+    heterogeneity. The diversity factor determines the level of diversification among
+    the results.
+
+    Args:
+        index_name (str): Name of the index to search in the vector store.
+        query_bundle (QueryBundle): Query object containing the necessary details for
+            executing the search.
+        vector_store (VectorStore): Vector store instance to query for retrieving the
+            elements.
+        args (ProcessorArgs): Arguments object containing configurations for top-k
+            results and the diversity factor.
+        filter_config (Optional[FilterConfig]): Optional filter configuration to
+            refine the query results.
+
+    Returns:
+        list: A list of diverse elements from the vector store result set.
+    """
     diversity_factor = args.vss_diversity_factor
     vss_top_k = args.vss_top_k
 
