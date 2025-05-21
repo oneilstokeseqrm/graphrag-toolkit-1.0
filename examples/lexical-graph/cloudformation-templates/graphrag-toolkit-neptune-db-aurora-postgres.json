@@ -78,7 +78,7 @@
 		},
 		"IamPolicyArn": {
 			"Type": "String",
-			"Description": "ARN of an additional IAM policy to be attached to the GraphRAG client IAM role (optional)",
+			"Description": "Space-separated ARNs of one or more additional IAM policies to be attached to the GraphRAG client IAM role (optional)",
 			"Default": ""
 		},
 		"NotebookInstanceType": {
