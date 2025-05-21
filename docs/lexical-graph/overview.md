@@ -68,7 +68,7 @@ Irrespective of the policies applied to the identity under which the a lexical-g
 
 ### Hybrid deployment
 
-The overview above assumes that all operations, indexing and querying, take place in a cloud environment. However, the separation between the extract and build stages of the indexing process allow for hybrid deploment options, whereby cost-effective local development is accomplished using containerized graph and vector stores, with high-throughput LLM inference via SageMaker and Bedrock. See the Hybrid Deployment documentation for more detail.
+The overview above assumes that all operations, indexing and querying, take place in a cloud environment. However, the separation between the extract and build stages of the indexing process allows for hybrid deploment options, whereby cost-effective local development is accomplished using containerized graph and vector stores, with high-throughput LLM inference via SageMaker and Bedrock. See the [Hybrid Deployment](./hybrid-deployment.md) documentation for more detail.
 
 ### Getting started
 
