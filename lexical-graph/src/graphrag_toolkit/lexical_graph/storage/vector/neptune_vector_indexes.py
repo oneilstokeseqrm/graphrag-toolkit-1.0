@@ -365,8 +365,16 @@ class NeptuneIndex(VectorIndex):
         Returns:
             list: The processed list of nodes with updated embeddings in Neptune.
         """
+        text_map = { node.node_id: node.text for node in nodes }
+        
         for node in nodes:
             node.metadata['index'] = self.underlying_index_name()
+            node.text = f'''index: {self.underlying_index_name()}
+
+{node.text}
+
+index: {self.underlying_index_name()}
+'''
                     
         id_to_embed_map = embed_nodes(
             nodes, self.embed_model
@@ -390,7 +398,11 @@ class NeptuneIndex(VectorIndex):
 
             self._neptune_client().execute_query_with_retry(query, properties)
             
+            
+            
+        for node in nodes:
             node.metadata.pop('index', None)
+            node.text = text_map[node.node_id]
         
         return nodes
     

@@ -394,6 +394,228 @@
 				"Path": "/graphrag-toolkit/"
 			}
 		},
+		"OpenSearchServerlessAPIAccessAllPolicy": {
+			"Type": "AWS::IAM::ManagedPolicy",
+			"Properties": {
+				"ManagedPolicyName": {
+					"Fn::Sub": "${ApplicationId}-aoss-api-access-all-policy"
+				},
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Action": "aoss:APIAccessAll",
+							"Resource": [
+								{
+									"Fn::Sub": [
+										"arn:${partition}:aoss:${region}:${accountId}:collection/${collectionId}",
+										{
+											"partition": {
+												"Ref": "AWS::Partition"
+											},
+											"region": {
+												"Ref": "AWS::Region"
+											},
+											"accountId": {
+												"Ref": "AWS::AccountId"
+											},
+											"collectionId": {
+												"Fn::GetAtt": [
+													"OpenSearchServerless",
+													"Id"
+												]
+											}
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				"Roles": [
+					{
+						"Ref": "GraphRAGClientRole"
+					}
+				],
+				"Path": "/graphrag-toolkit/"
+			}
+		},
+		"OpenSearchServerless": {
+			"DependsOn": "OpenSearchServerlessEncryptionPolicy",
+			"Type": "AWS::OpenSearchServerless::Collection",
+			"Properties": {
+				"Name": {
+					"Fn::Sub": "${ApplicationId}-collection"
+				},
+				"StandbyReplicas": "DISABLED",
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Sub": "${ApplicationId}-collection"
+						}
+					},
+					{
+						"Key": "StackId",
+						"Value": {
+							"Fn::Sub": "${AWS::StackId}"
+						}
+					},
+					{
+						"Key": "Stack",
+						"Value": {
+							"Fn::Sub": "${AWS::Region}-${AWS::StackName}"
+						}
+					},
+					{
+						"Key": "Application",
+						"Value": {
+							"Fn::Sub": "graphrag-toolkit:application-id:${ApplicationId}"
+						}
+					}
+				],
+				"Type": "VECTORSEARCH"
+			}
+		},
+		"OpenSearchServerlessNetworkPolicy": {
+			"Type": "AWS::OpenSearchServerless::SecurityPolicy",
+			"Properties": {
+				"Name": {
+					"Fn::Sub": "${ApplicationId}-network"
+				},
+				"Policy": {
+					"Fn::Join": [
+						"",
+						[
+							"[",
+							"  {",
+							"    \"Rules\": [",
+							"      {",
+							"        \"Resource\": [",
+							"          \"collection/",
+							{
+								"Fn::Sub": "${ApplicationId}-collection"
+							},
+							"\"",
+							"        ],",
+							"        \"ResourceType\": \"dashboard\"",
+							"      },",
+							"      {",
+							"        \"Resource\": [",
+							"          \"collection/",
+							{
+								"Fn::Sub": "${ApplicationId}-collection"
+							},
+							"\"",
+							"        ],",
+							"        \"ResourceType\": \"collection\"",
+							"      }",
+							"    ],",
+							"    \"AllowFromPublic\": true",
+							"  }",
+							"]"
+						]
+					]
+				},
+				"Type": "network"
+			}
+		},
+		"OpenSearchServerlessEncryptionPolicy": {
+			"Type": "AWS::OpenSearchServerless::SecurityPolicy",
+			"Properties": {
+				"Name": {
+					"Fn::Sub": "${ApplicationId}-encryption"
+				},
+				"Policy": {
+					"Fn::Join": [
+						"",
+						[
+							"{",
+							"  \"Rules\": [",
+							"    {",
+							"      \"Resource\": [",
+							"        \"collection/",
+							{
+								"Fn::Sub": "${ApplicationId}-collection"
+							},
+							"\"",
+							"      ],",
+							"      \"ResourceType\": \"collection\"",
+							"    }",
+							"  ],",
+							"  \"AWSOwnedKey\": true",
+							"}"
+						]
+					]
+				},
+				"Type": "encryption"
+			}
+		},
+		"OpenSearchServerlessAccessPolicy": {
+			"Type": "AWS::OpenSearchServerless::AccessPolicy",
+			"Properties": {
+				"Name": {
+					"Fn::Sub": "${ApplicationId}-access"
+				},
+				"Policy": {
+					"Fn::Join": [
+						"",
+						[
+							"[",
+							"  {",
+							"    \"Rules\": [",
+							"      {",
+							"        \"Resource\": [",
+							"          \"collection/",
+							{
+								"Fn::Sub": "${ApplicationId}-collection"
+							},
+							"\"",
+							"        ],",
+							"        \"Permission\": [",
+							"          \"aoss:CreateCollectionItems\",",
+							"          \"aoss:DeleteCollectionItems\",",
+							"          \"aoss:UpdateCollectionItems\",",
+							"          \"aoss:DescribeCollectionItems\"",
+							"        ],",
+							"        \"ResourceType\": \"collection\"",
+							"      },",
+							"      {",
+							"        \"Resource\": [",
+							"          \"index/",
+							{
+								"Fn::Sub": "${ApplicationId}-collection"
+							},
+							"/*\"",
+							"        ],",
+							"        \"Permission\": [",
+							"          \"aoss:CreateIndex\",",
+							"          \"aoss:DeleteIndex\",",
+							"          \"aoss:UpdateIndex\",",
+							"          \"aoss:DescribeIndex\",",
+							"          \"aoss:ReadDocument\",",
+							"          \"aoss:WriteDocument\"",
+							"        ],",
+							"        \"ResourceType\": \"index\"",
+							"      }",
+							"    ],",
+							"    \"Principal\": [\"",
+							{
+								"Fn::GetAtt": [
+									"GraphRAGClientRole",
+									"Arn"
+								]
+							},
+							"\"]",
+							"  }",
+							"]"
+						]
+					]
+				},
+				"Type": "data"
+			}
+		},
 		"NeptuneNotebookInstance": {
 			"Type": "AWS::SageMaker::NotebookInstance",
 			"Properties": {
@@ -574,12 +796,12 @@
 										"echo \"export VECTOR_STORE=",
 										{
 											"Fn::Sub": [
-												"neptune-graph://${graphid}",
+												"aoss://${endpoint}",
 												{
-													"graphid": {
+													"endpoint": {
 														"Fn::GetAtt": [
-															"Graph",
-															"GraphId"
+															"OpenSearchServerless",
+															"CollectionEndpoint"
 														]
 													}
 												}
@@ -684,12 +906,12 @@
 										"  echo \"export VECTOR_STORE=",
 										{
 											"Fn::Sub": [
-												"neptune-graph://${graphid}",
+												"aoss://${endpoint}",
 												{
-													"graphid": {
+													"endpoint": {
 														"Fn::GetAtt": [
-															"Graph",
-															"GraphId"
+															"OpenSearchServerless",
+															"CollectionEndpoint"
 														]
 													}
 												}
@@ -815,6 +1037,15 @@
 				"Fn::GetAtt": [
 					"Graph",
 					"GraphId"
+				]
+			}
+		},
+		"OpenSearchCollectionEndpoint": {
+			"Description": "OpenSearch Serverless collection endpoint",
+			"Value": {
+				"Fn::GetAtt": [
+					"OpenSearchServerless",
+					"CollectionEndpoint"
 				]
 			}
 		},
