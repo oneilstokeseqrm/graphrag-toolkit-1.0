@@ -1,6 +1,6 @@
 # BYOKG-RAG: Bring Your Own Knowledge Graph for Retrieval Augmented Generation 
 
-![BYOKG-RAG Architecture](assets/byokg_rag.png)
+![BYOKG-RAG Architecture](../images/byokg_rag.png)
 
 BYOKG-RAG is a novel approach to Knowledge Graph Question Answering (KGQA) that combines the power of Large Language Models (LLMs) with structured knowledge graphs. The system allows users to bring their own knowledge graph and perform complex question answering over it.
 
@@ -69,9 +69,9 @@ Our preliminary results show that BYOKG-RAG outperforms existing approaches acro
 pip install -r src/requirements.txt
 ```
 
-2. Run the demo notebook:
+2. Run the demo notebook ([byokg_rag_demo.ipynb](../examples/byokg-rag/byokg_rag_demo.ipynb)):
 ```
-examples/byokg_rag_demo.ipynb
+graphrag-toolkit/examples/byokg-rag/byokg_rag_demo.ipynb
 ```
 
 ## Citation 📚
