@@ -7,6 +7,7 @@
   - [**02-Separate Extract and Build**](./notebooks/02-Separate-Extract-and-Build.ipynb) – An example of [running the extract and build stages separately](../../docs/lexical-graph/indexing.md#run-the-extract-and-build-stages-separately), with intermediate chunks persisted to the local filesystem using a `FileBasedChunks` object.
   - [**03-Traversal-Based Querying**](./notebooks/03-Traversal-Based-Querying.ipynb) – Examples of [querying the graph](../../docs/lexical-graph/querying.md) using the `LexicalGraphQueryEngine` with the `TraversalBasedRetriever`. Includes an example of visualising the results.
 	- [**04-Semantic-Guided Querying**](./notebooks/04-Semantic-Guided-Querying.ipynb) – Examples of [querying the graph](../../docs/lexical-graph/querying.md) using the `LexicalGraphQueryEngine` with the `SemanticGuidedRetriever`.
+  - [**05-Multi-Tenancy**](./notebooks/05-Multi-Tenancy.ipynb) – An examples of creating and querying a [multi-tenant](../../docs/lexical-graph/multi-tenancy.md) graph.
   
 #### Environment variables
 
