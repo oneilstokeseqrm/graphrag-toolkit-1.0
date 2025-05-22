@@ -18,6 +18,15 @@ If you are running these notebooks via the Cloudformation template below, a `.en
   - [`graphrag-toolkit-neptune-analytics.json`](./cloudformation-templates/graphrag-toolkit-neptune-analytics.json) creates the following lexical-graph environment:
     - Amazon Neptune Analytics graph
     - Amazon SageMaker notebook
+  - [`graphrag-toolkit-neptune-analytics-opensearch-serverless.json`](./cloudformation-templates/graphrag-toolkit-neptune-analytics-opensearch-serverless.json) creates the following lexical-graph environment:
+    - Amazon Amazon Neptune Analytics graph
+    - Amazon OpenSearch Serverless collection with a public endpoint
+    - Amazon SageMaker notebook
+  - [`graphrag-toolkit-neptune-analytics-aurora-postgres.json`](./cloudformation-templates/graphrag-toolkit-neptune-analytics-aurora-postgres.json) creates the following lexical-graph environment:
+    - Amazon VPC with three private subnets, one public subnet, and an internet gateway
+    - Amazon Neptune Analytics graph
+    - Amazon Aurora Postgres Database cluster with a single serverless instance
+    - Amazon SageMaker notebook
   - [`graphrag-toolkit-neptune-db-opensearch-serverless.json`](./cloudformation-templates/graphrag-toolkit-neptune-db-opensearch-serverless.json) creates the following lexical-graph environment:
     - Amazon VPC with three private subnets, one public subnet, and an internet gateway
     - Amazon Neptune Database cluster with a single Neptune serverless instance
