@@ -4,7 +4,6 @@
 from typing import Optional, Union
 from llama_index.core.bridge.pydantic import BaseModel
 
-
 class TenantId(BaseModel):
     """
     Represents a TenantId with validation logic, supporting default and custom tenant formats.
