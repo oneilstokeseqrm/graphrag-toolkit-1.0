@@ -48,6 +48,11 @@
 			],
 			"ConstraintDescription": "Must be a valid Neptune instance type."
 		},
+		"NeptuneEngineVersion": {
+			"Description": "Neptune DB engine version",
+			"Type": "String",
+			"Default": "1.4.5.0"
+		},
 		"MinNCU": {
 			"Description": "Min number of NCUs (default 2.5, relevant only when instance type is db.serverless).",
 			"Type": "Number",
@@ -1222,7 +1227,9 @@
 				"DBClusterIdentifier": {
 					"Fn::Sub": "${ApplicationId}-neptune-cluster"
 				},
-				"EngineVersion": "1.4.1.0",
+				"EngineVersion": {
+					"Ref": "NeptuneEngineVersion"
+				},
 				"DBSubnetGroupName": {
 					"Ref": "NeptuneDBSubnetGroup"
 				},
