@@ -73,6 +73,9 @@ class ByoKGQueryEngine:
                 path_verbalizer=path_verbalizer)
         self.path_retriever = path_retriever
 
+        if graph_query_executor is None and hasattr(graph_store, 'execute_query'):
+            from graph_retrievers import GraphQueryExecutor
+            graph_query_executor = GraphQueryExecutor(self.graph_store)
         self.graph_query_executor = graph_query_executor
 
         if kg_linker is None:
@@ -138,8 +141,8 @@ class ByoKGQueryEngine:
 
             # Process answer entities
             linked_answers = []
-            if "answer-generation" in artifacts:
-                linked_answers = self.entity_linker.link(artifacts["answer-generation"], return_dict=False)
+            if "draft-answer-generation" in artifacts:
+                linked_answers = self.entity_linker.link(artifacts["draft-answer-generation"], return_dict=False)
 
             # Retrieve triplets if we have source entities
             source_entities = list(set(linked_entities + linked_answers))
@@ -157,58 +160,27 @@ class ByoKGQueryEngine:
             for query_type in ["opencypher-neptune-rdf", "opencypher-neptune"]:
                 if query_type in artifacts and self.graph_query_executor:
                     graph_query = " ".join(artifacts[query_type])
-                    context, answers = self.graph_query_executor.retrieve(graph_query)
+                    context = self.graph_query_executor.retrieve(graph_query, return_answers=False)
                     self._add_to_context(retrieved_context, context)
-                    self._add_to_context(opencypher_answers, answers)
 
-
-            if "FINISH" in artifacts["entity-extraction"][0]:
+            task_completion = parse_response(response, r"<task-completion>(.*?)</task-completion>")
+            if "FINISH" in " ".join(task_completion):
                 break
 
-        # Generate final answer
-        answers, _ = self.generate_final_answer(
-            query=query,
-            graph_context="\n".join(retrieved_context)
-        )
-        self._add_to_context(answers, opencypher_answers)
+        return retrieved_context
 
-        return retrieved_context, answers
-
-    def generate_final_answer(self, query: str, graph_context: str = "") -> Tuple[List[str], str]:
-        task_prompt = '''
-            ### Task: Question Answering
-            Answer the question using your existing knowledge base or the external information provided in the graph context (if provided). 
-
-            You are allowed to perform chain-of-thought or thinking but the final answers shoud be in <answer> tags with the following instructions:
-            - Provide only direct entity answers that specifically address the question
-            - Each answer should be a distinct, well-defined entity (person, place, organization, concept, etc.)
-            - List multiple answers if appropriate, with each answer on a separate line
-            - Do not include explanations, reasoning, context, or commentary of any kind
-            - Do not preface or conclude your answer with statements like "Based on my knowledge..." or "The answers are..."
-            - **If graph context is provided, prioritize answers that can be derived from the context over general knowledge**
-            - Format your response exactly as follows, where answers are separated by newlines:
-
-            <answers>
-            answer_entity1
-            answer_entity2
-            ...
-            </answers>
-
-            If the answer cannot be directly determined by the provided graph context, use your own knowldge.
-            Try to always output an answer. 
-
-            Now, please answer the following:
-
-            Question: {question}
-            Graph Context: {graph_context}
-        '''
-        user_prompt_formatted = task_prompt.format(
-            question=query, 
-            graph_context=graph_context
-        )
-        response =  self.llm_generator.generate(
-            prompt=user_prompt_formatted, 
-        )
+    def generate_response(self, query: str, graph_context: str = "", task_prompt = None) -> Tuple[List[str], str]:
         
-        answers = parse_response(response, r"<answers>(.*?)</answers>")
-        return answers, response
+        if task_prompt is None:
+            task_prompt = load_yaml("prompts/generation_prompts.yaml")["generate-response-qa"]
+            user_prompt_formatted = task_prompt.format(
+                question=query, 
+                graph_context=graph_context
+            )
+            response =  self.llm_generator.generate(
+                prompt=user_prompt_formatted, 
+            )
+            answers = parse_response(response, r"<answers>(.*?)</answers>")
+            return answers, response
+        else:
+            raise NotImplementedError

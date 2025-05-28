@@ -32,7 +32,7 @@ BYOKG-RAG is a novel approach to Knowledge Graph Question Answering (KGQA) that 
 4. **Triplet Retriever** ([src/graph_retrievers.py](src/graph_retrievers.py))
    - Retrieves relevant triplets from the graph
    - Navigates the graph starting from linked entities
-   - Verbalizes triplets in human-readable format
+   - Verbalizes triplets in natural language format
 
 5. **Path Retriever** ([src/graph_retrievers.py](src/graph_retrievers.py))
    - Finds paths between entities in the graph
@@ -46,7 +46,7 @@ BYOKG-RAG is a novel approach to Knowledge Graph Question Answering (KGQA) that 
 
 ## Performance 📈
 
-Our preliminary results show that BYOKG-RAG outperforms existing approaches across multiple knowledge graph benchmarks:
+Our results show that BYOKG-RAG outperforms existing approaches across multiple knowledge graph benchmarks:
 
 | KGQA Hit (%) | Wiki-KG | Temp-KG | Med-KG |
 |--------------|---------|---------|--------|
@@ -54,13 +54,6 @@ Our preliminary results show that BYOKG-RAG outperforms existing approaches acro
 | BYOKG-RAG    | 80.1    | 65.5    | 65.0   |
 
 *Note: Full paper with detailed methodology and results coming soon!* 📄
-
-## Upcoming Features 🚧
-
-- **Amazon Neptune Integration**: Native support for Amazon Neptune graph database
-- **Embedding-based Entity Linking**: Enhanced entity matching using embeddings
-- **Embedding-based Retrieval**: Improved retrieval using vector similarity
-- **Local LLM Support**: Run BYOKG-RAG with local LLMs 
 
 ## Getting Started 🚀
 

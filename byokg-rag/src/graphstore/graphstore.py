@@ -229,6 +229,6 @@ class LocalKGStore(GraphStore):
         return [
             "entity-extraction",
             "path-extraction",
-            "answer-generation"
+            "draft-answer-generation"
         ]
         

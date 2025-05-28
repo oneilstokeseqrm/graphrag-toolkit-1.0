@@ -28,7 +28,7 @@ class KGLinker:
             "entity-extraction": {"pattern": r"<entities>(.*?)</entities>"},
             "path-extraction": {"pattern": r"<paths>(.*?)</paths>"},
             "opencypher": {"pattern": r"<opencypher>(.*?)</opencypher>"},
-            "answer-generation": {"pattern": r"<answers>(.*?)</answers>"},
+            "draft-answer-generation": {"pattern": r"<answers>(.*?)</answers>"},
         }
 
         self.tasks = graph_store.get_linker_tasks()

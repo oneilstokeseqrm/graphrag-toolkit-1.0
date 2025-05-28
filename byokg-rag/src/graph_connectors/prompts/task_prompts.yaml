@@ -22,7 +22,7 @@ entity-extraction: '''
     '''
 
 entity-extraction-iterative: '''
-    ### Task: Relevant Entity Extraction
+    ### Task: Relevant Entity Extraction & Task Completion
     Extract all relevant entities from the graph context and question (people, places, organizations, concepts, etc.) that need to be explored next for answering the question.
     Consider important entities only that are necessary for answering the question. Do not select entities for which we already have all necessary information.
     - Use exact names as they appear in the question or context
@@ -40,13 +40,16 @@ entity-extraction-iterative: '''
     </entities>
 
     The entities should be sorted from the most important to the least important. 
+
+    Task Completion Instructions:
     If we can answer the question directly based on the provided graph context, respond with:
-    <entities>
+    <task-completion>
     FINISH
-    </entities>
+    </task-completion>
+    If the question answering task is not completed, do not include <task-completion> tags.
     '''
 
-answer-generation: '''
+draft-answer-generation: '''
     ### Task: Question Answering
     Answer the question using your existing knowledge base or the external information provided in the graph context (if provided). 
     - Provide only direct entity answers that specifically address the question

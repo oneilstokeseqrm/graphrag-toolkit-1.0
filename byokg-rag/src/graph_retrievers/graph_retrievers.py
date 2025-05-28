@@ -344,21 +344,18 @@ class GraphQueryRetriever(GRetriever):
     and provides options for returning both results and answers.
     """
 
-    def __init__(self, graph_store, graph_query_verbalizer):
+    def __init__(self, graph_store):
         """
         Initialize the GraphQueryRetriever.
 
         Args:
             graph_store: Component that implements graph query execution
-            graph_query_verbalizer: Component for converting query results to text
-
         Raises:
             AttributeError: If graph_store doesn't implement required methods
         """
         if not hasattr(graph_store, 'execute_query'):
             raise AttributeError("graph_store must implement 'execute_query' method")
         self.graph_store = graph_store
-        self.graph_query_verbalizer = graph_query_verbalizer
 
     def retrieve(self, graph_query: str, return_answers=False, **kwargs):
         """
@@ -384,13 +381,15 @@ class GraphQueryRetriever(GRetriever):
             results = self.graph_store.execute_query(graph_query)
             
             # Verbalize the results
-            results, answers = self.graph_query_verbalizer.verbalize(graph_query, results)
-            
+            import json
+            results_str = json.dumps(results)
+            context = f"Graph Query: {graph_query}\nExecution Result: {results_str}"
+
             # Return based on return_answers flag
             if return_answers:
-                return [results], answers
+                return [context], results
             else:
-                return [results]
+                return [context]
                 
         except Exception as e:
             # Log the error and re-raise
