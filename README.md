@@ -2,6 +2,7 @@
 
 The graphrag-toolkit is a collection of Python tools for building graph-enhanced Generative AI applications.
 
+> **28 May 2025** Release 3.7.0 includes an MCP server that dynamically generates tools and tool descriptions (one per tenant in a multi-tenant graph).
 
 > **23 April 2025** Release 3.1.0 reduces the number of dependencies included with the project install. Specific vector stores require additional dependencies to be installed – see [Additional dependencies](./lexical-graph/README.md#additional-dependencies).
 
