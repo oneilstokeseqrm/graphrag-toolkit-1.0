@@ -1,15 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import os
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
 from graphrag_toolkit.lexical_graph import to_tenant_id, TenantIdType
-from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore, MultiTenantGraphStore
 from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
 
 from llama_index.core.prompts import PromptTemplate
 
-graph_store = GraphStoreFactory.for_graph_store(os.environ['GRAPH_STORE'])
 
 GRAPH_SUMMARY_PROMPT = '''
 You are an expert AI assistant specialising in knowledge graphs. Based on the provided entities and property graph path descriptions, your task is to summarize the domain, scope and uses of a knowledge graph so that it can be utilized by a Model Context Protocol client. Include a list of up to 10 different questions the graph can be used to answer. Provide an authoritative response: do not use words such as 'appears to' or 'seems'. In your response describe the graph as a 'knowledge base', not a graph.
