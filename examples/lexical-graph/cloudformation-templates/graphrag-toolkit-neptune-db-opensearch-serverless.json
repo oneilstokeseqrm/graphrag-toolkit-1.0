@@ -1118,7 +1118,7 @@
 				"InstanceType": {
 					"Ref": "NotebookInstanceType"
 				},
-				"PlatformIdentifier": "notebook-al2-v2",
+				"PlatformIdentifier": "notebook-al2-v3",
 				"NotebookInstanceName": {
 					"Fn::Sub": "aws-neptune-${ApplicationId}"
 				},
@@ -1346,7 +1346,8 @@
 										"/graph_notebook.tar.gz /tmp/graph_notebook.tar.gz\n",
 										"rm -rf /tmp/graph_notebook\n",
 										"tar -zxvf /tmp/graph_notebook.tar.gz -C /tmp\n",
-										"/tmp/graph_notebook/install.sh\n",
+										"chmod +x /tmp/graph_notebook/install_jl4x.sh\n",
+										"/tmp/graph_notebook/install_jl4x.sh\n",
 										"\n",
 										"cd /home/ec2-user/SageMaker\n",
 										"if [ ! -d graphrag-toolkit ]; then\n",
