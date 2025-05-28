@@ -69,7 +69,16 @@ graphrag-toolkit/examples/byokg-rag/byokg_rag_demo.ipynb
 
 ## Citation 📚
 
-*Coming soon!*
+*Arxiv paper and citation coming soon!*
+
+```
+@misc{byokg-rag-2025,
+  author = {Mavromatis, Costas and Adeshina, Soji and Ioannidis, Vassilis N. and Han, Zhen and Zhu, Qi and Robinson, Ian and Thompson, Bryan and Rangwala, Huzefa and Karypis, George},
+  title = {{BYOKG-RAG}: Multi-Strategy Graph Retrieval for Knowledge Graph Question Answering},
+  url = {https://github.com/awslabs/graphrag-toolkit},
+  year = {2025}
+}
+```
 
 ## License ⚖️
 
