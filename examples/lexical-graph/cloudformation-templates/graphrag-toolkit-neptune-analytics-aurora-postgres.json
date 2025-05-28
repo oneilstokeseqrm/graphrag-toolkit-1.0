@@ -784,7 +784,8 @@
 						{
 							"Effect": "Allow",
 							"Action": [
-								"bedrock:InvokeModel"
+								"bedrock:InvokeModel",
+								"bedrock:InvokeModelWithResponseStream"
 							],
 							"Resource": [
 								{
