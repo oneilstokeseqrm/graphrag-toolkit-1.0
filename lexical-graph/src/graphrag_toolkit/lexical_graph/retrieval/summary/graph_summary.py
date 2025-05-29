@@ -39,7 +39,7 @@ def get_domain(s):
             return line[7:].strip()
     return None
 
-ONE_HOUR_MILLIS = 1 * 60 * 60 * 1000
+ONE_HOUR_SECONDS = 1 * 60 * 60
 
 class GraphSummary():
 
@@ -113,7 +113,7 @@ class GraphSummary():
 
         time_now = int(time.time())
 
-        if (int(result['last_updated_datetime']) + ONE_HOUR_MILLIS) < time_now:
+        if (int(result['last_updated_datetime']) + ONE_HOUR_SECONDS) < time_now:
             logger.debug(f"Cached summary for '{tenant_id}' is stale")
             return None
         

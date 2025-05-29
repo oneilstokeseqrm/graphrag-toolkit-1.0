@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
+import time
 from typing import List, Dict, Any, Annotated, Optional
 from pydantic import Field
 
@@ -64,11 +65,15 @@ def query_tenant_graph(graph_store:GraphStore, vector_store:VectorStore, tenant_
             tenant_id=tenant_id
         )
 
+        start = time.time()
+
         response = query_engine.retrieve(query)
+        
+        end = time.time()
 
         results = [n.text for n in response]
 
-        logger.debug(f'[{tenant_id}]: {query} [{len(results)} results]')
+        logger.debug(f'[{tenant_id}]: {query} [{len(results)} results, {int((end-start) * 1000)} millis]')
         
         return results
         
