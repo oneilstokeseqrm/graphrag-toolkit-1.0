@@ -1,11 +1,17 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+
+import time
+import logging
+
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
-from graphrag_toolkit.lexical_graph import to_tenant_id, TenantIdType
+from graphrag_toolkit.lexical_graph import to_tenant_id, TenantIdType, TenantId
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore, MultiTenantGraphStore
 from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
 
 from llama_index.core.prompts import PromptTemplate
+
+logger = logging.getLogger(__name__)
 
 
 GRAPH_SUMMARY_PROMPT = '''
@@ -33,19 +39,21 @@ def get_domain(s):
             return line[7:].strip()
     return None
 
+ONE_HOUR_MILLIS = 1 * 60 * 60 * 1000
+
 class GraphSummary():
 
-    def __init__(self, graph_store:GraphStore, llm:LLMCacheType=None, prompt_template=None):
+    def __init__(self, graph_store:GraphStore, llm:LLMCacheType=None, prompt_template=None, use_cached_entries=True):
         self.graph_store = graph_store
         self.llm = llm if llm and isinstance(llm, LLMCache) else LLMCache(
             llm=llm or GraphRAGConfig.extraction_llm,
             enable_cache=GraphRAGConfig.enable_cache
         )
         self.prompt_template=prompt_template or GRAPH_SUMMARY_PROMPT
+        self.use_cached_entries = use_cached_entries
         
-    def _get_entities(self, tenant_id:TenantIdType):
+    def _get_entities(self, tenant_id:TenantId):
         
-        tenant_id = to_tenant_id(tenant_id)
         graph_store = MultiTenantGraphStore.wrap(
             self.graph_store,
             tenant_id
@@ -59,7 +67,7 @@ class GraphSummary():
         
         return results
         
-    def _get_paths(self, tenant_id:TenantIdType):
+    def _get_paths(self, tenant_id:TenantId):
         
         tenant_id = to_tenant_id(tenant_id)
         graph_store = MultiTenantGraphStore.wrap(
@@ -83,8 +91,66 @@ class GraphSummary():
             entities=entities,
             paths=paths
         )
+    
+    def _get_cached_summary(self, tenant_id:TenantId):
+        
+        cypher = f'''MATCH (n:`__SYS_Tenant__`)
+        WHERE {self.graph_store.node_id("n.tenantId")} = $tenantId
+        RETURN n.value AS summary, n.last_updated_datetime AS last_updated_datetime
+        '''
+
+        parameters = {
+            'tenantId': f'sys_tenant:{tenant_id}'
+        }
+
+        results = self.graph_store.execute_query(cypher, parameters)
+
+        if not results:
+            logger.debug(f"No cached summary found for '{tenant_id}'")
+            return None
+        
+        result = results[0]
+
+        time_now = int(time.time())
+
+        if (int(result['last_updated_datetime']) + ONE_HOUR_MILLIS) < time_now:
+            logger.debug(f"Cached summary for '{tenant_id}' is stale")
+            return None
+        
+        logger.debug(f"Returning cached summary for '{tenant_id}'")
+
+        return result['summary']
+    
+    def _cache_summary(self, tenant_id:TenantId, summary:str):
+
+        logger.debug(f"Caching summary for '{tenant_id}'")
+
+        time_now = int(time.time())
+
+        cypher = f'''MERGE (n:`__SYS_Tenant__`{{{self.graph_store.node_id("tenantId")}: $tenantId}})
+        ON CREATE SET n.value = $summary, n.last_updated_datetime = $lastUpdatedDatetime
+        ON MATCH SET n.value = $summary, n.last_updated_datetime = $lastUpdatedDatetime
+        '''
+
+        parameters = {
+            'tenantId': f'sys_tenant:{tenant_id}',
+            'summary': summary,
+            'lastUpdatedDatetime': time_now
+        }
+
+        self.graph_store.execute_query_with_retry(cypher, parameters)
         
     def create_graph_summary(self, tenant_id:TenantIdType=None):
+
+        tenant_id = to_tenant_id(tenant_id)
+
+        if self.use_cached_entries:
+            summary = self._get_cached_summary(tenant_id)
+            if summary is not None:
+                return summary
+            
+        logger.debug(f"Creating new summary for '{tenant_id}'")
+            
         entities = '\n'.join([
             result['entity'] for result in self._get_entities(tenant_id)
         ])
@@ -94,6 +160,8 @@ class GraphSummary():
         ])
 
         if entities and paths:
-            return self._generate_summary(entities, paths)
+            summary = self._generate_summary(entities, paths)
+            self._cache_summary(tenant_id, summary)
+            return summary
         else:
             return None
