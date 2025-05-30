@@ -8,3 +8,4 @@ faiss-cpu==1.9.0
 thefuzz
 langchain_huggingface
 ipykernel
+torch
