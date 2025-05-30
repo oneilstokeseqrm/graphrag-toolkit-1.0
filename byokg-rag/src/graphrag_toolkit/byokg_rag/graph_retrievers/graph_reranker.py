@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from FlagEmbedding import FlagReranker
-from FlagEmbedding import LayerWiseFlagLLMReranker
 import numpy as np
+import torch
 
 class GReranker(ABC):
     """
@@ -14,7 +13,7 @@ class GReranker(ABC):
         """
 
     @abstractmethod
-    def rerank_input_with_query(self, query, input, top_k=None):
+    def rerank_input_with_query(self, query, input, topk=None):
         """
         Rerank the given input based on the query.
 
@@ -27,51 +26,56 @@ class GReranker(ABC):
         """
         raise NotImplementedError("Method rerank_input_with_query must be implemented")
 
-
 class LocalGReranker(GReranker):
     """
         Local reranker on single machine with BGE-reranker-base models.
     """
-    def __init__(self, model_name="bge-reranker-base", top_k=10):
-        self.load_reranker(model_name)
-        self.top_k = top_k
+    def __init__(self, model_name="bge-reranker-base", topk=10, device="cuda"):
+        assert model_name in ["bge-reranker-base", "bge-reranker-large", "bge-reranker-v2-m3"], "Model name not supported"
+        self.model_name = model_name
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-    def load_reranker(self, model_name):
-        if model_name == "bge-reranker-v2-minicpm-layerwise":
-            self.reranker = LayerWiseFlagLLMReranker(f"BAAI/{model_name}")
-        elif model_name.find("bge") != -1:
-            self.reranker = FlagReranker(f"BAAI/{model_name}")
-        else:
-            self.reranker = None
+        self.tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-reranker-v2-m3')
+        self.reranker = AutoModelForSequenceClassification.from_pretrained('BAAI/bge-reranker-v2-m3')
+        self.reranker = self.reranker.to(device)
+        self.reranker.eval()
+        
+        self.topk = topk
+
 
     def calculate_score(self, pairs):
         """
         Calculate the score for the given pairs (query, text)
         """
-        if self.reranker:
-            return self.reranker.compute_score(pairs)
+        if self.model_name in ["bge-reranker-base", "bge-reranker-large", "bge-reranker-v2-m3"]:
+            with torch.no_grad():
+                inputs = self.tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=512)
+                inputs = inputs.to(self.reranker.device)
+                scores = self.reranker(**inputs, return_dict=True).logits.view(-1, ).float()
+                return scores
         else:
             raise NotImplementedError
     
-    def filter_topk(self, query, input, top_k=10, return_scores=False):
+    def filter_topk(self, query, input, topk=10, return_scores=False):
         """
         Filter the top-k input based on the reranker score.
         """
         if isinstance(query, str):
-            pairs = [(query, x) for x in input]
+            pairs = [[query, x] for x in input]
         else:
-            pairs = [(x,y) for x,y in zip(query, input)]
-        
+            pairs = [[x,y] for x,y in zip(query, input)]
         score = self.calculate_score(pairs)
+        # convert to CPU
+        score = score.cpu()
         np_score = -np.array(score)
         ids = np.argsort(np_score, kind="stable")
 
         if return_scores:
-            return [input[x] for x in ids[:top_k]], [score[x] for x in ids[:top_k]], ids[:top_k]
+            return [input[x] for x in ids[:topk]], [score[x] for x in ids[:topk]], ids[:topk]
         else:
-            return [input[x] for x in ids[:top_k]], ids[:top_k]
+            return [input[x] for x in ids[:topk]], ids[:topk]
 
-    def rerank_input_with_query(self, query, input, top_k=None, return_scores=False):
+    def rerank_input_with_query(self, query, input, topk=None, return_scores=False):
         """
         Rerank the given input based on the query.
 
@@ -82,6 +86,6 @@ class LocalGReranker(GReranker):
         Returns:
             list: Reranked list of input.
         """
-        if not top_k:
-            top_k = self.top_k
-        return self.filter_topk(query, input, top_k=top_k, return_scores=return_scores)
+        if not topk:
+            topk = self.topk
+        return self.filter_topk(query, input, topk=topk, return_scores=return_scores)

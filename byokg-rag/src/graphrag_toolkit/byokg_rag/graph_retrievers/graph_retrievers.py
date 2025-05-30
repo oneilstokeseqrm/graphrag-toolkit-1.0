@@ -1,4 +1,8 @@
 from abc import ABC
+import os
+import sys
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
 from utils import load_yaml, parse_response
 
 
@@ -53,6 +57,7 @@ class AgenticRetriever(GRetriever):
         self.max_num_iterations = max_num_iterations
         self.max_num_triplets = max_num_triplets
 
+
         self.prompt = load_yaml("graph_retrievers/prompts/agent_prompts.yaml")
 
     def relation_search_prune(self, query, entities, max_num_relations=20):
@@ -77,7 +82,7 @@ class AgenticRetriever(GRetriever):
 
         if self.pruning_reranker is not None:
             relations, scores, ids = self.pruning_reranker.rerank_input_with_query(
-                query, list(relations), top_k=max_num_relations, return_scores=True
+                query, list(relations), topk=max_num_relations, return_scores=True
             )
         return relations
 
@@ -141,7 +146,7 @@ class AgenticRetriever(GRetriever):
             text_triplets = self.graph_verbalizer.verbalize_merge_triplets(current_entity_relations_list)
             if len(text_triplets) > self.max_num_triplets:
                 text_triplets, ids = self.pruning_reranker.rerank_input_with_query(
-                    query, text_triplets, top_k=self.max_num_triplets
+                    query, text_triplets, topk=self.max_num_triplets
                 )
 
             # Add new context to history and track retrieved triplets
@@ -228,7 +233,7 @@ class GraphScoringRetriever(GRetriever):
         # Apply pruning if needed and reranker is available
         if len(relations) > max_num_relations and self.pruning_reranker:
             relations, ids = self.pruning_reranker.rerank_input_with_query(
-                query, list(relations), top_k=max_num_relations
+                query, list(relations), topk=max_num_relations
             )
 
         # Filter triplets based on selected relations
@@ -243,12 +248,12 @@ class GraphScoringRetriever(GRetriever):
         # Apply pruning to merged triplets if needed
         if len(merged_triplets) > max_num_triplets and self.pruning_reranker:
             merged_triplets, ids = self.pruning_reranker.rerank_input_with_query(
-                query, merged_triplets, top_k=max_num_triplets
+                query, merged_triplets, topk=max_num_triplets
             )
 
         # Final reranking to get topk results
         retrieved_triplets, _ = self.graph_reranker.rerank_input_with_query(
-            query, merged_triplets, top_k=topk
+            query, merged_triplets, topk=topk
         )
         return retrieved_triplets
 
