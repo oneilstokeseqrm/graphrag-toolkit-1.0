@@ -15,31 +15,31 @@ BYOKG-RAG is a novel approach to Knowledge Graph Question Answering (KGQA) that 
 
 ## System Components ⚙️
 
-1. **Graph Store** ([src/graphstore.py](src/graphstore.py))
+1. **Graph Store** ([src/graphrag_toolkit/byokg_rag/graphstore](src/graphrag_toolkit/byokg_rag/graphstore))
    - Manages the knowledge graph data structure
    - Provides interfaces for graph traversal and querying
 
-2. **KG Linker** ([src/graph_connectors.py](src/graph_connectors.py))
+2. **KG Linker** ([src/graphrag_toolkit/byokg_rag/graph_connectors](src/graphrag_toolkit/byokg_rag/graph_connectors))
    - Links natural language queries to graph entities and paths
    - Uses LLMs to understand question intent
    - Extracts relevant entities and relationship patterns
 
-3. **Entity Linker** ([src/graph_retrievers.py](src/graph_retrievers.py))
+3. **Entity Linker** ([src/graphrag_toolkit/byokg_rag/graph_retrievers](src/graphrag_toolkit/byokg_rag/graph_retrievers))
    - Matches entities from text to graph nodes
    - Handles variations in entity names
    - Uses fuzzy string matching for robust entity resolution
 
-4. **Triplet Retriever** ([src/graph_retrievers.py](src/graph_retrievers.py))
+4. **Triplet Retriever** ([src/graphrag_toolkit/byokg_rag/graph_retrievers](src/graphrag_toolkit/byokg_rag/graph_retrievers))
    - Retrieves relevant triplets from the graph
    - Navigates the graph starting from linked entities
    - Verbalizes triplets in natural language format
 
-5. **Path Retriever** ([src/graph_retrievers.py](src/graph_retrievers.py))
+5. **Path Retriever** ([src/graphrag_toolkit/byokg_rag/graph_retrievers](src/graphrag_toolkit/byokg_rag/graph_retrievers))
    - Finds paths between entities in the graph
    - Follows metapath patterns for structured traversal
    - Connects entities through intermediate nodes
 
-6. **Query Engine** ([src/byokg_query_engine.py](src/byokg_query_engine.py))
+6. **Query Engine** ([src/graphrag_toolkit/byokg_rag/byokg_query_engine.py](src/graphrag_toolkit/byokg_rag/byokg_query_engine.py))
    - Orchestrates all components
    - Processes natural language questions
    - Generates answers based on retrieved information
