@@ -21,9 +21,9 @@
 			"Default": "db.serverless",
 			"AllowedValues": [
 				"db.serverless",
-				"db.r6g.large",
-				"db.r6g.xlarge",
-				"db.r6g.2xlarge"
+				"db.r8g.large",
+				"db.r8g.xlarge",
+				"db.r8g.2xlarge"
 			],
 			"ConstraintDescription": "Must be a valid Neptune instance type."
 		},
@@ -1875,7 +1875,7 @@
 						{
 							"Ref": "AWS::Region"
 						},
-						".sagemaker.aws/"
+						".sagemaker.aws/tree"
 					]
 				]
 			}

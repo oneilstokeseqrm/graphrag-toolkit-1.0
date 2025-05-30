@@ -1107,7 +1107,7 @@
 						{
 							"Ref": "AWS::Region"
 						},
-						".sagemaker.aws/"
+						".sagemaker.aws/tree"
 					]
 				]
 			}
