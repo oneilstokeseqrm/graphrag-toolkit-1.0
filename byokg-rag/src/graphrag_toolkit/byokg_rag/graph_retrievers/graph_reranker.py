@@ -35,8 +35,8 @@ class LocalGReranker(GReranker):
         self.model_name = model_name
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-        self.tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-reranker-v2-m3')
-        self.reranker = AutoModelForSequenceClassification.from_pretrained('BAAI/bge-reranker-v2-m3')
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.reranker = AutoModelForSequenceClassification.from_pretrained(model_name)
         self.reranker = self.reranker.to(device)
         self.reranker.eval()
         
