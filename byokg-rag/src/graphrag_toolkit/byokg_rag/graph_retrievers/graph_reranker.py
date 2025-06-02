@@ -30,8 +30,8 @@ class LocalGReranker(GReranker):
     """
         Local reranker on single machine with BGE-reranker-base models.
     """
-    def __init__(self, model_name="bge-reranker-base", topk=10, device="cuda"):
-        assert model_name in ["bge-reranker-base", "bge-reranker-large", "bge-reranker-v2-m3"], "Model name not supported"
+    def __init__(self, model_name="BAAI/bge-reranker-base", topk=10, device="cuda"):
+        assert model_name in ["BAAI/bge-reranker-base", "BAAI/bge-reranker-large", "BAAI/bge-reranker-v2-m3"], "Model name not supported"
         self.model_name = model_name
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
@@ -47,7 +47,7 @@ class LocalGReranker(GReranker):
         """
         Calculate the score for the given pairs (query, text)
         """
-        if self.model_name in ["bge-reranker-base", "bge-reranker-large", "bge-reranker-v2-m3"]:
+        if self.model_name in ["BAAI/bge-reranker-base", "BAAI/bge-reranker-large", "BAAI/bge-reranker-v2-m3"]:
             with torch.no_grad():
                 inputs = self.tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=512)
                 inputs = inputs.to(self.reranker.device)
