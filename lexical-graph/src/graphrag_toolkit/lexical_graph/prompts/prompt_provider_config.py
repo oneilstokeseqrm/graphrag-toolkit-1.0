@@ -147,11 +147,18 @@ class BedrockPromptProviderConfig(ProviderConfig):
     def resolved_user_prompt_arn(self) -> str:
         return self._resolve_prompt_arn(self.user_prompt_arn)
 
-    def _resolve_prompt_arn(self, identifier: str) -> str:
-        if identifier.startswith("arn:aws:bedrock:"):
-            return identifier
-        account_id = self.sts.get_caller_identity()["Account"]
-        return f"arn:aws:bedrock:{self.aws_region}:{account_id}:prompt/{identifier}"
+   def _resolve_prompt_arn(self, identifier: str) -> str:
+    # If it's already a full ARN, return it
+    if identifier.startswith("arn:"):
+        return identifier
+
+    # Get caller identity and extract the partition from the ARN
+    caller_arn = self.sts.get_caller_identity()["Arn"]
+    # Example ARN: arn:aws-us-gov:sts::123456789012:assumed-role/...
+    partition = caller_arn.split(":")[1]
+    account_id = self.sts.get_caller_identity()["Account"]
+
+    return f"arn:{partition}:bedrock:{self.aws_region}:{account_id}:prompt/{identifier}"
 
     def build(self) -> PromptProvider:
         from graphrag_toolkit.lexical_graph.prompts.bedrock_prompt_provider import BedrockPromptProvider
