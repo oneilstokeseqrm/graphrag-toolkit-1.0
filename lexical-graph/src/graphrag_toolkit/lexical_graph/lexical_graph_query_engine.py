@@ -12,7 +12,6 @@ from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.tenant_id import TenantIdType, to_tenant_id
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
-from graphrag_toolkit.lexical_graph.retrieval.prompts import ANSWER_QUESTION_SYSTEM_PROMPT, ANSWER_QUESTION_USER_PROMPT
 from graphrag_toolkit.lexical_graph.retrieval.post_processors.bedrock_context_format import BedrockContextFormat
 from graphrag_toolkit.lexical_graph.retrieval.retrievers import CompositeTraversalBasedRetriever, SemanticGuidedRetriever
 from graphrag_toolkit.lexical_graph.retrieval.retrievers import StatementCosineSimilaritySearch, KeywordRankingSearch, SemanticBeamGraphSearch
@@ -22,6 +21,7 @@ from graphrag_toolkit.lexical_graph.storage import VectorStoreFactory, VectorSto
 from graphrag_toolkit.lexical_graph.storage.graph import MultiTenantGraphStore
 from graphrag_toolkit.lexical_graph.storage.vector import MultiTenantVectorStore, ReadOnlyVectorStore
 from graphrag_toolkit.lexical_graph.storage.vector import to_embedded_query
+from graphrag_toolkit.lexical_graph.prompts.prompt_provider_factory import PromptProviderFactory
 
 from llama_index.core import ChatPromptTemplate
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 RetrieverType = Union[BaseRetriever, Type[BaseRetriever]]
 PostProcessorsType = Union[BaseNodePostprocessor, List[BaseNodePostprocessor]]
+
 
 
 class LexicalGraphQueryEngine(BaseQueryEngine):
@@ -220,38 +221,33 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                  vector_store: VectorStoreType,
                  tenant_id: Optional[TenantIdType] = None,
                  llm: LLMCacheType = None,
-                 system_prompt: Optional[str] = ANSWER_QUESTION_SYSTEM_PROMPT,
-                 user_prompt: Optional[str] = ANSWER_QUESTION_USER_PROMPT,
+                 system_prompt: Optional[str] = None,
+                 user_prompt: Optional[str] = None,
                  retriever: Optional[RetrieverType] = None,
                  post_processors: Optional[PostProcessorsType] = None,
                  callback_manager: Optional[CallbackManager] = None,
                  filter_config: FilterConfig = None,
                  **kwargs):
         """
-        Initializes an instance of the class with the given parameters and sets up necessary components such as
-        graph and vector stores, LLM, chat template, retriever, and post-processors. Handles configuration for
-        multi-tenant use cases, context formatting, and callback management.
+                Initializes a LexicalGraphQueryEngine instance for querying and generating responses from graph and vector stores.
 
-        Args:
-            graph_store: The graph store implementation used for storing and retrieving graph data.
-            vector_store: The vector store implementation used for storing and retrieving vector data.
-            tenant_id: Optional tenant identifier used to enable multi-tenant functionality. Defaults to None.
-            llm: The language model to be used. If not provided, it uses a default LLM configuration. Defaults to None.
-            system_prompt: Optional system-level prompt to be used in the chat template. Defaults to
-                ANSWER_QUESTION_SYSTEM_PROMPT.
-            user_prompt: Optional user-level prompt to be used in the chat template. Defaults to
-                ANSWER_QUESTION_USER_PROMPT.
-            retriever: Optional custom retriever implementation. If not provided, a default CompositeTraversalBasedRetriever
-                instance is created. Defaults to None.
-            post_processors: Optional list of post-processing components or a single post-processor. If not provided,
-                an empty list is initialized unless context formatting requires specific additions. Defaults to None.
-            callback_manager: Optional callback manager for managing event callbacks in the processing workflow. Defaults
-                to None.
-            filter_config: An optional configuration object specifying filter criteria for retrieving data during
-                processing. Defaults to None.
-            **kwargs: Additional arguments that may be passed for extended functionality, including custom context
-                formatting or retriever behavior.
+                This constructor sets up the engine with the provided stores, LLM, prompts, retriever, post-processors, and other configuration options.
+                If system or user prompts are not provided, it attempts to retrieve them from a prompt provider.
+
+                Args:
+                    graph_store: The graph store implementation used for storing and retrieving graph data.
+                    vector_store: The vector store implementation used for storing and retrieving vector data.
+                    tenant_id: Optional tenant identifier used to enable multi-tenant functionality. Defaults to None.
+                    llm: The language model to be used. If not provided, it uses a default LLM configuration. Defaults to None.
+                    system_prompt: Optional system-level prompt to be used in the chat template.
+                    user_prompt: Optional user-level prompt to be used in the chat template.
+                    retriever: Optional custom retriever implementation. If not provided, a default CompositeTraversalBasedRetriever instance is created.
+                    post_processors: Optional list of post-processing components or a single post-processor.
+                    callback_manager: Optional callback manager for managing event callbacks in the processing workflow.
+                    filter_config: An optional configuration object specifying filter criteria for retrieving data during processing.
+                    **kwargs: Additional arguments for extended functionality, including custom context formatting or retriever behavior.
         """
+
         tenant_id = to_tenant_id(tenant_id)
 
         graph_store = MultiTenantGraphStore.wrap(GraphStoreFactory.for_graph_store(graph_store), tenant_id)
@@ -265,9 +261,15 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             llm=llm or GraphRAGConfig.response_llm,
             enable_cache=GraphRAGConfig.enable_cache
         )
+
+        prompt_provider = kwargs.pop("prompt_provider", None)
+
+        if prompt_provider is None:
+            prompt_provider = PromptProviderFactory.get_provider()
+
         self.chat_template = ChatPromptTemplate(message_templates=[
-            ChatMessage(role=MessageRole.SYSTEM, content=system_prompt),
-            ChatMessage(role=MessageRole.USER, content=user_prompt),
+            ChatMessage(role=MessageRole.SYSTEM, content=system_prompt or prompt_provider.get_system_prompt()),
+            ChatMessage(role=MessageRole.USER, content=user_prompt or prompt_provider.get_user_prompt()),
         ])
 
         if retriever:
