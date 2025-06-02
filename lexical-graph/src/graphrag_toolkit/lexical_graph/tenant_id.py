@@ -4,7 +4,6 @@
 from typing import Optional, Union
 from llama_index.core.bridge.pydantic import BaseModel
 
-
 class TenantId(BaseModel):
     """
     Represents a TenantId with validation logic, supporting default and custom tenant formats.
@@ -37,6 +36,9 @@ class TenantId(BaseModel):
                 raise ValueError(
                     f"Invalid TenantId: '{value}'. TenantId must be between 1-10 lowercase letters and numbers.")
         super().__init__(value=value)
+
+    def __str__(self):
+        return self.value if self.value else 'default_'
 
     def is_default_tenant(self):
         """

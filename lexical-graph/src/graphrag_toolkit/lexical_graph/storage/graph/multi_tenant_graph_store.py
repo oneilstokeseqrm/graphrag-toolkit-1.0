@@ -39,8 +39,7 @@ class MultiTenantGraphStore(GraphStore):
             GraphStore: The resulting graph store instance, either as-is or wrapped as a
                 MultiTenantGraphStore depending on tenant information.
         """
-        if tenant_id.is_default_tenant():
-            return graph_store
+        
         if isinstance(graph_store, MultiTenantGraphStore):
             return graph_store
         return MultiTenantGraphStore(inner=graph_store, tenant_id=tenant_id, labels=labels)

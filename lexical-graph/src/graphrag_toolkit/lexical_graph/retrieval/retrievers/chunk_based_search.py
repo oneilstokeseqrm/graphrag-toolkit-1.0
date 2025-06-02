@@ -14,7 +14,6 @@ from graphrag_toolkit.lexical_graph.retrieval.retrievers.traversal_based_base_re
 from graphrag_toolkit.lexical_graph.retrieval.utils.vector_utils import get_diverse_vss_elements
 
 from llama_index.core.schema import QueryBundle
-from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 

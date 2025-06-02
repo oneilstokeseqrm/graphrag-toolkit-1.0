@@ -35,8 +35,7 @@ class MultiTenantVectorStore(VectorStore):
             The provided vector_store, wrapped in a MultiTenantVectorStore if necessary, or
             the vector_store itself if no wrapping is required.
         """
-        if tenant_id.is_default_tenant():
-            return vector_store
+        
         if isinstance(vector_store, MultiTenantVectorStore):
             return vector_store
         return MultiTenantVectorStore(inner=vector_store, tenant_id=tenant_id)

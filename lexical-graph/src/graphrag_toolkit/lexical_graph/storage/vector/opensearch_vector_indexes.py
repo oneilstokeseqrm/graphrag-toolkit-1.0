@@ -403,6 +403,10 @@ class OpenSearchIndex(VectorIndex):
             OpensearchVectorClient: The initialized or cached OpenSearch vector
                 client instance.
         """
+        if self._client:
+            if self._client._index != self.underlying_index_name():
+                self._client = None
+
         if not self._client:
             if index_exists(self.endpoint, self.underlying_index_name(), self.dimensions, self.writeable):
                 self._client = create_opensearch_vector_client(

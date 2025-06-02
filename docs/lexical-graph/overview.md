@@ -4,6 +4,17 @@
 
 The graphrag-toolkit [lexical-graph](../../lexical-graph/) library provides a framework for automating the construction of a [hierarchical lexical graph](graph-model.md) (a graph representing textual elements at several levels of granularity extracted from source documents) from unstructured data, and composing question-answering strategies that query this graph when answering user questions.
 
+  - [Store and model providers](#stores-and-model-providers)
+  - [Indexing and querying](#indexing-and-querying)
+    - [Indexing](#indexing)
+    - [Querying](#querying)
+  - [Multi tenancy](#multi-tenancy)
+  - [Metadata filtering](#metadata-filtering)
+  - [Model Context Protocol server](#model-context-protocol-server)
+  - [Security](#security)
+  - [Hybrid deployment](#hybrid-deployment)
+  - [Getting started](#getting-started)
+
 ### Stores and model providers
 
 The lexical-graph library depends on three backend systems: a [_graph store_](./storage-model.md#graph-store), a [_vector store_](./storage-model.md#vector-store), and a _foundation model provider_. The graph store allows an application to store and query a lexical graph that has been extracted from unstructured, text-based sources. The vector store contains one or more indexes with emebddings for some of the elements in the lexical graph. These embeddings are primarily used to find starting points in the graph when the library runs a graph query. The foundation model provider hosts the Large Language Models (LLMs) and embedding models used to extract and embed information.
@@ -59,6 +70,14 @@ There are two parts to metadata filtering:
   - **Querying** Supply metadata filters when querying a lexical graph
   
 Metadata filtering can also be used to [filter documents and chunks during the extract and build stages](./metadata-filtering.md#using-metadata-to-filter-documents-in-the-extract-and-build-stages) of the indexing process.
+
+### Model Context Protocol server
+
+The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) is an open protocol that standardizes how applications provide context to LLMs.
+
+The lexical-graph can create a 'catalog' of tools, one per tenant in a multi-tenant graph. Each tool is capable of answering domain-specific questions based on the data in its tenant graph. This catalog is advertised to clients via an MCP server. Clients (typically agents and LLMs) can then browse the catalog and choose appropriate tools for addressing their information goals.
+
+Each tool in the catalog is accompanied by an auto-generated description that helps a client understand the domain, scope, potential uses and kinds of questions covered by the tool. The catalog also includes a 'search' tool, which, given the name of an entity or concept, recommends one or more domain tools with knowledge of the search term.
 
 ### Security
 
