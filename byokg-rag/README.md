@@ -57,10 +57,17 @@ Our results show that BYOKG-RAG outperforms existing approaches across multiple 
 
 ## Getting Started 🚀
 
+The byokg-rag toolkit requires Python and [pip](http://www.pip-installer.org/en/latest/) to install. You can install the byokg-rag using pip:
+
 1. Install dependencies:
 ```bash
-pip install -r src/requirements.txt
+pip install .
 ```
+or 
+```
+pip install https://github.com/awslabs/graphrag-toolkit/archive/refs/tags/v3.7.1.zip#subdirectory=byokg-rag
+```
+(The version number will vary based on the latest GitHub release)
 
 2. Run the demo notebook ([byokg_rag_demo.ipynb](../examples/byokg-rag/byokg_rag_demo.ipynb)):
 ```
