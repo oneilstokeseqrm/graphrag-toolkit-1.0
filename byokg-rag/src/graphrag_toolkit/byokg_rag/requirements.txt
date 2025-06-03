@@ -9,3 +9,6 @@ thefuzz
 langchain_huggingface
 ipykernel
 torch
+transformers>=4.44.2
+numpy>=1.26.4
+scipy>=1.15.3
