@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling", "hatch-requirements-txt"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/graphrag_toolkit"]
+
+[project]
+name = "graphrag-toolkit-byokg-rag"
+version = "0.0.1"
+description = "AWS GraphRAG Toolkit, BYOKG RAG"
+readme = "README.md"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+license = "Apache-2.0"
+
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["src/graphrag_toolkit/byokg_rag/requirements.txt"]
