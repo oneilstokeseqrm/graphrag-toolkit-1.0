@@ -3,12 +3,12 @@
 
 import logging
 import time
-import tfidf_matcher as tm
 from typing import List, Dict
 from dateutil.parser import parse
 
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph import GraphRAGConfig
+from graphrag_toolkit.lexical_graph.utils.tfidf_utils import score_values
 from graphrag_toolkit.lexical_graph.retrieval.model import Source
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, ProcessorArgs
 from graphrag_toolkit.lexical_graph.retrieval.post_processors import SentenceReranker
@@ -53,6 +53,7 @@ class RerankStatements(ProcessorBase):
         super().__init__(args, filter_config)
         self.reranking_source_metadata_fn = self.args.reranking_source_metadata_fn or default_reranking_source_metadata_fn
 
+
     def _score_values_with_tfidf(self, values:List[str], query:QueryBundle, entities:List[ScoredEntity]):
         """
         Compute a ranking of provided text values using the TF-IDF (Term Frequency-Inverse Document Frequency) algorithm.
@@ -84,39 +85,9 @@ class RerankStatements(ProcessorBase):
             match_values.append(', '.join(extras))
 
         logger.debug(f'Match values: {match_values}')
+
+        return score_values(values, match_values, self.args.max_statements)
  
-        values_to_score = values.copy()
-        
-        limit =  len(values_to_score)
-        if self.args.max_statements:
-            limit = min(self.args.max_statements, limit)
-
-        while len(values_to_score) <= limit:
-            values_to_score.append('')
-
-        scored_values = {}
-
-        try:
-            
-            matcher_results = tm.matcher(match_values, values_to_score, limit, 3)
-
-            max_i = len(matcher_results.columns)
-        
-            for row_index in range(0, len(match_values)):
-                for col_index in range(1, max_i, 3) :
-                    value = matcher_results.iloc[row_index, col_index]
-                    score = matcher_results.iloc[row_index, col_index+1]
-                    if value not in scored_values:
-                        scored_values[value] = score
-                    else:
-                        scored_values[value] = max(scored_values[value], score)
-        except ValueError:
-            scored_values = {v: 0.0 for v in values_to_score if v}
-        
-                
-        sorted_scored_values = dict(sorted(scored_values.items(), key=lambda item: item[1], reverse=True))
-        
-        return sorted_scored_values
 
     def _score_values(self, values:List[str], query:QueryBundle, entities:List[ScoredEntity]) -> Dict[str, float]:
         """
