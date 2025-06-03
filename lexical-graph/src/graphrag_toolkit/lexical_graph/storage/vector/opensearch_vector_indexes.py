@@ -254,6 +254,7 @@ class DummyOpensearchVectorClient():
     """
     def __init__(self):
         self._os_async_client = None
+        self._index = None
 
     def index_results(self, nodes: List[BaseNode], **kwargs: Any) -> List[str]:
         """
