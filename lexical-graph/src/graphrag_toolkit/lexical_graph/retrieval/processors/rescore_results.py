@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import statistics
-from typing import List, Dict
 
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, ProcessorArgs

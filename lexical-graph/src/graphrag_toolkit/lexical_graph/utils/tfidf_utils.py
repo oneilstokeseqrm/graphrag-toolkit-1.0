@@ -4,7 +4,7 @@
 import tfidf_matcher as tm
 from typing import List, Optional
 
-def score_values(self, values:List[str], match_values:str, limit:Optional[int]=None, ngram_length=3):
+def score_values(values:List[str], match_values:str, limit:Optional[int]=None, ngram_length=3):
         
         values_to_score = values.copy()
         
