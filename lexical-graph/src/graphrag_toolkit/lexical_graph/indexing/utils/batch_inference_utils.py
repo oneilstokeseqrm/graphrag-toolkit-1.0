@@ -170,7 +170,7 @@ def create_and_run_batch_job(job_name_prefix:str,
 def wait_for_job_completion(bedrock_client: Any, job_arn: str) -> None:
     """Wait for a Bedrock batch job to complete."""
     status = 'Started'
-    while status not in ['Completed', 'Failed', 'Stopped']:
+    while status not in ['Completed', 'Failed', 'Stopped', 'PartiallyCompleted', 'Expired']:
         time.sleep(60)
         logger.debug(f'Waiting for batch job to complete... [job_arn: {job_arn}]')
         response = bedrock_client.get_model_invocation_job(jobIdentifier=job_arn)

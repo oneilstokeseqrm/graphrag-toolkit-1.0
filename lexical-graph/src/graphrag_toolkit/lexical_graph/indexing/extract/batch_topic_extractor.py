@@ -183,27 +183,6 @@ class BatchTopicExtractor(BaseExtractor):
             input_filename = f'topic_extraction_{timestamp}_{batch_index}.jsonl'
 
             # 1 - Create Record Files (.jsonl)
-            # prompts = []
-            # for node in node_batch:
-            #     (_, current_entity_classifications) = self.entity_classification_provider.get_current_values(node)
-            #     (_, current_topics) = self.topic_provider.get_current_values(node)
-            #     text = format_text(
-            #         self._get_metadata_or_default(node.metadata, self.source_metadata_field, node.text) 
-            #         if self.source_metadata_field 
-            #         else node.text
-            #     )
-            #     prompt = self.prompt_template.format(
-            #         text=text,
-            #         preferred_entity_classifications=format_list(current_entity_classifications),
-            #         preferred_topics=format_list(current_topics)
-            #     )
-            #     prompts.append(prompt)
-
-            # json_inputs = create_inference_inputs(
-            #     self.llm.llm,
-            #     node_batch, 
-            #     prompts
-            # )
 
             messages_batch = []
             for node in node_batch:
@@ -290,7 +269,7 @@ class BatchTopicExtractor(BaseExtractor):
 
         """
         if len(nodes) < BEDROCK_MIN_BATCH_SIZE:
-            logger.debug(f'List of nodes contains fewer records ({len(nodes)}) than the minimum required by Bedrock ({BEDROCK_MIN_BATCH_SIZE}), so running TopicExtractor instead')
+            logger.info(f'List of nodes contains fewer records ({len(nodes)}) than the minimum required by Bedrock ({BEDROCK_MIN_BATCH_SIZE}), so running TopicExtractor instead')
             extractor = TopicExtractor( 
                 prompt_template=self.prompt_template, 
                 source_metadata_field=self.source_metadata_field,
