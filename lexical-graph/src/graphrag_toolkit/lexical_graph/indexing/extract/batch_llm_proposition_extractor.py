@@ -205,7 +205,7 @@ class BatchLLMPropositionExtractor(BaseExtractor):
         Asynchronously extracts propositions from a list of nodes. This method divides the input nodes into batches, processes
         the batches concurrently using Bedrock or a fallback extractor, and processes the results to generate structured"""
         if len(nodes) < BEDROCK_MIN_BATCH_SIZE:
-            logger.debug(f'List of nodes contains fewer records ({len(nodes)}) than the minimum required by Bedrock ({BEDROCK_MIN_BATCH_SIZE}), so running LLMPropositionExtractor instead')
+            logger.info(f'List of nodes contains fewer records ({len(nodes)}) than the minimum required by Bedrock ({BEDROCK_MIN_BATCH_SIZE}), so running LLMPropositionExtractor instead')
             extractor = LLMPropositionExtractor(
                 prompt_template=self.prompt_template, 
                 source_metadata_field=self.source_metadata_field
