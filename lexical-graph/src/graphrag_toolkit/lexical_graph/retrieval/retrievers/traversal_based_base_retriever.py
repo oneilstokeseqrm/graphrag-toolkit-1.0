@@ -152,7 +152,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
             }} as topic
         RETURN {{
             score: sum(size(topic.statements)/size(topic.chunks)), 
-            source: head(collect(source)),
+            source: source,
             topics: collect(distinct topic)
         }} as result ORDER BY result.score DESC LIMIT $limit'''
 
