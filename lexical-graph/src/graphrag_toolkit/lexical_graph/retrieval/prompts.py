@@ -53,7 +53,7 @@ Do not add any other explanatory text. Do not exceed {max_keywords} keywords.
 
 
 SIMPLE_EXTRACT_KEYWORDS_PROMPT = """
-You are an expert AI assistant specialising in entity extraction. Your task is to identify the most relevant keywords from a text supplied by the user, up to {max_keywords} in total. Preserve proper names and titles as-is, including determiners such as 'The'.
+You are an expert AI assistant specialising in entity extraction. Your task is to identify the most relevant keywords from a text supplied by the user, up to {max_keywords} in total. Preserve proper names, noun phrases and titles as-is, including determiners such as 'The'.
 
 ## Response Format:
 

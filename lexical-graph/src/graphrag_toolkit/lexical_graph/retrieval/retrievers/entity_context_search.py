@@ -5,10 +5,9 @@ import logging
 from typing import List, Optional, Type, Union
 
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
-from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, ScoredEntity, Entity, SearchResult
+from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
-from graphrag_toolkit.lexical_graph.retrieval.retrievers.keyword_entity_search import KeywordEntitySearch
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.chunk_based_search import ChunkBasedSearch
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.topic_based_search import TopicBasedSearch
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, ProcessorArgs
@@ -91,28 +90,76 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         Returns:
             List[str]: A list of entity IDs that serve as the starting nodes.
         """
-        logger.debug('Getting start node ids for entity context search...')
+
+        if not self.entities:
+            logger.warning(f'No entity ids available for entity based search')
         
-        keyword_entity_search = KeywordEntitySearch(
-            graph_store=self.graph_store, 
-            max_keywords=self.args.max_keywords,
-            expand_entities=False,
-            filter_config=self.filter_config
-        )
+        return [entity.entity.entityId for entity in self.entities] 
+    
+    def _get_entity_contexts(self, start_node_ids:List[str]) -> List[List[str]]:
 
-        entity_search_results = keyword_entity_search.retrieve(query_bundle)
+        if self.args.ecs_max_contexts < 1:
+            return []
+        
+        baseline_entity = self.entities[0]
+        baseline_score = baseline_entity.score
 
-        entities = [
-            ScoredEntity(
-                entity=Entity.model_validate_json(entity_search_result.text), 
-                score=entity_search_result.score
-            )
-            for entity_search_result in entity_search_results
-        ]
+        logger.debug(f'baseline_entity: {baseline_entity}')
 
-        return [entity.entity.entityId for entity in entities]   
+        contexts = []
 
-    def _get_entity_contexts(self, start_node_ids:List[str]) -> List[str]:
+        for entity in self.entities:
+
+            if len(contexts) >= self.args.ecs_max_contexts:
+                break
+
+            parent_score = entity.score
+
+            if parent_score > (self.args.ecs_max_score_factor * baseline_score) or parent_score < (self.args.ecs_min_score_factor * baseline_score):
+                logger.debug(f'Skipping parent entity: {entity}, score: {parent_score}, baseline_score: {baseline_score}')
+                continue
+
+            context = [entity.entity.value]
+
+            cypher = f'''
+            // get entity context
+            MATCH (s:`__Entity__`)-[:`__RELATION__`*0..2]-(c:`__Entity__`)-[r:`__RELATION__`]-()
+            WHERE {self.graph_store.node_id("s.entityId")} = $entityId
+            WITH DISTINCT c, count(r) AS score
+            RETURN c.value AS entity, score LIMIT $limit
+            '''
+            
+            properties = {
+                'entityId': entity.entity.entityId,
+                'limit': self.args.intermediate_limit
+            }
+
+            results = self.graph_store.execute_query(cypher, properties)
+
+            for result in results:
+                
+                if len(context) >= self.args.ecs_max_entities_per_context:
+                    break
+
+                child_entity = result['entity']
+                child_score = result['score']
+
+                if child_score <= (self.args.ecs_max_score_factor * parent_score) and child_score >= (self.args.ecs_min_score_factor * parent_score): 
+                    if child_entity not in context:
+                        context.append(child_entity)
+                else:
+                    logger.debug(f'Skipping child entity: {child_entity}, score: {child_score}, parent_score: {parent_score}')
+
+            contexts.append(context)
+
+        logger.debug(f'Entity contexts: {contexts}')
+
+        return contexts
+
+
+        
+
+    def _get_entity_contexts_old(self, start_node_ids:List[str]) -> List[str]:
         """
         Fetches and processes the context of entities based on relationships and scoring criteria.
 
@@ -134,7 +181,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
 
         cypher = f'''
         // get entity context
-        MATCH (s:`__Entity__`)-[:`__RELATION__`*1..2]-(c:`__Entity__`)
+        MATCH (s:`__Entity__`)-[:`__RELATION__`*0..2]-(c:`__Entity__`)
         WHERE {self.graph_store.node_id("s.entityId")} in $entityIds
         AND NOT {self.graph_store.node_id("c.entityId")} in $entityIds
         RETURN {self.graph_store.node_id("s.entityId")} as s, collect(distinct {self.graph_store.node_id("c.entityId")}) as c LIMIT $limit
@@ -149,6 +196,11 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         
         all_entity_ids = set()
         entity_map = {}
+
+        baseline_entity = self.entities[0]
+        logger.debug(f'baseline_entity: {baseline_entity}')
+
+        baseline_score = baseline_entity.score
         
         for result in results:
             all_entity_ids.add(result['s'])
@@ -181,10 +233,14 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
             parent_entity = entity_score_map[parent]
             parent_score = parent_entity['score']
 
+            logger.debug(f'parent: {parent_entity}')
+
+            if parent_score > (self.args.ecs_max_score_factor * baseline_score) or parent_score < (self.args.ecs_min_score_factor * baseline_score):
+                logger.debug(f'Skipping parent entity: {parent_entity}, score: {parent_score}, baseline_score: {baseline_score}')
+                continue
+
             context_entities = [parent_entity['value']]
             prime_context.append(parent_entity['value'])
-
-            logger.debug(f'parent: {parent_entity}')
 
             for child in children:
 
@@ -195,6 +251,8 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
 
                 if child_score <= (self.args.ecs_max_score_factor * parent_score) and child_score >= (self.args.ecs_min_score_factor * parent_score):
                     context_entities.append(child_entity['value'])
+                else:
+                    logger.debug(f'Skipping child entity: {child_entity}, score: {child_score}, parent_score: {parent_score}')
 
             if len(context_entities) > 1:
                 scored_entity_contexts.append({
@@ -240,6 +298,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
                          else self.sub_retriever(
                             self.graph_store, 
                             self.vector_store, 
+                            entities=self.entities,
                             vss_top_k=2,
                             max_search_results=2,
                             vss_diversity_factor=self.args.vss_diversity_factor,

@@ -9,6 +9,7 @@ from typing import List, Any, Type, Optional
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
+from graphrag_toolkit.lexical_graph.retrieval.pre_processors import KeywordProvider, EntityVSSProvider
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, ScoredEntity
 from graphrag_toolkit.lexical_graph.retrieval.processors import *
 
@@ -115,7 +116,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
         self.vector_store = vector_store
         self.processors = processors if processors is not None else DEFAULT_PROCESSORS
         self.formatting_processors = formatting_processors if formatting_processors is not None else DEFAULT_FORMATTING_PROCESSORS
-        self.entities = entities or []
+        self.entities:List[ScoredEntity] = entities or []
         self.filter_config = filter_config or FilterConfig()
         
     def create_cypher_query(self, match_clause):
@@ -157,6 +158,16 @@ class TraversalBasedBaseRetriever(BaseRetriever):
         }} as result ORDER BY result.score DESC LIMIT $limit'''
 
         return f'{match_clause}{return_clause}'
+    
+    def _init_entities(self, query_bundle: QueryBundle) -> List[str]:
+
+        if not self.entities:
+        
+            keyword_provider = KeywordProvider(max_keywords=self.args.max_keywords)
+            entity_provider = EntityVSSProvider(self.graph_store, self.vector_store, self.args, self.filter_config)
+
+            keywords = keyword_provider.get_keywords(query_bundle)
+            self.entities.extend(entity_provider.get_entities(keywords))
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
         """
@@ -173,9 +184,11 @@ class TraversalBasedBaseRetriever(BaseRetriever):
             List[NodeWithScore]: A list of nodes with their associated scores, ready for further processing or display.
 
         """
-        logger.debug(f'[{type(self).__name__}] Begin retrieve [args: {self.args.to_dict()}]')
+        logger.debug(f'[{type(self).__name__}] Begin retrieve [query: {query_bundle.query_str}, args: {self.args.to_dict()}]')
         
         start_retrieve = time.time()
+
+        self._init_entities(query_bundle)
         
         start_node_ids = self.get_start_node_ids(query_bundle)
         search_results:SearchResultCollection = self.do_graph_search(query_bundle, start_node_ids)
@@ -233,7 +246,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
             if result['result'].get('source', None)
         ]
 
-        return SearchResultCollection(results=search_results)
+        return SearchResultCollection(results=search_results, entities=self.entities)
 
     @abc.abstractmethod
     def get_start_node_ids(self, query_bundle: QueryBundle) -> List[str]:

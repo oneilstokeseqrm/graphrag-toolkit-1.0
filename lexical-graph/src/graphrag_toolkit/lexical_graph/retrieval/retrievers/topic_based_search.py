@@ -14,7 +14,6 @@ from graphrag_toolkit.lexical_graph.retrieval.retrievers.traversal_based_base_re
 from graphrag_toolkit.lexical_graph.retrieval.utils.vector_utils import get_diverse_vss_elements
 
 from llama_index.core.schema import QueryBundle
-from llama_index.core.vector_stores.types import MetadataFilters
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +128,14 @@ class TopicBasedSearch(TraversalBasedBaseRetriever):
         """
         logger.debug('Getting start node ids for topic-based search...')
 
-        topics = get_diverse_vss_elements('topic', query_bundle, self.vector_store, self.args, self.filter_config)
+        topics = get_diverse_vss_elements(
+            'topic', 
+            query_bundle, 
+            self.vector_store, 
+            self.args.vss_diversity_factor, 
+            self.args.vss_top_k, 
+            self.filter_config
+        )
         
         return [topic['topic']['topicId'] for topic in topics]
     
@@ -150,6 +156,7 @@ class TopicBasedSearch(TraversalBasedBaseRetriever):
             A SearchResultCollection object containing accumulated search results from
             the topic-based graph search.
         """
+            
         topic_ids = start_node_ids
 
         logger.debug('Running topic-based search...')

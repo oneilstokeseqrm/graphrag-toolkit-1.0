@@ -82,7 +82,7 @@ class RerankStatements(ProcessorBase):
         ])
 
         if extras:
-            match_values.append(', '.join(extras))
+            match_values.extend(extras)
 
         logger.debug(f'Match values: {match_values}')
 

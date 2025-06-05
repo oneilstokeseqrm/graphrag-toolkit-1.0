@@ -2,33 +2,36 @@
 # SPDX-License-Identifier: Apache-2.0
 import concurrent.futures
 import logging
-from itertools import repeat
 from typing import List, Iterator, cast, Optional
 
-from graphrag_toolkit.lexical_graph.metadata import FilterConfig
-from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
-from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import node_result, search_string_from
-from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
+from graphrag_toolkit.lexical_graph.metadata import FilterConfig
+from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import node_result, search_string_from, filter_config_to_opencypher_filters
 from graphrag_toolkit.lexical_graph.retrieval.model import ScoredEntity
-from graphrag_toolkit.lexical_graph.retrieval.prompts import SIMPLE_EXTRACT_KEYWORDS_PROMPT, EXTENDED_EXTRACT_KEYWORDS_PROMPT
+from graphrag_toolkit.lexical_graph.retrieval.pre_processors.entity_provider_base import EntityProviderBase
+from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorArgs
 
-from llama_index.core.base.base_retriever import BaseRetriever
-from llama_index.core.prompts import PromptTemplate
-from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 
 logger = logging.getLogger(__name__)
 
-class EntityProvider():
+class EntityProvider(EntityProviderBase):
     
-    def __init__(self, graph_store:GraphStore):
-        
-        self.graph_store = graph_store
+    def __init__(self, graph_store:GraphStore, args:ProcessorArgs, filter_config:Optional[FilterConfig]=None):
+        super().__init__(graph_store=graph_store, args=args, filter_config=filter_config)
 
         
     def _get_entities_for_keyword(self, keyword:str) -> List[ScoredEntity]:
 
         parts = keyword.split('|')
+
+        where_clause =  filter_config_to_opencypher_filters(self.filter_config)
+        with_clause = f"""WITH entity, count(DISTINCT r) AS score
+        MATCH (entity)-[:`__SUBJECT__`|`__OBJECT__`]->(:`__Fact__`)
+            -[:`__SUPPORTS__`]->(:`__Statement__`)
+            -[:`__MENTIONED_IN__`]->(:`__Chunk__`)
+            -[:`__EXTRACTED_FROM__`]->(source:`__Source__`)
+        WHERE {where_clause}
+        """ if where_clause else 'WITH entity, count(DISTINCT r) AS score ORDER BY score DESC'
 
         if len(parts) > 1:
 
@@ -36,7 +39,8 @@ class EntityProvider():
             // get entities for keywords
             MATCH (entity:`__Entity__`)-[r:`__SUBJECT__`|`__OBJECT__`]->(:`__Fact__`)
             WHERE entity.search_str = $keyword and entity.class STARTS WITH $classification
-            WITH entity, count(r) AS score ORDER BY score DESC
+            {with_clause}
+            WITH entity, score ORDER BY score DESC
             RETURN {{
                 {node_result('entity', self.graph_store.node_id('entity.entityId'), properties=['value', 'class'])},
                 score: score
@@ -51,7 +55,8 @@ class EntityProvider():
             // get entities for keywords
             MATCH (entity:`__Entity__`)-[r:`__SUBJECT__`|`__OBJECT__`]->(:`__Fact__`)
             WHERE entity.search_str = $keyword
-            WITH entity, count(r) AS score ORDER BY score DESC
+            {with_clause}
+            WITH entity, score ORDER BY score DESC
             RETURN {{
                 {node_result('entity', self.graph_store.node_id('entity.entityId'), properties=['value', 'class'])},
                 score: score
@@ -87,6 +92,8 @@ class EntityProvider():
         scored_entities = list(scored_entity_mappings.values())
 
         scored_entities.sort(key=lambda e:e.score, reverse=True)
+
+        scored_entities = scored_entities[:self.args.ecs_max_contexts]
 
         logger.debug('Entities:\n' + '\n'.join(
             entity.model_dump_json(exclude_unset=True, exclude_defaults=True, exclude_none=True, warnings=False) 

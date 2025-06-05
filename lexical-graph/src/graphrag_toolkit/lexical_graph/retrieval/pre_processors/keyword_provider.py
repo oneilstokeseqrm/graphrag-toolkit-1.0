@@ -57,6 +57,8 @@ class KeywordProvider():
 
         num_keywords = max(int(self.max_keywords/2), 1)
 
+        logger.debug(f'query: {query}')
+
         with concurrent.futures.ThreadPoolExecutor() as p:
             keyword_batches: Iterator[List[str]] = p.map(
                 lambda f, *args: f(*args),
@@ -65,7 +67,7 @@ class KeywordProvider():
                 repeat(num_keywords)
             )
             keywords = sum(keyword_batches, start=cast(List[str], []))
-            unique_keywords = list(set(keywords))
+            unique_keywords = list(set([k.lower() for k in keywords]))[:self.max_keywords]
 
         logger.debug(f'Keywords: {unique_keywords}')
         

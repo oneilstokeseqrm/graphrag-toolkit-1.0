@@ -74,7 +74,7 @@ class ProcessorArgs():
         self.num_workers = kwargs.get('num_workers', 10)
         self.reranking_source_metadata_fn = kwargs.get('reranking_source_metadata_fn', None)
         self.source_formatter = kwargs.get('source_formatter', None)
-        self.ecs_max_score_factor = kwargs.get('ecs_max_score_factor', 2)
+        self.ecs_max_score_factor = kwargs.get('ecs_max_score_factor', 3)
         self.ecs_min_score_factor = kwargs.get('ecs_min_score_factor', 0.25)
         self.ecs_max_contexts = kwargs.get('ecs_max_contexts', 4)
         self.ecs_max_entities_per_context = kwargs.get('ecs_max_entities_per_context', 5)

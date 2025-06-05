@@ -118,10 +118,17 @@ class ChunkBasedSearch(TraversalBasedBaseRetriever):
         """
         logger.debug('Getting start node ids for chunk-based search...')
 
-        chunks = get_diverse_vss_elements('chunk', query_bundle, self.vector_store, self.args, self.filter_config)
+        chunks = get_diverse_vss_elements(
+            'chunk', 
+            query_bundle, 
+            self.vector_store, 
+            self.args.vss_diversity_factor, 
+            self.args.vss_top_k, 
+            self.filter_config
+        )
         
         return [chunk['chunk']['chunkId'] for chunk in chunks]
-    
+        
     def do_graph_search(self, query_bundle: QueryBundle, start_node_ids:List[str]) -> SearchResultCollection:
         """
         Performs graph search using chunk-based retrieval strategy starting from given node IDs

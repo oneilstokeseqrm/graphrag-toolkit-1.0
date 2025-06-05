@@ -15,8 +15,7 @@ from graphrag_toolkit.lexical_graph.retrieval.retrievers.traversal_based_base_re
 from graphrag_toolkit.lexical_graph.retrieval.utils.query_decomposition import QueryDecomposition
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.entity_context_search import EntityContextSearch
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.chunk_based_search import ChunkBasedSearch
-from graphrag_toolkit.lexical_graph.retrieval.retrievers.keyword_entity_search import KeywordEntitySearch
-from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, ScoredEntity, Entity
+from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult
 
 from llama_index.core.schema import QueryBundle, NodeWithScore
 
@@ -156,24 +155,6 @@ class CompositeTraversalBasedRetriever(TraversalBasedBaseRetriever):
 
         retrievers = []
 
-        # get entities
-        keyword_entity_search = KeywordEntitySearch(
-            graph_store=self.graph_store, 
-            max_keywords=self.args.max_keywords,
-            expand_entities=self.args.expand_entities,
-            filter_config=self.filter_config
-        )
-
-        entity_search_results = keyword_entity_search.retrieve(query_bundle)
-
-        entities = [
-            ScoredEntity(
-                entity=Entity.model_validate_json(entity_search_result.text), 
-                score=entity_search_result.score
-            )
-            for entity_search_result in entity_search_results
-        ]
-
         for wr in self.weighted_retrievers:
             
             if not isinstance(wr, WeightedTraversalBasedRetriever):
@@ -194,7 +175,7 @@ class CompositeTraversalBasedRetriever(TraversalBasedBaseRetriever):
                             formatting_processors=[
                                 # No processing - just raw results
                             ],
-                            entities=entities,
+                            entities=self.entities,
                             filter_config=self.filter_config,
                             **sub_args
                         ))
@@ -212,7 +193,7 @@ class CompositeTraversalBasedRetriever(TraversalBasedBaseRetriever):
             scored_nodes = sum(scored_node_batches, start=cast(List[NodeWithScore], []))
             search_results = [SearchResult.model_validate_json(scored_node.node.text) for scored_node in scored_nodes]
         
-        return SearchResultCollection(results=search_results, entities=entities)
+        return SearchResultCollection(results=search_results, entities=self.entities)
             
     
     def do_graph_search(self, query_bundle: QueryBundle, start_node_ids:List[str]) -> SearchResultCollection:
