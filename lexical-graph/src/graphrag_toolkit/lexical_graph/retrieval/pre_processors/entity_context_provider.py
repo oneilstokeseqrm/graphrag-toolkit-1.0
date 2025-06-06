@@ -21,7 +21,7 @@ class EntityContextProvider():
     def get_entity_contexts(self, entities:List[ScoredEntity])  -> list[List[ScoredEntity]]:
 
         baseline_score = statistics.mean([sc.score for sc in entities])
-        upper_score_threshold = baseline_score * self.args.ecs_max_score_factor
+        upper_score_threshold = baseline_score * self.args.ec_max_score_factor
 
         
         original_entity_ids = [entity.entity.entityId for entity in entities if entity.score > 0]  
@@ -109,7 +109,7 @@ class EntityContextProvider():
         neighbour_entities = [
             ScoredEntity.model_validate(result['result'])
             for result in results 
-            if result['result']['entity']['entityId'] not in original_entity_ids and result['result']['score'] <= upper_score_threshold and result['result']['score'] >= (baseline_score * self.args.ecs_min_score_factor)
+            if result['result']['entity']['entityId'] not in original_entity_ids and result['result']['score'] <= upper_score_threshold and result['result']['score'] >= (baseline_score * self.args.ec_min_score_factor)
         ]
         
         neighbour_entities.sort(key=lambda e:e.score, reverse=True)

@@ -7,20 +7,25 @@ from typing import List, Iterator, cast
 
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
+from graphrag_toolkit.lexical_graph.retrieval.pre_processors.keyword_provider_base import KeywordProviderBase
 from graphrag_toolkit.lexical_graph.retrieval.prompts import SIMPLE_EXTRACT_KEYWORDS_PROMPT, EXTENDED_EXTRACT_KEYWORDS_PROMPT
+from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorArgs
 
 from llama_index.core.prompts import PromptTemplate
 from llama_index.core.schema import QueryBundle
 
 logger = logging.getLogger(__name__)
 
-class KeywordProvider():
+class KeywordProvider(KeywordProviderBase):
     
     def __init__(self,
+                 args:ProcessorArgs,
                  llm:LLMCacheType=None, 
                  simple_extract_keywords_template=SIMPLE_EXTRACT_KEYWORDS_PROMPT,
-                 extended_extract_keywords_template=EXTENDED_EXTRACT_KEYWORDS_PROMPT,
-                 max_keywords=10):
+                 extended_extract_keywords_template=EXTENDED_EXTRACT_KEYWORDS_PROMPT
+                ):
+        
+        super().__init__(args)
        
         self.llm = llm if llm and isinstance(llm, LLMCache) else LLMCache(
             llm=llm or GraphRAGConfig.response_llm,
@@ -28,9 +33,7 @@ class KeywordProvider():
         )
         self.simple_extract_keywords_template=simple_extract_keywords_template
         self.extended_extract_keywords_template=extended_extract_keywords_template
-        self.max_keywords = max_keywords
-        
-        
+ 
     def _extract_keywords(self, s:str, num_keywords:int, prompt_template:str):
         results = self.llm.predict(
             PromptTemplate(template=prompt_template),
@@ -55,7 +58,7 @@ class KeywordProvider():
         
         query = query_bundle.query_str
 
-        num_keywords = max(int(self.max_keywords/2), 1)
+        num_keywords = max(int(self.args.max_keywords/2), 1)
 
         logger.debug(f'query: {query}')
 
@@ -67,7 +70,7 @@ class KeywordProvider():
                 repeat(num_keywords)
             )
             keywords = sum(keyword_batches, start=cast(List[str], []))
-            unique_keywords = list(set([k.lower() for k in keywords]))[:self.max_keywords]
+            unique_keywords = list(set([k.lower() for k in keywords]))[:self.args.max_keywords]
 
         logger.debug(f'Keywords: {unique_keywords}')
         

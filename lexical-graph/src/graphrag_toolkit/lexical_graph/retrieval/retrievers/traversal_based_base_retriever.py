@@ -9,7 +9,7 @@ from typing import List, Any, Type, Optional
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
-from graphrag_toolkit.lexical_graph.retrieval.pre_processors import KeywordProvider, EntityVSSProvider, EntityContextProvider
+from graphrag_toolkit.lexical_graph.retrieval.pre_processors import KeywordProvider, KeywordVSSProvider, EntityProvider, EntityVSSProvider, EntityContextProvider
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, ScoredEntity
 from graphrag_toolkit.lexical_graph.retrieval.processors import *
 
@@ -162,9 +162,16 @@ class TraversalBasedBaseRetriever(BaseRetriever):
     def _init_entity_contexts(self, query_bundle: QueryBundle) -> List[str]:
 
         if not self.entity_contexts:
-        
-            keyword_provider = KeywordProvider(max_keywords=self.args.max_keywords)
-            entity_provider = EntityVSSProvider(self.graph_store, self.vector_store, self.args, self.filter_config)
+
+            self.entity_contexts = []
+
+            if self.args.ec_strategy == 'vss':
+                keyword_provider = KeywordVSSProvider(self.graph_store, self.vector_store, self.args, self.filter_config)
+                entity_provider = EntityProvider(self.graph_store, self.args, self.filter_config)
+            else:
+                keyword_provider = KeywordProvider(self.args)
+                entity_provider = EntityVSSProvider(self.graph_store, self.vector_store, self.args, self.filter_config)
+            
             entity_context_provider = EntityContextProvider(self.graph_store, self.args)
 
             keywords = keyword_provider.get_keywords(query_bundle)
@@ -214,6 +221,8 @@ class TraversalBasedBaseRetriever(BaseRetriever):
 
         logger.debug(f'[{type(self).__name__}] Retrieval: {retrieval_ms:.2f}ms')
         logger.debug(f'[{type(self).__name__}] Processing: {processing_ms:.2f}ms')
+
+        self.entity_contexts = None
 
         return [
             NodeWithScore(

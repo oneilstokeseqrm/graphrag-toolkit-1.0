@@ -101,7 +101,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
                             vss_diversity_factor=self.args.vss_diversity_factor,
                             include_facts=self.args.include_facts,
                             filter_config=self.filter_config,
-                            ecs_max_contexts=self.args.ecs_max_contexts
+                            ecs_max_contexts=self.args.ec_max_contexts
                         ))
         logger.debug(f'sub_retriever: {type(sub_retriever).__name__}')
         return sub_retriever
@@ -132,7 +132,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
 
         search_results = []
 
-        for entity_context in entity_contexts[:self.args.ecs_max_contexts]:
+        for entity_context in entity_contexts[:self.args.ec_max_contexts]:
             if entity_context:
                 results = sub_retriever.retrieve(QueryBundle(query_str=', '.join(entity_context)))
                 for result in results:

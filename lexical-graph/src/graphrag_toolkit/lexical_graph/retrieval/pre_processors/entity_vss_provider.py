@@ -46,7 +46,7 @@ class EntityVSSProvider(EntityProviderBase):
         <-[:`__SUPPORTS__`]-(:`__Fact__`)<-[:`__SUBJECT__`|`__OBJECT__`]-(entity:`__Entity__`)
         -[r:`__SUBJECT__`]->(f:`__Fact__`)
         WHERE {self.graph_store.node_id("c.chunkId")} in $chunkIds
-        WITH DISTINCT entity, count(DISTINCT r) AS score ORDER BY score DESC
+        WITH DISTINCT entity, count(DISTINCT r) AS score ORDER BY score DESC LIMIT $limit
         RETURN {{
             {node_result('entity', self.graph_store.node_id('entity.entityId'), properties=['value', 'class'])},
             score: score
@@ -54,7 +54,8 @@ class EntityVSSProvider(EntityProviderBase):
         """
 
         parameters = {
-            'chunkIds': chunk_ids
+            'chunkIds': chunk_ids,
+            'limit': self.args.intermediate_limit
         }
 
         results = self.graph_store.execute_query(cypher, parameters)
@@ -84,8 +85,6 @@ class EntityVSSProvider(EntityProviderBase):
 
 
         logger.debug(f'reranked_entities: {reranked_entities}')
-
-        reranked_entities = reranked_entities[:self.args.max_vss_entities]
 
         return reranked_entities
     
@@ -121,15 +120,22 @@ class EntityVSSProvider(EntityProviderBase):
 
         initial_entity_provider = EntityProvider(self.graph_store, self.args, self.filter_config)
         initial_entities = initial_entity_provider.get_entities(keywords)
-        
-        chunk_ids = self._get_chunk_ids(keywords + [entity.entity.value for entity in initial_entities])
-        chunk_entities = self._get_entities_for_chunks(chunk_ids)
+
+        num_chunk_entities = max(self.args.ec_num_entities - len(initial_entities), 0)
 
         reranked_chunk_entities = []
-        if self.args.reranker == 'model':
-            reranked_chunk_entities = self._get_reranked_entities_model(chunk_entities, keywords) 
-        else:
-            reranked_chunk_entities = self._get_reranked_entities_tfidf(chunk_entities, keywords)
+
+        if num_chunk_entities > 0:
+        
+            chunk_ids = self._get_chunk_ids(keywords + [entity.entity.value for entity in initial_entities])
+            chunk_entities = self._get_entities_for_chunks(chunk_ids)
+
+            if self.args.reranker == 'model':
+                reranked_chunk_entities = self._get_reranked_entities_model(chunk_entities, keywords) 
+            else:
+                reranked_chunk_entities = self._get_reranked_entities_tfidf(chunk_entities, keywords)
+
+            reranked_chunk_entities = reranked_chunk_entities[:num_chunk_entities]
 
         logger.debug(f'initial_entities: {initial_entities}')
         logger.debug(f'reranked_chunk_entities: {reranked_chunk_entities}')

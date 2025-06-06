@@ -3,5 +3,6 @@
 
 from .entity_provider import EntityProvider
 from .keyword_provider import KeywordProvider
+from .keyword_vss_provider import KeywordVSSProvider
 from .entity_vss_provider import EntityVSSProvider
 from .entity_context_provider import EntityContextProvider

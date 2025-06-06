@@ -207,7 +207,8 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             **kwargs
         )
 
-        kwargs.pop('context_format')
+        if 'context_format' in kwargs:
+            kwargs.pop('context_format')
 
         return LexicalGraphQueryEngine(
             graph_store,

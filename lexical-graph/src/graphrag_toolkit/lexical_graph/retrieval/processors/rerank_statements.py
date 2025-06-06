@@ -78,7 +78,7 @@ class RerankStatements(ProcessorBase):
 
         extras = [
             ', '.join([entity.entity.value for entity in entity_context])
-            for entity_context in entity_contexts[:self.args.ecs_max_contexts]
+            for entity_context in entity_contexts[:self.args.ec_max_contexts]
         ]
 
         if extras:
