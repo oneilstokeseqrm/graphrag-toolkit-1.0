@@ -54,7 +54,7 @@ class RerankStatements(ProcessorBase):
         self.reranking_source_metadata_fn = self.args.reranking_source_metadata_fn or default_reranking_source_metadata_fn
 
 
-    def _score_values_with_tfidf(self, values:List[str], query:QueryBundle, entities:List[ScoredEntity]):
+    def _score_values_with_tfidf(self, values:List[str], query:QueryBundle, entity_contexts:List[List[ScoredEntity]]):
         """
         Compute a ranking of provided text values using the TF-IDF (Term Frequency-Inverse Document Frequency) algorithm.
         The method reranks the input values based on their relevance to the provided query and any additional entities.
@@ -74,19 +74,19 @@ class RerankStatements(ProcessorBase):
         logger.debug('Reranking with tfidf')
 
         splitter = TokenTextSplitter(chunk_size=25, chunk_overlap=5)
-        match_values = splitter.split_text(query.query_str)
+        match_values = set(splitter.split_text(query.query_str))
 
-        extras = set([
-            entity.entity.value
-            for entity in entities
-        ])
+        extras = [
+            ', '.join([entity.entity.value for entity in entity_context])
+            for entity_context in entity_contexts[:self.args.ecs_max_contexts]
+        ]
 
         if extras:
-            match_values.extend(extras)
+            match_values.update(extras)
 
         logger.debug(f'Match values: {match_values}')
 
-        return score_values(values, match_values, self.args.max_statements)
+        return score_values(values, list(match_values), self.args.max_statements)
  
 
     def _score_values(self, values:List[str], query:QueryBundle, entities:List[ScoredEntity]) -> Dict[str, float]:
@@ -165,9 +165,9 @@ class RerankStatements(ProcessorBase):
 
         scored_values = None
         if self.args.reranker.lower() == 'model':
-            scored_values = self._score_values(values_to_score, query, search_results.entities)
+            scored_values = self._score_values(values_to_score, query, search_results.entity_contexts)
         else:
-            scored_values = self._score_values_with_tfidf(values_to_score, query, search_results.entities)
+            scored_values = self._score_values_with_tfidf(values_to_score, query, search_results.entity_contexts)
 
         end = time.time()
 

@@ -93,7 +93,7 @@ class EntityProvider(EntityProviderBase):
 
         scored_entities.sort(key=lambda e:e.score, reverse=True)
 
-        scored_entities = scored_entities[:self.args.ecs_max_contexts]
+        scored_entities = scored_entities[:self.args.max_keywords]
 
         logger.debug('Entities:\n' + '\n'.join(
             entity.model_dump_json(exclude_unset=True, exclude_defaults=True, exclude_none=True, warnings=False) 

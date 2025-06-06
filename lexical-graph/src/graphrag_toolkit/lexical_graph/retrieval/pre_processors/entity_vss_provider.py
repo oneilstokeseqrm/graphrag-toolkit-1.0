@@ -65,13 +65,13 @@ class EntityVSSProvider(EntityProviderBase):
             if result['result']['score'] != 0
         ]
 
-        logger.debug(f'scored_entities: {scored_entities}')
+        logger.debug(f'entities: {scored_entities}')
 
         return scored_entities
     
     def _get_reranked_entities(self, entities:List[ScoredEntity], scored_entity_names:Dict[str, float]) -> List[ScoredEntity]:
 
-        logger.debug(f'scored_entity_names: {scored_entity_names}')
+        logger.debug(f'reranked_entity_names: {scored_entity_names}')
 
         reranked_entities = []
         entity_id_map = {}
@@ -82,9 +82,10 @@ class EntityVSSProvider(EntityProviderBase):
                     entity_id_map[entity.entity.entityId] = None
                     reranked_entities.append(entity)
 
-        reranked_entities = reranked_entities[:self.args.ecs_max_contexts]
 
         logger.debug(f'reranked_entities: {reranked_entities}')
+
+        reranked_entities = reranked_entities[:self.args.max_vss_entities]
 
         return reranked_entities
     
@@ -121,12 +122,18 @@ class EntityVSSProvider(EntityProviderBase):
         initial_entity_provider = EntityProvider(self.graph_store, self.args, self.filter_config)
         initial_entities = initial_entity_provider.get_entities(keywords)
         
-        chunk_ids = self._get_chunk_ids(keywords)
+        chunk_ids = self._get_chunk_ids(keywords + [entity.entity.value for entity in initial_entities])
         chunk_entities = self._get_entities_for_chunks(chunk_ids)
-        
+
+        reranked_chunk_entities = []
         if self.args.reranker == 'model':
-            return self._get_reranked_entities_model(initial_entities + chunk_entities, keywords)
+            reranked_chunk_entities = self._get_reranked_entities_model(chunk_entities, keywords) 
         else:
-            return self._get_reranked_entities_tfidf(initial_entities + chunk_entities, keywords)
+            reranked_chunk_entities = self._get_reranked_entities_tfidf(chunk_entities, keywords)
+
+        logger.debug(f'initial_entities: {initial_entities}')
+        logger.debug(f'reranked_chunk_entities: {reranked_chunk_entities}')
+        
+        return initial_entities + reranked_chunk_entities
 
         

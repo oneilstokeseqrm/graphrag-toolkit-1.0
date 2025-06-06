@@ -114,13 +114,15 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             **kwargs
         )
 
+        context_format = kwargs.pop('context_format', 'text')
+
         return LexicalGraphQueryEngine(
             graph_store,
             vector_store,
             tenant_id=tenant_id,
             retriever=retriever,
             post_processors=post_processors,
-            context_format='text',
+            context_format=context_format,
             filter_config=filter_config,
             **kwargs
         )
@@ -204,6 +206,8 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             filter_config=filter_config,
             **kwargs
         )
+
+        kwargs.pop('context_format')
 
         return LexicalGraphQueryEngine(
             graph_store,

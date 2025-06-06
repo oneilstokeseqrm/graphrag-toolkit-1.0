@@ -75,211 +75,8 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         )
 
     def get_start_node_ids(self, query_bundle: QueryBundle) -> List[str]:
-        """
-        Retrieves the starting node IDs for an entity context search.
-
-        This method processes a given `QueryBundle` by performing an entity search
-        using the `KeywordEntitySearch` utility. The search results are used to
-        generate a list of entities along with their associated scores, and finally,
-        the method extracts and returns the entity IDs.
-
-        Args:
-            query_bundle (QueryBundle): The input query bundle containing the query
-                text and associated metadata.
-
-        Returns:
-            List[str]: A list of entity IDs that serve as the starting nodes.
-        """
-
-        if not self.entities:
-            logger.warning(f'No entity ids available for entity based search')
-        
-        return [entity.entity.entityId for entity in self.entities] 
+        return []
     
-    def _get_entity_contexts(self, start_node_ids:List[str]) -> List[List[str]]:
-
-        if self.args.ecs_max_contexts < 1:
-            return []
-        
-        baseline_entity = self.entities[0]
-        baseline_score = baseline_entity.score
-
-        logger.debug(f'baseline_entity: {baseline_entity}')
-
-        contexts = []
-
-        for entity in self.entities:
-
-            if len(contexts) >= self.args.ecs_max_contexts:
-                break
-
-            parent_score = entity.score
-
-            if parent_score > (self.args.ecs_max_score_factor * baseline_score) or parent_score < (self.args.ecs_min_score_factor * baseline_score):
-                logger.debug(f'Skipping parent entity: {entity}, score: {parent_score}, baseline_score: {baseline_score}')
-                continue
-
-            context = [entity.entity.value]
-
-            cypher = f'''
-            // get entity context
-            MATCH (s:`__Entity__`)-[:`__RELATION__`*0..2]-(c:`__Entity__`)-[r:`__RELATION__`]-()
-            WHERE {self.graph_store.node_id("s.entityId")} = $entityId
-            WITH DISTINCT c, count(r) AS score
-            RETURN c.value AS entity, score LIMIT $limit
-            '''
-            
-            properties = {
-                'entityId': entity.entity.entityId,
-                'limit': self.args.intermediate_limit
-            }
-
-            results = self.graph_store.execute_query(cypher, properties)
-
-            for result in results:
-                
-                if len(context) >= self.args.ecs_max_entities_per_context:
-                    break
-
-                child_entity = result['entity']
-                child_score = result['score']
-
-                if child_score <= (self.args.ecs_max_score_factor * parent_score) and child_score >= (self.args.ecs_min_score_factor * parent_score): 
-                    if child_entity not in context:
-                        context.append(child_entity)
-                else:
-                    logger.debug(f'Skipping child entity: {child_entity}, score: {child_score}, parent_score: {parent_score}')
-
-            contexts.append(context)
-
-        logger.debug(f'Entity contexts: {contexts}')
-
-        return contexts
-
-
-        
-
-    def _get_entity_contexts_old(self, start_node_ids:List[str]) -> List[str]:
-        """
-        Fetches and processes the context of entities based on relationships and scoring criteria.
-
-        This method retrieves entity relationship data from a graph database, computes scores for
-        the relationships, and organizes the entities into contexts based on configurable thresholds
-        for scoring. The resulting entity contexts are limited in number and structured to contain
-        related entities grouped by score evaluation and hierarchy.
-
-        Args:
-            start_node_ids (List[str]): A list of starting entity node IDs for which the contexts
-                need to be retrieved.
-
-        Returns:
-            List[str]: A list of entity contexts, where each context is represented by a list of
-                entity values.
-        """
-        if self.args.ecs_max_contexts < 1:
-            return []
-
-        cypher = f'''
-        // get entity context
-        MATCH (s:`__Entity__`)-[:`__RELATION__`*0..2]-(c:`__Entity__`)
-        WHERE {self.graph_store.node_id("s.entityId")} in $entityIds
-        AND NOT {self.graph_store.node_id("c.entityId")} in $entityIds
-        RETURN {self.graph_store.node_id("s.entityId")} as s, collect(distinct {self.graph_store.node_id("c.entityId")}) as c LIMIT $limit
-        '''
-        
-        properties = {
-            'entityIds': start_node_ids,
-            'limit': self.args.intermediate_limit
-        }
-        
-        results = self.graph_store.execute_query(cypher, properties)
-        
-        all_entity_ids = set()
-        entity_map = {}
-
-        baseline_entity = self.entities[0]
-        logger.debug(f'baseline_entity: {baseline_entity}')
-
-        baseline_score = baseline_entity.score
-        
-        for result in results:
-            all_entity_ids.add(result['s'])
-            all_entity_ids.update(result['c'])
-            entity_map[result['s']] = result['c']
-            
-        cypher = f'''
-        // get entity context scores
-        MATCH (s:`__Entity__`)-[r:`__RELATION__`]-()
-        WHERE {self.graph_store.node_id("s.entityId")} in $entityIds
-        RETURN {self.graph_store.node_id("s.entityId")} as s_id, s.value AS value, sum(r.count) AS score
-        '''
-        
-        properties = {
-            'entityIds': list(all_entity_ids)
-        }
-        
-        results = self.graph_store.execute_query(cypher, properties)
-        
-        entity_score_map = {}
-        
-        for result in results:
-            entity_score_map[result['s_id']] = { 'value': result['value'], 'score': result['score']}
-            
-        scored_entity_contexts = []
-        prime_context = []
-        
-        for parent, children in entity_map.items():
-
-            parent_entity = entity_score_map[parent]
-            parent_score = parent_entity['score']
-
-            logger.debug(f'parent: {parent_entity}')
-
-            if parent_score > (self.args.ecs_max_score_factor * baseline_score) or parent_score < (self.args.ecs_min_score_factor * baseline_score):
-                logger.debug(f'Skipping parent entity: {parent_entity}, score: {parent_score}, baseline_score: {baseline_score}')
-                continue
-
-            context_entities = [parent_entity['value']]
-            prime_context.append(parent_entity['value'])
-
-            for child in children:
-
-                child_entity = entity_score_map[child]
-                child_score = child_entity['score']
-
-                logger.debug(f'child : {child_entity}')
-
-                if child_score <= (self.args.ecs_max_score_factor * parent_score) and child_score >= (self.args.ecs_min_score_factor * parent_score):
-                    context_entities.append(child_entity['value'])
-                else:
-                    logger.debug(f'Skipping child entity: {child_entity}, score: {child_score}, parent_score: {parent_score}')
-
-            if len(context_entities) > 1:
-                scored_entity_contexts.append({
-                    'entities': context_entities[:self.args.ecs_max_entities_per_context],
-                    'score': parent_score
-                })
-
-        scored_entity_contexts = sorted(scored_entity_contexts, key=lambda ec: ec['score'], reverse=True)
-
-        logger.debug(f'scored_entity_contexts: {scored_entity_contexts}')
-
-        all_entity_contexts = [prime_context]
-
-        for scored_entity_context in scored_entity_contexts:
-            entities = scored_entity_context['entities']
-            all_entity_contexts.extend([
-                entities[x:x+3] 
-                for x in range(0, max(1, len(entities) - 2))
-            ])
-
-        logger.debug(f'all_entity_contexts: {all_entity_contexts}')
-
-        entity_contexts = all_entity_contexts[:self.args.ecs_max_contexts]
-                 
-        logger.debug(f'entity_contexts: {entity_contexts}')
-        
-        return entity_contexts
     
     def _get_sub_retriever(self):
         """
@@ -298,12 +95,13 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
                          else self.sub_retriever(
                             self.graph_store, 
                             self.vector_store, 
-                            entities=self.entities,
+                            entity_contexts=self.entity_contexts,
                             vss_top_k=2,
                             max_search_results=2,
                             vss_diversity_factor=self.args.vss_diversity_factor,
                             include_facts=self.args.include_facts,
-                            filter_config=self.filter_config
+                            filter_config=self.filter_config,
+                            ecs_max_contexts=self.args.ecs_max_contexts
                         ))
         logger.debug(f'sub_retriever: {type(sub_retriever).__name__}')
         return sub_retriever
@@ -326,18 +124,22 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         logger.debug('Running entity-context-based search...')
 
         sub_retriever = self._get_sub_retriever()
-        entity_contexts = self._get_entity_contexts(start_node_ids)
+        
+        entity_contexts = [ 
+            [ entity.entity.value for entity in entity_context ]
+            for entity_context in self.entity_contexts     
+        ]
 
         search_results = []
 
-        for entity_context in entity_contexts:
+        for entity_context in entity_contexts[:self.args.ecs_max_contexts]:
             if entity_context:
                 results = sub_retriever.retrieve(QueryBundle(query_str=', '.join(entity_context)))
                 for result in results:
                     search_results.append(SearchResult.model_validate(result.metadata))
                     
                 
-        search_results_collection = SearchResultCollection(results=search_results) 
+        search_results_collection = SearchResultCollection(results=search_results, entity_contexts=self.entity_contexts) 
         
         retriever_name = type(self).__name__
         
