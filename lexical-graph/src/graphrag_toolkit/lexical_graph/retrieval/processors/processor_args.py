@@ -70,6 +70,7 @@ class ProcessorArgs():
         self.vss_top_k = kwargs.get('vss_top_k', 10)
         self.vss_diversity_factor = kwargs.get('vss_diversity_factor', 5)
         self.statement_pruning_threshold = kwargs.get('statement_pruning_threshold', 0.01)
+        self.statement_pruning_factor = kwargs.get('statement_pruning_factor', 0.1)
         self.results_pruning_threshold = kwargs.get('results_pruning_threshold', 0.08)
         self.num_workers = kwargs.get('num_workers', 10)
         self.reranking_source_metadata_fn = kwargs.get('reranking_source_metadata_fn', None)

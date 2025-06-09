@@ -25,7 +25,7 @@ DEFAULT_PROCESSORS = [
     FilterByMetadata,               
     PopulateStatementStrs,
     RerankStatements,
-    DeleteLongTailStatements,
+    PruneStatements,
     RescoreResults,
     SortResults,
     TruncateResults,
