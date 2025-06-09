@@ -13,7 +13,7 @@ from graphrag_toolkit.lexical_graph.tenant_id import TenantIdType, to_tenant_id
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
 from graphrag_toolkit.lexical_graph.retrieval.post_processors.bedrock_context_format import BedrockContextFormat
-from graphrag_toolkit.lexical_graph.retrieval.retrievers import CompositeTraversalBasedRetriever, SemanticGuidedRetriever
+from graphrag_toolkit.lexical_graph.retrieval.retrievers import CompositeTraversalBasedRetriever, SemanticGuidedRetriever, QueryModeRetriever
 from graphrag_toolkit.lexical_graph.retrieval.retrievers import StatementCosineSimilaritySearch, KeywordRankingSearch, SemanticBeamGraphSearch
 from graphrag_toolkit.lexical_graph.retrieval.retrievers import WeightedTraversalBasedRetrieverType, SemanticGuidedRetrieverType
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory, GraphStoreType
@@ -106,15 +106,18 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             )
         )
 
-        retriever = CompositeTraversalBasedRetriever(
-            graph_store,
-            vector_store,
-            retrievers=retrievers,
-            filter_config=filter_config,
-            **kwargs
-        )
-
+        def create_retriever(**retriever_kwargs):
+            return CompositeTraversalBasedRetriever(
+                graph_store,
+                vector_store,
+                retrievers=retrievers,
+                filter_config=filter_config,
+                **retriever_kwargs
+            )
+        
         context_format = kwargs.pop('context_format', 'text')
+        
+        retriever = QueryModeRetriever(create_retriever, **kwargs)
 
         return LexicalGraphQueryEngine(
             graph_store,

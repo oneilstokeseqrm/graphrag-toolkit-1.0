@@ -12,3 +12,4 @@ from .rerank_beam_search import RerankingBeamGraphSearch
 from .semantic_beam_search import SemanticBeamGraphSearch
 from .statement_cosine_seach import StatementCosineSimilaritySearch
 from .semantic_guided_retriever import SemanticGuidedRetriever, SemanticGuidedRetrieverType
+from .query_mode_retriever import QueryModeRetriever

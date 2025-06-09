@@ -8,7 +8,7 @@ from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import node_result, search_string_from, filter_config_to_opencypher_filters
 from graphrag_toolkit.lexical_graph.retrieval.model import ScoredEntity
-from graphrag_toolkit.lexical_graph.retrieval.pre_processors.entity_provider_base import EntityProviderBase
+from graphrag_toolkit.lexical_graph.retrieval.query_context.entity_provider_base import EntityProviderBase
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorArgs
 
 
@@ -93,7 +93,7 @@ class EntityProvider(EntityProviderBase):
 
         scored_entities.sort(key=lambda e:e.score, reverse=True)
 
-        scored_entities = scored_entities[self.args.ec_num_entities]
+        scored_entities = scored_entities[:self.args.ec_num_entities]
 
         logger.debug('Entities:\n' + '\n'.join(
             entity.model_dump_json(exclude_unset=True, exclude_defaults=True, exclude_none=True, warnings=False) 

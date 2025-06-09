@@ -30,7 +30,7 @@ ANSWER_QUESTION_USER_PROMPT = """
 EXTENDED_EXTRACT_KEYWORDS_PROMPT = """
 You are an expert AI assistant specialising in entity extraction. Your task is to identify the most relevant keywords from a text supplied by the user, up to {max_keywords} in total.
 
-From the text identify the most relevant keywords, as well as alternative names, synonyms, abbreviations, and the definitions for any acronyms you recognise, considering possible cases of capitalization, pluralization, common expressions, etc. 
+From the text identify the most relevant keywords, as well as alternative names, synonyms, abbreviations, and the definitions for any acronyms you recognise, considering possible cases of capitalization, pluralization, common expressions, etc. Return keywords in the order of significance, most significant first.
 
 ## Rules
 
@@ -43,6 +43,7 @@ From the text identify the most relevant keywords, as well as alternative names,
 
 Provide all synonyms/keywords separated by '^' symbols.
 Note, result should be in one-line, separated by '^' symbols.
+Return keywords in the order of significance, most significant first.
 
 Do not add any other explanatory text. Do not exceed {max_keywords} keywords.
 
@@ -53,12 +54,13 @@ Do not add any other explanatory text. Do not exceed {max_keywords} keywords.
 
 
 SIMPLE_EXTRACT_KEYWORDS_PROMPT = """
-You are an expert AI assistant specialising in entity extraction. Your task is to identify the most relevant keywords from a text supplied by the user, up to {max_keywords} in total. Preserve proper names, noun phrases and titles as-is, including determiners such as 'The'.
+You are an expert AI assistant specialising in keyword extraction. Your task is to identify the most relevant keywords from a text supplied by the user, up to {max_keywords} in total. Preserve proper names, noun phrases and titles as-is, including determiners such as 'The'. Return keywords in the order of significance, most significant first.
 
 ## Response Format:
 
 Provide all keywords separated by '^' symbols.
 Note, result should be in one-line, separated by '^' symbols.
+Return keywords in the order of significance, most significant first.
 
 Do not add any other explanatory text. Do not exceed {max_keywords} keywords.
 

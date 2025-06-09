@@ -74,19 +74,30 @@ class RerankStatements(ProcessorBase):
         logger.debug('Reranking with tfidf')
 
         splitter = TokenTextSplitter(chunk_size=25, chunk_overlap=5)
-        match_values = set(splitter.split_text(query.query_str))
 
+        match_values = splitter.split_text(query.query_str.lower())
+        
         extras = [
-            ', '.join([entity.entity.value for entity in entity_context])
+            ', '.join([entity.entity.value.lower() for entity in entity_context])
             for entity_context in entity_contexts[:self.args.ec_max_contexts]
         ]
 
-        if extras:
-            match_values.update(extras)
+        match_values = [m for m in match_values if m not in extras] # order in entity context takes precedence
+        num_primary_match_values = len(match_values) if not extras else len(match_values) + 1 # first entry in entity context is as important as match values
 
-        logger.debug(f'Match values: {match_values}')
+        match_values.extend(extras)
+       
+        logger.debug(f'match_values: {match_values}')
+        logger.debug(f'num_primary_match_values: {num_primary_match_values}')
 
-        return score_values(values, list(match_values), self.args.max_statements)
+        scored_values = score_values(
+            values, 
+            match_values, 
+            self.args.max_statements, 
+            num_primary_match_values=num_primary_match_values
+        )
+
+        return scored_values
  
 
     def _score_values(self, values:List[str], query:QueryBundle, entities:List[ScoredEntity]) -> Dict[str, float]:

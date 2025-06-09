@@ -168,6 +168,7 @@ class ScoredEntity(BaseModel):
 
     entity:Entity
     score:float
+    reranking_score:Optional[float]=0.0
 
 class SearchResultCollection(BaseModel):
     """

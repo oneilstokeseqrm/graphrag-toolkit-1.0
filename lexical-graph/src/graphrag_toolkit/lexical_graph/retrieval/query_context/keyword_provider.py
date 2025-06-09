@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 import concurrent.futures
 import logging
+from enum import Enum
 from itertools import repeat
 from typing import List, Iterator, cast
 
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
 from graphrag_toolkit.lexical_graph.utils import LLMCache, LLMCacheType
-from graphrag_toolkit.lexical_graph.retrieval.pre_processors.keyword_provider_base import KeywordProviderBase
+from graphrag_toolkit.lexical_graph.retrieval.query_context.keyword_provider_base import KeywordProviderBase
 from graphrag_toolkit.lexical_graph.retrieval.prompts import SIMPLE_EXTRACT_KEYWORDS_PROMPT, EXTENDED_EXTRACT_KEYWORDS_PROMPT
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorArgs
 
@@ -16,13 +17,23 @@ from llama_index.core.schema import QueryBundle
 
 logger = logging.getLogger(__name__)
 
+
+from dataclasses import dataclass
+from typing import Optional
+
+class KeywordProviderMode(Enum):
+    
+    SIMPLE = 1
+    ALL = 2
+
 class KeywordProvider(KeywordProviderBase):
     
     def __init__(self,
                  args:ProcessorArgs,
                  llm:LLMCacheType=None, 
                  simple_extract_keywords_template=SIMPLE_EXTRACT_KEYWORDS_PROMPT,
-                 extended_extract_keywords_template=EXTENDED_EXTRACT_KEYWORDS_PROMPT
+                 extended_extract_keywords_template=EXTENDED_EXTRACT_KEYWORDS_PROMPT,
+                 mode=KeywordProviderMode.ALL
                 ):
         
         super().__init__(args)
@@ -33,6 +44,7 @@ class KeywordProvider(KeywordProviderBase):
         )
         self.simple_extract_keywords_template=simple_extract_keywords_template
         self.extended_extract_keywords_template=extended_extract_keywords_template
+        self.mode = mode
  
     def _extract_keywords(self, s:str, num_keywords:int, prompt_template:str):
         results = self.llm.predict(
@@ -61,17 +73,15 @@ class KeywordProvider(KeywordProviderBase):
         num_keywords = max(int(self.args.max_keywords/2), 1)
 
         logger.debug(f'query: {query}')
+        logger.debug(f'mode: {self.mode}')
 
-        with concurrent.futures.ThreadPoolExecutor() as p:
-            keyword_batches: Iterator[List[str]] = p.map(
-                lambda f, *args: f(*args),
-                (self._get_simple_keywords, self._get_enriched_keywords),
-                repeat(query),
-                repeat(num_keywords)
-            )
-            keywords = sum(keyword_batches, start=cast(List[str], []))
-            unique_keywords = list(set([k.lower() for k in keywords]))[:self.args.max_keywords]
+        keywords = self._get_simple_keywords(query, num_keywords)
 
+        if self.mode == KeywordProviderMode.ALL:
+            keywords.extend(self._get_enriched_keywords(query, num_keywords))
+       
+        unique_keywords = list({ k.lower(): None for k in keywords}.keys())
+        
         logger.debug(f'Keywords: {unique_keywords}')
         
         return unique_keywords

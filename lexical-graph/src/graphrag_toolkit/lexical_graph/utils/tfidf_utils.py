@@ -1,14 +1,26 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+import statistics
 import tfidf_matcher as tm
 from typing import List, Optional
 
-def score_values(values:List[str], match_values:str, limit:Optional[int]=None, ngram_length=3):
+def score_values(values:List[str], 
+                 match_values:List[str], 
+                 limit:Optional[int]=None, 
+                 ngram_length:Optional[int]=3, 
+                 num_primary_match_values:Optional[int]=None):
         
         values_to_score = values.copy()
         
+        num_match_values = len(match_values)
+        num_primary_match_values = num_primary_match_values or num_match_values
         max_num_values_to_score =  len(values_to_score)
+        
+        def calculate_ranked_score(row_index, score):
+            multiplier = 1.0 if row_index < num_primary_match_values else 0.1
+            return score * multiplier
+        
         if limit:
             max_num_values_to_score = min(limit, max_num_values_to_score)
 
@@ -23,18 +35,20 @@ def score_values(values:List[str], match_values:str, limit:Optional[int]=None, n
 
             max_i = len(matcher_results.columns)
         
-            for row_index in range(0, len(match_values)):
+            for row_index in range(0, num_match_values):
                 for col_index in range(1, max_i, 3) :
                     value = matcher_results.iloc[row_index, col_index]
-                    score = matcher_results.iloc[row_index, col_index+1]
-                    if value not in scored_values:
-                        scored_values[value] = score
-                    else:
-                        scored_values[value] = max(scored_values[value], score)
+                    base_score = matcher_results.iloc[row_index, col_index+1]
+                    if base_score > 0.0:
+                        score = calculate_ranked_score(row_index, base_score)
+                        if value not in scored_values:
+                            scored_values[value] = [score]
+                        else:
+                            scored_values[value].append(score)
         except ValueError:
-            scored_values = {v: 0.0 for v in values_to_score if v}
-        
-                
+            scored_values = {v: [0.0] for v in values_to_score if v}
+
+        scored_values = { k: statistics.mean(v) for k,v in scored_values.items() }  
         sorted_scored_values = dict(sorted(scored_values.items(), key=lambda item: item[1], reverse=True))
         
         return sorted_scored_values

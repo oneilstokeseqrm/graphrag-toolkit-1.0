@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 import statistics
-from typing import List, Dict
+from typing import List
 
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import node_result
@@ -20,7 +20,7 @@ class EntityContextProvider():
                         
     def get_entity_contexts(self, entities:List[ScoredEntity])  -> list[List[ScoredEntity]]:
 
-        baseline_score = statistics.mean([sc.score for sc in entities])
+        baseline_score = entities[0].score
         upper_score_threshold = baseline_score * self.args.ec_max_score_factor
 
         
@@ -123,7 +123,7 @@ class EntityContextProvider():
             entity.entity.entityId:entity for entity in entities
         }
 
-        contexts = []
+        unsorted_contexts = []
 
         def walk_tree(current_context, d):
             for k,v in d.items():
@@ -131,18 +131,32 @@ class EntityContextProvider():
                 if k in all_entities:
                     context.append(all_entities[k])
                 if not v and k in all_entities:
-                    contexts.append(context)
+                    unsorted_contexts.append(context)
                 else:
                     walk_tree(context, v)
 
         walk_tree([], root_contexts)
 
-        contexts.sort(key=lambda context:statistics.mean([c.score for c in context]), reverse=True)
+        #contexts.sort(key=lambda context:statistics.mean([c.score for c in context]), reverse=True)
 
-        for context in contexts:
-            print([e.entity.value for e in context])
+        sorted_contexts = []
+
+        for entity in entities:
+            for context in unsorted_contexts:
+                if context[0].entity.entityId == entity.entity.entityId:
+                    sorted_contexts.append(context)
+
+        
+
+        if logger.isEnabledFor(logging.DEBUG):
+
+            output = [
+                str([e.entity.value for e in context])
+                for context in sorted_contexts
+            ]
+            logger.debug('Contexts:\n' + '\n'.join(output))
     
        
-        return contexts
+        return sorted_contexts
 
         

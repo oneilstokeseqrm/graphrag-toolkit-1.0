@@ -11,7 +11,7 @@ from graphrag_toolkit.lexical_graph.storage.vector import VectorStore
 from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import node_result
 from graphrag_toolkit.lexical_graph.retrieval.model import ScoredEntity
 from graphrag_toolkit.lexical_graph.retrieval.utils.vector_utils import get_diverse_vss_elements
-from graphrag_toolkit.lexical_graph.retrieval.pre_processors.keyword_provider_base import KeywordProviderBase
+from graphrag_toolkit.lexical_graph.retrieval.query_context.keyword_provider_base import KeywordProviderBase
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorArgs
 
 from llama_index.core.prompts import PromptTemplate
@@ -85,8 +85,6 @@ class KeywordVSSProvider(KeywordProviderBase):
         results = self.graph_store.execute_query(cypher, parameters)
 
         chunk_content = [result['content'] for result in results]
-
-        logger.debug(f'chunk_content: {chunk_content}')
 
         return chunk_content
     
