@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import json
+import time
 
 from typing import Optional, List, Sequence, Dict
 from datetime import datetime
@@ -16,7 +17,7 @@ from graphrag_toolkit.lexical_graph.indexing.constants import PROPOSITIONS_KEY
 from graphrag_toolkit.lexical_graph.indexing.prompts import EXTRACT_PROPOSITIONS_PROMPT
 from graphrag_toolkit.lexical_graph.indexing.extract.batch_config import BatchConfig
 from graphrag_toolkit.lexical_graph.indexing.extract.llm_proposition_extractor import LLMPropositionExtractor
-from graphrag_toolkit.lexical_graph.indexing.utils.batch_inference_utils import create_inference_inputs, create_inference_inputs_for_messages, create_and_run_batch_job, download_output_files, process_batch_output, split_nodes
+from graphrag_toolkit.lexical_graph.indexing.utils.batch_inference_utils import create_inference_inputs, create_inference_inputs_for_messages, create_and_run_batch_job, download_output_files, process_batch_output, split_nodes, get_file_size_mb
 from graphrag_toolkit.lexical_graph.indexing.utils.batch_inference_utils import BEDROCK_MIN_BATCH_SIZE
 
 from llama_index.core.extractors.interface import BaseExtractor
@@ -146,14 +147,17 @@ class BatchLLMPropositionExtractor(BaseExtractor):
             self._prepare_directory(output_dir)
 
             input_filepath = os.path.join(input_dir, input_filename)
+
+            logger.debug(f'[Proposition batch inputs] Writing {len(json_inputs)} to {input_filename}')
+
             with open(input_filepath, 'w') as file:
                 for item in json_inputs:
                     json.dump(item, file)
                     file.write('\n')
 
+            logger.debug(f'[Proposition batch inputs] Batch input file ready [file: {input_filepath}, size_mb: {get_file_size_mb(input_filepath)}]')
+
             # 2 - Upload records to s3
-            s3_input_key = None
-            s3_output_path = None
             if self.batch_config.key_prefix:
                 s3_input_key = os.path.join(self.batch_config.key_prefix, 'batch-propositions', timestamp, str(batch_index), 'inputs', os.path.basename(input_filename))
                 s3_output_path = os.path.join(self.batch_config.key_prefix, 'batch-propositions', timestamp, str(batch_index), 'outputs/')
@@ -161,8 +165,11 @@ class BatchLLMPropositionExtractor(BaseExtractor):
                 s3_input_key = os.path.join('batch-propositions', timestamp, str(batch_index), 'inputs', os.path.basename(input_filename))
                 s3_output_path = os.path.join('batch-propositions', timestamp, str(batch_index), 'outputs/')
 
+            upload_start = time.time()
+            logger.debug(f'[Proposition batch inputs] Started uploading {input_filename} to S3 [bucket: {self.batch_config.bucket_name}, key: {s3_input_key}]')
             await asyncio.to_thread(s3_client.upload_file, input_filepath, self.batch_config.bucket_name, s3_input_key)
-            logger.debug(f'Uploaded {input_filename} to S3 [bucket: {self.batch_config.bucket_name}, key: {s3_input_key}]')
+            upload_end = time.time()
+            logger.debug(f'[Proposition batch inputs] Finished uploading {input_filename} to S3 [bucket: {self.batch_config.bucket_name}, key: {s3_input_key}] ({int((upload_end - upload_start) * 1000)} millis)')
 
             # 3 - Invoke batch job
             await asyncio.to_thread(create_and_run_batch_job,
@@ -176,7 +183,14 @@ class BatchLLMPropositionExtractor(BaseExtractor):
                 self.llm.model
             )
 
+            download_start = time.time()
+            output_filepath = os.path.join(output_dir, input_filename)
+            logger.debug(f'[Proposition batch outputs] Started downloading outputs to {output_filepath} to S3 [bucket: {self.batch_config.bucket_name}, key: {s3_output_path}]')
             await asyncio.to_thread(download_output_files, s3_client, self.batch_config.bucket_name, s3_output_path, input_filename, output_dir)
+            download_end = time.time()
+            logger.debug(f'[Proposition batch outputs] Finished downloading outputs to {output_filepath} to S3 [bucket: {self.batch_config.bucket_name}, key: {s3_output_path}]  ({int((download_end - download_start) * 1000)} millis)')
+            
+            logger.debug(f'[Proposition batch outputs] Batch output file ready [file: {output_filepath}, size_mb: {get_file_size_mb(output_filepath)}]')
 
             # 4 - Once complete, process batch output
             batch_results = await process_batch_output(output_dir, input_filename, self.llm)
