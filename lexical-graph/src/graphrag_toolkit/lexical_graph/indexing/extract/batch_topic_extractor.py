@@ -269,7 +269,7 @@ class BatchTopicExtractor(BaseExtractor):
 
         """
         if len(nodes) < BEDROCK_MIN_BATCH_SIZE:
-            logger.info(f'List of nodes contains fewer records ({len(nodes)}) than the minimum required by Bedrock ({BEDROCK_MIN_BATCH_SIZE}), so running TopicExtractor instead')
+            logger.info(f'Not enough records to run batch extraction. List of nodes contains fewer records ({len(nodes)}) than the minimum required by Bedrock ({BEDROCK_MIN_BATCH_SIZE}), so running TopicExtractor instead.')
             extractor = TopicExtractor( 
                 prompt_template=self.prompt_template, 
                 source_metadata_field=self.source_metadata_field,

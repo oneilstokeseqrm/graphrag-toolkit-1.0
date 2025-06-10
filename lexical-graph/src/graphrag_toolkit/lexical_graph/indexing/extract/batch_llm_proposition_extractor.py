@@ -128,13 +128,6 @@ class BatchLLMPropositionExtractor(BaseExtractor):
             timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
             input_filename = f'proposition_extraction_{timestamp}_batch_{batch_index}.jsonl'
 
-            # 1 - Create Record Files (.jsonl)
-            # prompts = []
-            # for node in node_batch:
-            #     text = node.metadata.get(self.source_metadata_field, node.text) if self.source_metadata_field else node.text
-            #     prompt = self.prompt_template.format(text=text)
-            #     prompts.append(prompt)
-
             messages_batch = []
             for node in node_batch:
                 text = node.metadata.get(self.source_metadata_field, node.text) if self.source_metadata_field else node.text
@@ -146,12 +139,6 @@ class BatchLLMPropositionExtractor(BaseExtractor):
                 node_batch, 
                 messages_batch
             )
-            
-            # json_inputs = create_inference_inputs(
-            #     self.llm.llm,
-            #     node_batch, 
-            #     prompts
-            # )
 
             input_dir = os.path.join(self.batch_inference_dir, timestamp, str(batch_index), 'inputs')
             output_dir = os.path.join(self.batch_inference_dir, timestamp, str(batch_index), 'outputs')
@@ -205,7 +192,7 @@ class BatchLLMPropositionExtractor(BaseExtractor):
         Asynchronously extracts propositions from a list of nodes. This method divides the input nodes into batches, processes
         the batches concurrently using Bedrock or a fallback extractor, and processes the results to generate structured"""
         if len(nodes) < BEDROCK_MIN_BATCH_SIZE:
-            logger.info(f'List of nodes contains fewer records ({len(nodes)}) than the minimum required by Bedrock ({BEDROCK_MIN_BATCH_SIZE}), so running LLMPropositionExtractor instead')
+            logger.info(f'Not enough records to run batch extraction. List of nodes contains fewer records ({len(nodes)}) than the minimum required by Bedrock ({BEDROCK_MIN_BATCH_SIZE}), so running LLMPropositionExtractor instead.')
             extractor = LLMPropositionExtractor(
                 prompt_template=self.prompt_template, 
                 source_metadata_field=self.source_metadata_field
