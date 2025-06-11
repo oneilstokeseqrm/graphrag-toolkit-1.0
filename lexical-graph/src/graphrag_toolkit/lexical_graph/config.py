@@ -8,12 +8,12 @@ import subprocess
 import boto3
 import botocore
 import contextlib
+import threading
+import logging
+
 from botocore import exceptions as botocore_exceptions
 from botocore import configloader
 from botocore.exceptions import SSOTokenLoadError
-
-import threading
-import logging
 from dataclasses import dataclass, field
 from typing import Optional, Union, Dict, Set, List
 from boto3 import Session as Boto3Session
