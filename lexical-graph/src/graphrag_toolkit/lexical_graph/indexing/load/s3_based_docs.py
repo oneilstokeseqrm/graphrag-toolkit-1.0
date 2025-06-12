@@ -4,9 +4,12 @@
 import io
 import json
 import logging
+import time
+import concurrent.futures
 
 from os.path import join
 from datetime import datetime
+from itertools import repeat
 from typing import List, Any, Generator, Optional, Dict
 
 from graphrag_toolkit.lexical_graph.indexing import NodeHandler
@@ -127,6 +130,14 @@ class S3BasedDocs(NodeHandler):
                 filter(relationship_info.metadata)
 
         return node
+    
+    def _download_chunk(self, chunk_key, s3_client):
+        with io.BytesIO() as io_stream:
+            s3_client.download_fileobj(self.bucket_name, chunk_key, io_stream)        
+            io_stream.seek(0)
+            data = io_stream.read().decode('UTF-8')
+            return self._filter_metadata(TextNode.from_json(data))
+
 
     def __iter__(self):
         """
@@ -154,8 +165,6 @@ class S3BasedDocs(NodeHandler):
 
         collection_path = join(self.key_prefix,  self.collection_id, '')
 
-        logger.debug(f'Getting source documents from S3: [bucket: {self.bucket_name}, key: {collection_path}]')
-
         paginator = s3_client.get_paginator('list_objects_v2')
         source_doc_pages = paginator.paginate(Bucket=self.bucket_name, Prefix=collection_path, Delimiter='/')
 
@@ -166,9 +175,12 @@ class S3BasedDocs(NodeHandler):
              
         ]
 
+        start = time.time()
+        logger.debug(f'Started getting source documents from S3 [bucket: {self.bucket_name}, prefixes: {source_doc_prefixes}]')
+
+        doc_count = 0
+
         for source_doc_prefix in source_doc_prefixes:
-            
-            nodes = []
             
             chunk_pages = paginator.paginate(Bucket=self.bucket_name, Prefix=source_doc_prefix)
             
@@ -177,17 +189,22 @@ class S3BasedDocs(NodeHandler):
                 for chunk_page in chunk_pages
                 for chunk_obj in chunk_page['Contents'] 
             ]
-            
-            for chunk_key in chunk_keys:
-                with io.BytesIO() as io_stream:
-                    s3_client.download_fileobj(self.bucket_name, chunk_key, io_stream)        
-                    io_stream.seek(0)
-                    data = io_stream.read().decode('UTF-8')
-                    nodes.append(self._filter_metadata(TextNode.from_json(data)))
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=GraphRAGConfig.extraction_num_threads_per_worker) as executor:
+                nodes = list(executor.map(
+                    self._download_chunk,
+                    chunk_keys,
+                    repeat(s3_client)
+                ))
 
             logger.debug(f'Yielding source document [source: {source_doc_prefix}, num_nodes: {len(nodes)}]')
+
+            doc_count += 1
            
             yield SourceDocument(nodes=nodes)
+
+        end = time.time()
+        logger.debug(f'Finished getting {doc_count} source documents from S3 [bucket: {self.bucket_name}, prefixes: {source_doc_prefixes}] ({end - start} seconds)')
 
     def __call__(self, nodes: List[SourceType], **kwargs: Any) -> List[SourceDocument]:
         """
@@ -203,6 +220,29 @@ class S3BasedDocs(NodeHandler):
             List[SourceDocument]: A list of processed source documents derived from the input nodes.
         """
         return [n for n in self.accept(source_documents_from_source_types(nodes), **kwargs)]
+    
+    def _upload_chunk(self, root_path:str, n:TextNode, s3_client):
+        chunk_output_path = join(root_path, f'{n.node_id}.json')
+                    
+        logger.debug(f'Writing chunk to S3: [bucket: {self.bucket_name}, key: {chunk_output_path}]')
+
+        if self.s3_encryption_key_id:
+            s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=chunk_output_path,
+                Body=(bytes(json.dumps(n.to_dict(), indent=4).encode('UTF-8'))),
+                ContentType='application/json',
+                ServerSideEncryption='aws:kms',
+                SSEKMSKeyId=self.s3_encryption_key_id
+            )
+        else:
+            s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=chunk_output_path,
+                Body=(bytes(json.dumps(n.to_dict(), indent=4).encode('UTF-8'))),
+                ContentType='application/json',
+                ServerSideEncryption='AES256'
+            )
 
     def accept(self, source_documents: List[SourceDocument], **kwargs: Any) -> Generator[SourceDocument, None, None]:
         """
@@ -224,35 +264,26 @@ class S3BasedDocs(NodeHandler):
         """
 
         s3_client = GraphRAGConfig.s3
+        collection_prefix = join(self.key_prefix, self.collection_id)
+
+        start = time.time()
+        logger.debug(f'Started writing source documents to S3 [bucket: {self.bucket_name}, prefix: {collection_prefix}]')
+
+        doc_count = 0
 
         for source_document in source_documents:
             
-            root_path =  join(self.key_prefix, self.collection_id, source_document.source_id())
+            root_path =  join(collection_prefix, source_document.source_id())
             logger.debug(f'Writing source document to S3 [bucket: {self.bucket_name}, prefix: {root_path}]')
 
-            for n in source_document.nodes:
-                if not [key for key in [INDEX_KEY] if key in n.metadata]:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=GraphRAGConfig.extraction_num_threads_per_worker) as executor:
+                for n in source_document.nodes:
+                    if not [key for key in [INDEX_KEY] if key in n.metadata]:
+                        executor.submit(self._upload_chunk, root_path, n, s3_client)
 
-                    chunk_output_path = join(root_path, f'{n.node_id}.json')
-                    
-                    logger.debug(f'Writing chunk to S3: [bucket: {self.bucket_name}, key: {chunk_output_path}]')
-
-                    if self.s3_encryption_key_id:
-                        s3_client.put_object(
-                            Bucket=self.bucket_name,
-                            Key=chunk_output_path,
-                            Body=(bytes(json.dumps(n.to_dict(), indent=4).encode('UTF-8'))),
-                            ContentType='application/json',
-                            ServerSideEncryption='aws:kms',
-                            SSEKMSKeyId=self.s3_encryption_key_id
-                        )
-                    else:
-                        s3_client.put_object(
-                            Bucket=self.bucket_name,
-                            Key=chunk_output_path,
-                            Body=(bytes(json.dumps(n.to_dict(), indent=4).encode('UTF-8'))),
-                            ContentType='application/json',
-                            ServerSideEncryption='AES256'
-                        )
+            doc_count += 1
 
             yield source_document
+
+        end = time.time()
+        logger.debug(f'Finished writing {doc_count} source documents to S3 [bucket: {self.bucket_name}, prefix: {collection_prefix}] ({end - start} seconds)')

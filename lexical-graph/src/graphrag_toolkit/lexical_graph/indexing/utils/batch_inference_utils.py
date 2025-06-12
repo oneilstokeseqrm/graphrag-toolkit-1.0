@@ -6,6 +6,7 @@ import asyncio
 import time
 import os
 import json
+import uuid
 from typing import Any, List, Dict
 from os import stat, listdir
 from os.path import isfile, join
@@ -152,12 +153,14 @@ def create_and_run_batch_job(job_name_prefix:str,
 
         start = time.time()
 
+        job_name_suffix = uuid.uuid4().hex[0:5]
+
         response = None
         if batch_config.subnet_ids and batch_config.security_group_ids:
             response = bedrock_client.create_model_invocation_job(
                 roleArn=batch_config.role_arn,
                 modelId=model_id,
-                jobName=f'{job_name_prefix}-{timestamp}-{batch_index}',
+                jobName=f'{job_name_prefix}-{timestamp}-{batch_index}-{job_name_suffix}',
                 inputDataConfig=input_data_config,
                 outputDataConfig=output_data_config,
                 vpcConfig={
@@ -169,7 +172,7 @@ def create_and_run_batch_job(job_name_prefix:str,
             response = bedrock_client.create_model_invocation_job(
                 roleArn=batch_config.role_arn,
                 modelId=model_id,
-                jobName=f'{job_name_prefix}-{timestamp}-{batch_index}',
+                jobName=f'{job_name_prefix}-{timestamp}-{batch_index}-{job_name_suffix}',
                 inputDataConfig=input_data_config,
                 outputDataConfig=output_data_config
             )
