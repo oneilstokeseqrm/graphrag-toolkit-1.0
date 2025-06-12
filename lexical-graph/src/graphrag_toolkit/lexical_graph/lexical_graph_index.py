@@ -193,7 +193,6 @@ def get_topic_scope(node: BaseNode):
     else:
         return source.node_id
     
-IndexingConfigType = Union[IndexingConfig, ExtractionConfig, BuildConfig, BatchConfig, List[NodeParser]]
 
 def to_indexing_config(indexing_config:Optional[IndexingConfigType]=None) -> IndexingConfig:
     if not indexing_config:
@@ -313,7 +312,6 @@ class LexicalGraphIndex():
 
         self.extraction_pre_processors = pre_processors
         self.extraction_components = components
-        self.allow_batch_inference = self.indexing_config.batch_config is not None
 
     def _configure_extraction_pipeline(self, config: IndexingConfig):
         """
@@ -458,7 +456,6 @@ class LexicalGraphIndex():
             pre_processors=self.extraction_pre_processors,
             show_progress=show_progress,
             checkpoint=checkpoint,
-            num_workers=1 if self.allow_batch_inference else None,
             tenant_id=DEFAULT_TENANT_ID,
             extraction_filters=self.indexing_config.extraction.extraction_filters,
             **kwargs
@@ -557,7 +554,6 @@ class LexicalGraphIndex():
             pre_processors=self.extraction_pre_processors,
             show_progress=show_progress,
             checkpoint=checkpoint,
-            num_workers=1 if self.allow_batch_inference else None,
             tenant_id=DEFAULT_TENANT_ID,
             extraction_filters=self.indexing_config.extraction.extraction_filters,
             **kwargs
