@@ -6,7 +6,6 @@ from .processor_base import ProcessorBase
 from .clear_chunks import ClearChunks
 from .clear_scores import ClearScores
 from .dedup_results import DedupResults
-from .delete_long_tail_statements import DeleteLongTailStatements
 from .disaggregate_results import DisaggregateResults
 from .filter_by_metadata import FilterByMetadata
 from .format_sources import FormatSources

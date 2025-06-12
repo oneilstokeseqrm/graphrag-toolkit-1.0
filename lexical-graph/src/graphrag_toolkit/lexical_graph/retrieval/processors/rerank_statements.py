@@ -65,7 +65,7 @@ class RerankStatements(ProcessorBase):
         Args:
             values (List[str]): The list of text values to be scored based on their relevance to the query and entities.
             query (QueryBundle): The query object containing the query string to match against the text values.
-            entities (List[ScoredEntity]): A collection of entities that provide additional context for scoring the text values.
+            entity_contexts:List[List[ScoredEntity]]: A list of scored entities used to refine the query for reranking.
 
         Returns:
             dict: A dictionary where keys are the text values and values are their associated relevance scores, sorted
@@ -100,7 +100,7 @@ class RerankStatements(ProcessorBase):
         return scored_values
  
 
-    def _score_values(self, values:List[str], query:QueryBundle, entities:List[ScoredEntity]) -> Dict[str, float]:
+    def _score_values(self, values:List[str], query:QueryBundle, entity_contexts:List[List[ScoredEntity]]) -> Dict[str, float]:
         """
         Reranks a list of values based on their relevance to a specified query and associated entities using a
         SentenceReranker model. The method processes the input values, constructs a query bundle considering the
@@ -109,7 +109,7 @@ class RerankStatements(ProcessorBase):
         Args:
             values (List[str]): A list of strings to be scored and reranked based on relevance.
             query (QueryBundle): The query bundle containing the query string and any metadata for ranking.
-            entities (List[ScoredEntity]): A list of scored entities used to refine the query for reranking.
+            entity_contexts:List[List[ScoredEntity]]: A list of scored entities used to refine the query for reranking.
 
         Returns:
             Dict[str, float]: A dictionary where keys are the original input values and values are their corresponding
@@ -119,10 +119,15 @@ class RerankStatements(ProcessorBase):
 
         reranker = SentenceReranker(model=self.reranking_model, top_n=self.args.max_statements or len(values))
 
+        extras = ', '.join([
+            ', '.join([entity.entity.value.lower() for entity in entity_context])
+            for entity_context in entity_contexts[:self.args.ec_max_contexts]
+        ])
+
         rank_query = (
             query 
-            if not entities 
-            else QueryBundle(query_str=f'{query.query_str} (keywords: {", ".join(set([entity.entity.value for entity in entities]))})')
+            if not extras 
+            else QueryBundle(query_str=f'{query.query_str} (keywords: {extras})')
         )
 
         reranked_values = reranker.postprocess_nodes(

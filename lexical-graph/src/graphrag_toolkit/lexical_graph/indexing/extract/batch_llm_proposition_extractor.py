@@ -7,7 +7,7 @@ import os
 import json
 import time
 import shutil
-
+import uuid
 from typing import Optional, List, Sequence, Dict
 from datetime import datetime
 
@@ -130,7 +130,8 @@ class BatchLLMPropositionExtractor(BaseExtractor):
         try:
             batch_start = time.time()
             timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-            input_filename = f'proposition_extraction_{timestamp}_batch_{batch_index}.jsonl'
+            batch_suffix = f'{batch_index}-{uuid.uuid4().hex[:5]}'
+            input_filename = f'proposition-extraction-{timestamp}-batch-{batch_suffix}.jsonl'
 
             messages_batch = []
             for node in node_batch:
@@ -144,7 +145,7 @@ class BatchLLMPropositionExtractor(BaseExtractor):
                 messages_batch
             )
 
-            root_dir = os.path.join(self.batch_inference_dir, timestamp, str(batch_index))
+            root_dir = os.path.join(self.batch_inference_dir, timestamp, batch_suffix)
             input_dir = os.path.join(root_dir, 'inputs')
             output_dir = os.path.join(root_dir, 'outputs')
             self._prepare_directory(input_dir)
@@ -163,11 +164,11 @@ class BatchLLMPropositionExtractor(BaseExtractor):
 
             # 2 - Upload records to s3
             if self.batch_config.key_prefix:
-                s3_input_key = os.path.join(self.batch_config.key_prefix, 'batch-propositions', timestamp, str(batch_index), 'inputs', os.path.basename(input_filename))
-                s3_output_path = os.path.join(self.batch_config.key_prefix, 'batch-propositions', timestamp, str(batch_index), 'outputs/')
+                s3_input_key = os.path.join(self.batch_config.key_prefix, 'batch-propositions', timestamp, batch_suffix, 'inputs', os.path.basename(input_filename))
+                s3_output_path = os.path.join(self.batch_config.key_prefix, 'batch-propositions', timestamp, batch_suffix, 'outputs/')
             else:
-                s3_input_key = os.path.join('batch-propositions', timestamp, str(batch_index), 'inputs', os.path.basename(input_filename))
-                s3_output_path = os.path.join('batch-propositions', timestamp, str(batch_index), 'outputs/')
+                s3_input_key = os.path.join('batch-propositions', timestamp, batch_suffix, 'inputs', os.path.basename(input_filename))
+                s3_output_path = os.path.join('batch-propositions', timestamp, batch_suffix, 'outputs/')
 
             upload_start = time.time()
             logger.debug(f'[Proposition batch inputs] Started uploading {input_filename} to S3 [bucket: {self.batch_config.bucket_name}, key: {s3_input_key}]')
@@ -180,7 +181,7 @@ class BatchLLMPropositionExtractor(BaseExtractor):
                 'extract-propositions',
                 bedrock_client, 
                 timestamp, 
-                batch_index,
+                batch_suffix,
                 self.batch_config,
                 s3_input_key, 
                 s3_output_path,
