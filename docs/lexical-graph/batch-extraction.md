@@ -7,9 +7,9 @@
 
   - [Overview](#overview)
   - [Using batch inference with the LexicalGraphIndex](#using-batch-inference-with-the-lexicalgraphindex)
-    - [Batch extraction job requirements](#batch-extraction-job-requirements)
-    - [Prerequisites](#prerequisites)
-    - [Configuring batch extraction](#configuring-batch-extraction)
+  - [Batch extraction job requirements](#batch-extraction-job-requirements)
+  - [Prerequisites](#prerequisites)
+  - [Configuring batch extraction](#configuring-batch-extraction)
 
 ### Overview
 
@@ -84,17 +84,17 @@ Batch extraction can use multiple workers that trigger concurrent batch jobs:
   - `BatchConfig.max_num_concurrent_batches`: Sets how many concurrent batch jobs each worker runs.
   - `BatchConfig.max_batch_size`: Sets the maximum number of chunks per batch job.
 
-#### Prerequisites
+### Prerequisites
 
 Before running batch extraction for the first time, you must fulfill the following prerequisites:
 
   - Create an Amazon S3 bucket in the AWS Region where you will be running batch extraction
-  - [Create a custom service role for batch inference](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-iam-sr.html) with access to the S3 bucket
+  - [Create a custom service role for batch inference](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-iam-sr.html) with access to the S3 bucket (and permission to invoke an inference profile, if necessary)
   - Update the IAM identity under which the indexing process runs to allow it to to [submit and manage batch inference jobs](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-inference-prereq.html#batch-inference-permissions) and pass the custom serice role to Bedrock
 
 In the examples below, replace `<account-id>` with your AWS account ID, `<region>` with the name of the AWS Region where you will be running batch extraction, `<model-id>` with the ID of the foundation model in Amazon Bedrock that you want to use for batch extraction, and `<custom-service-role-arn>` with the ARN of your new custom service role.
 
-##### Custom service role
+#### Custom service role
 
 [Create a custom service role for batch inference](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-iam-sr.html) with the following trust relationship:
 
@@ -150,7 +150,9 @@ Create and attach a policy to your custom service role that [allows access to th
 }
 ```
 
-##### Update IAM identity
+To run batch inference with an inference profile, the service role [must have permissions to invoke the inference profile in an AWS Region](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-iam-sr.html#batch-iam-sr-ip), in addition to the model in each Region in the inference profile.
+
+#### Update IAM identity
 
 You will also need to update the IAM identity under which the indexing process runs (not the custom service role) to allow it to to [submit and manage batch inference jobs](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-inference-prereq.html#batch-inference-permissions): 
 
@@ -189,7 +191,7 @@ Add the `iam:PassRole` permission so that the IAM identity under which the index
 }
 ```
 
-#### Configuring batch extraction
+### Configuring batch extraction
 
 The `BatchConfig` object has the following parameters:
 
@@ -204,8 +206,8 @@ The `BatchConfig` object has the following parameters:
 | `s3_encryption_key_id` | The unique identifier of the key that encrypts the S3 location of the output data. | N | |
 | `subnet_ids` | An array of IDs for each subnet in the Virtual Private Cloud (VPC) used to protect batch inference jobs (for more information, see [Protect batch inference jobs using a VPC](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-vpc))| N | |
 | `security_group_ids` | An array of IDs for each security group in the Virtual Private Cloud (VPC) used to protect batch inference jobs (for more information, see [Protect batch inference jobs using a VPC](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-vpc))| N | |
-' `delete_on_success` | Delete the input and output JSON files from the local filesystem on successful completion of a batch job | N | `True` |
+' `delete_on_success` | Delete the input and output JSON files from the local filesystem on successful completion of a batch job. Input and output files in S3 are not deleted. | N | `True` |
 
-##### Controlling access to batch extraction data
+#### Controlling access to batch extraction data
 
 The `BatchConfig` allows you to specify a custom KMS key to encrypt the data in S3, and supply VPC subnet and security group ids to [protect batch inference jobs using a VPC](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-vpc).
