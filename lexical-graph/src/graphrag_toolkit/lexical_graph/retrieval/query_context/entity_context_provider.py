@@ -18,7 +18,7 @@ class EntityContextProvider():
         self.graph_store = graph_store
         self.args = args
                         
-    def get_entity_contexts(self, entities:List[ScoredEntity])  -> list[List[ScoredEntity]]:
+    def get_entity_contexts(self, entities:List[ScoredEntity])  -> List[List[ScoredEntity]]:
 
         baseline_score = entities[0].score
         upper_score_threshold = baseline_score * self.args.ec_max_score_factor
