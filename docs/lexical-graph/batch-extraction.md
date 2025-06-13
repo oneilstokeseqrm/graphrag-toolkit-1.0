@@ -206,7 +206,7 @@ The `BatchConfig` object has the following parameters:
 | `s3_encryption_key_id` | The unique identifier of the key that encrypts the S3 location of the output data. | N | |
 | `subnet_ids` | An array of IDs for each subnet in the Virtual Private Cloud (VPC) used to protect batch inference jobs (for more information, see [Protect batch inference jobs using a VPC](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-vpc))| N | |
 | `security_group_ids` | An array of IDs for each security group in the Virtual Private Cloud (VPC) used to protect batch inference jobs (for more information, see [Protect batch inference jobs using a VPC](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-vpc))| N | |
-' `delete_on_success` | Delete the input and output JSON files from the local filesystem on successful completion of a batch job. Input and output files in S3 are not deleted. | N | `True` |
+| `delete_on_success` | Delete the input and output JSON files from the local filesystem on successful completion of a batch job. Input and output files in S3 are not deleted. | N | `True` |
 
 #### Controlling access to batch extraction data
 
