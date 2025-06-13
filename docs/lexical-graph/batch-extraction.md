@@ -13,7 +13,7 @@
 
 ### Overview
 
-You can use [Amazon Bedrock batch inference](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-inference.html) with the extract stage of the indexing process to improve the performance of extraction on large datasets.
+You can use [Amazon Bedrock batch inference](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-inference.html) in the extract stage of the indexing process to improve the performance of extraction on large datasets.
 
 ### Using batch inference with the LexicalGraphIndex
 
