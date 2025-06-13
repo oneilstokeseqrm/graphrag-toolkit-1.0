@@ -7,8 +7,8 @@
 
   - [Overview](#overview)
   - [Using batch inference with the LexicalGraphIndex](#using-batch-inference-with-the-lexicalgraphindex)
+  - [Setup](#setup)
   - [Batch extraction job requirements](#batch-extraction-job-requirements)
-  - [Prerequisites](#prerequisites)
   - [Configuring batch extraction](#configuring-batch-extraction)
 
 ### Overview
@@ -62,29 +62,7 @@ batch_extract_and_load()
 
 When using batch extraction, update the `GraphRAGConfig.extraction_batch_size` configuration parameter so that a large number of source documents are passed to a batch inference job in a single batch. In the example above, `GraphRAGConfig.extraction_batch_size` has been set to `100`, meaning that 100 source documents will be chunked simultaneously, and these chunks then sent to the batch inference job. If there are 10-20 chunks per document, the batch inference job here will process several thousand records in a single batch.
 
-### Batch extraction job requirements
-
-Each batch extraction job must follow Amazon Bedrock's [batch inference quotas](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-inference-data.html). The lexical-graph's batch extraction uses one input file per job.
-
-#### Key requirements
-
-  - Each batch job needs 100-50,000 records
-  - Jobs with fewer than 100 records are processed individually, not in batch
-  - The feature doesn't check input file sizes — jobs will fail if they exceed Bedrock quotas
-
-#### Worker configuration
-Batch extraction can use multiple workers that trigger concurrent batch jobs:
-
-  - If (workers × concurrent batches) exceeds Bedrock quotas, jobs will wait until capacity is available
-
-#### Important configuration settings
-
-  - `GraphRAGConfig.extraction_batch_size`: Sets how many source documents go to the extraction pipeline. Ensure (source documents × average chunks per document) is enough to fill your planned simultaneous batch jobs.
-  - `GraphRAGConfig.extraction_num_workers`: Sets how many CPUs run batch jobs simultaneously.
-  - `BatchConfig.max_num_concurrent_batches`: Sets how many concurrent batch jobs each worker runs.
-  - `BatchConfig.max_batch_size`: Sets the maximum number of chunks per batch job.
-
-### Prerequisites
+### Setup
 
 Before running batch extraction for the first time, you must fulfill the following prerequisites:
 
@@ -190,6 +168,28 @@ Add the `iam:PassRole` permission so that the IAM identity under which the index
     "Resource": "<custom-service-role-arn>"
 }
 ```
+
+### Batch extraction job requirements
+
+Each batch extraction job must follow Amazon Bedrock's [batch inference quotas](https://docs.aws.amazon.com/bedrock/latest/userguide/batch-inference-data.html). The lexical-graph's batch extraction uses one input file per job.
+
+#### Key requirements
+
+  - Each batch job needs 100-50,000 records
+  - Jobs with fewer than 100 records are processed individually, not in batch
+  - The feature doesn't check input file sizes — jobs will fail if they exceed Bedrock quotas
+
+#### Worker configuration
+Batch extraction can use multiple workers that trigger concurrent batch jobs:
+
+  - If (workers × concurrent batches) exceeds Bedrock quotas, jobs will wait until capacity is available
+
+#### Important configuration settings
+
+  - `GraphRAGConfig.extraction_batch_size`: Sets how many source documents go to the extraction pipeline. Ensure (source documents × average chunks per document) is enough to fill your planned simultaneous batch jobs.
+  - `GraphRAGConfig.extraction_num_workers`: Sets how many CPUs run batch jobs simultaneously.
+  - `BatchConfig.max_num_concurrent_batches`: Sets how many concurrent batch jobs each worker runs.
+  - `BatchConfig.max_batch_size`: Sets the maximum number of chunks per batch job.
 
 ### Configuring batch extraction
 
