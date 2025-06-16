@@ -136,7 +136,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
             if entity_context:
                 results = sub_retriever.retrieve(QueryBundle(query_str=', '.join(entity_context)))
                 for result in results:
-                    search_results.append(SearchResult.model_validate(result.metadata))
+                    search_results.append(SearchResult.model_validate(result.metadata['result']))
                     
                 
         search_results_collection = SearchResultCollection(results=search_results, entity_contexts=self.entity_contexts) 

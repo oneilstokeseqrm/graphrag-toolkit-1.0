@@ -24,23 +24,13 @@ class EntityProvider(EntityProviderBase):
 
         parts = keyword.split('|')
 
-        where_clause =  filter_config_to_opencypher_filters(self.filter_config)
-        with_clause = f"""WITH entity, count(DISTINCT r) AS score
-        MATCH (entity)-[:`__SUBJECT__`|`__OBJECT__`]->(:`__Fact__`)
-            -[:`__SUPPORTS__`]->(:`__Statement__`)
-            -[:`__MENTIONED_IN__`]->(:`__Chunk__`)
-            -[:`__EXTRACTED_FROM__`]->(source:`__Source__`)
-        WHERE {where_clause}
-        """ if where_clause else 'WITH entity, count(DISTINCT r) AS score ORDER BY score DESC'
-
         if len(parts) > 1:
 
             cypher = f"""
             // get entities for keywords
-            MATCH (entity:`__Entity__`)-[r:`__SUBJECT__`|`__OBJECT__`]->(:`__Fact__`)
+            MATCH (entity:`__Entity__`)-[r:`__RELATION__`]-()
             WHERE entity.search_str = $keyword and entity.class STARTS WITH $classification
-            {with_clause}
-            WITH entity, score ORDER BY score DESC
+            WITH entity, count(DISTINCT r) AS score ORDER BY score DESC
             RETURN {{
                 {node_result('entity', self.graph_store.node_id('entity.entityId'), properties=['value', 'class'])},
                 score: score
@@ -53,10 +43,9 @@ class EntityProvider(EntityProviderBase):
         else:
             cypher = f"""
             // get entities for keywords
-            MATCH (entity:`__Entity__`)-[r:`__SUBJECT__`|`__OBJECT__`]->(:`__Fact__`)
+            MATCH (entity:`__Entity__`)-[r:`__RELATION__`]-()
             WHERE entity.search_str = $keyword
-            {with_clause}
-            WITH entity, score ORDER BY score DESC
+            WITH entity, count(DISTINCT r) AS score ORDER BY score DESC
             RETURN {{
                 {node_result('entity', self.graph_store.node_id('entity.entityId'), properties=['value', 'class'])},
                 score: score

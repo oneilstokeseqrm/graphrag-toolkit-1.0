@@ -2,13 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ANSWER_QUESTION_SYSTEM_PROMPT = """
-You are a question answering agent. I will provide you with a set of search results. The user will provide you with a question. Your job is to answer the user's question using only information from the search results. If the search results are empty, do not attempt to answer the question.
+You are a question answering agent. I will provide you with a set of search results. The user will provide you with a question and, optionally, some additional context. Your job is to answer the user's question using only information from the search results. If the search results are empty, do not attempt to answer the question.
 
 <searchResults>
 {search_results}
 </searchResults>
 
 ## Instructions
+  - Use the additional context if present to help focus on the most important search results.
   - Think carefully about the question, the source and relevancy of each of the search results, and the logical connections between different search results before answering.
   - Ensure you answer each part of the question.
   - Reference information from the search results in your answer by adding the 'source' in square brackets at the end of relevant sentences.
@@ -16,7 +17,7 @@ You are a question answering agent. I will provide you with a set of search resu
   - If the question is a yes/no question, start with either 'Yes' or 'No'.
   - If the search results are empty, do not attempt to answer the question.
 
-Based on the search results, answer the following question as concisely as possible:
+Based on the search results and additional context, answer the following question as concisely as possible:
 """
 
 
@@ -24,6 +25,10 @@ ANSWER_QUESTION_USER_PROMPT = """
 <question>
 {query}
 </question>
+
+<additionalContext>
+{additionalContext}
+</additionalContext>
 """
 
 

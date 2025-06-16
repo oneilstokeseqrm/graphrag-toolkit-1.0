@@ -9,7 +9,8 @@ from typing import List, Any, Type, Optional
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
-from graphrag_toolkit.lexical_graph.retrieval.query_context import KeywordProvider, KeywordVSSProvider, EntityProvider, EntityVSSProvider, EntityContextProvider
+from graphrag_toolkit.lexical_graph.retrieval.query_context import KeywordProvider, KeywordVSSProvider, KeywordNLPProvider, KeywordProviderMode
+from graphrag_toolkit.lexical_graph.retrieval.query_context import EntityProvider, EntityVSSProvider, EntityContextProvider
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, ScoredEntity
 from graphrag_toolkit.lexical_graph.retrieval.processors import *
 
@@ -167,11 +168,13 @@ class TraversalBasedBaseRetriever(BaseRetriever):
             self.entity_contexts = []
 
             if self.args.ec_strategy == 'vss':
-                
                 keyword_provider = KeywordVSSProvider(self.graph_store, self.vector_store, self.args, self.filter_config)
                 entity_provider = EntityProvider(self.graph_store, self.args, self.filter_config)
             else:
-                keyword_provider = KeywordProvider(self.args)
+                if self.args.ec_strategy == 'nlp':
+                    keyword_provider = KeywordNLPProvider(self.args)
+                else:
+                    keyword_provider = KeywordProvider(self.args, mode=KeywordProviderMode.SIMPLE)
                 entity_provider = EntityVSSProvider(self.graph_store, self.vector_store, self.args, self.filter_config)
 
             logger.debug(f'Entity context strategy: {type(keyword_provider).__name__} + {type(entity_provider).__name__}')
@@ -180,7 +183,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
 
             keywords = keyword_provider.get_keywords(query_bundle)
             entities = entity_provider.get_entities(keywords)
-            entity_contexts = entity_context_provider.get_entity_contexts(entities)
+            entity_contexts = entity_context_provider.get_entity_contexts(entities, query_bundle)
 
             self.entity_contexts.extend(entity_contexts)
 
@@ -226,11 +229,19 @@ class TraversalBasedBaseRetriever(BaseRetriever):
         logger.debug(f'[{type(self).__name__}] Retrieval: {retrieval_ms:.2f}ms')
         logger.debug(f'[{type(self).__name__}] Processing: {processing_ms:.2f}ms')
 
+        entity_context_strs = [
+            ', '.join([entity.entity.value.lower() for entity in entity_context])
+            for entity_context in formatted_search_results.entity_contexts[:self.args.ec_max_contexts]
+        ]
+
         return [
             NodeWithScore(
                 node=TextNode(
                     text=formatted_search_result.model_dump_json(exclude_none=True, exclude_defaults=True, indent=2),
-                    metadata=search_result.model_dump(exclude_none=True, exclude_unset=True, exclude_defaults=True)
+                    metadata={
+                        'result': search_result.model_dump(exclude_none=True, exclude_unset=True, exclude_defaults=True),
+                        'entity_contexts': entity_context_strs
+                    }
                 ), 
                 score=search_result.score
             ) 

@@ -7,3 +7,4 @@ from .keyword_vss_provider import KeywordVSSProvider
 from .entity_vss_provider import EntityVSSProvider
 from .entity_context_provider import EntityContextProvider
 from .query_mode import QueryMode, QueryModeProvider
+from .keyword_nlp_provider import KeywordNLPProvider

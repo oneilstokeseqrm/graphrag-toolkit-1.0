@@ -75,6 +75,7 @@ class ProcessorArgs():
         self.source_formatter = kwargs.get('source_formatter', None)
         self.statement_pruning_factor = kwargs.get('statement_pruning_factor', 0.1)
         self.ec_strategy = kwargs.get('ec_strategy', 'keyword')
+        self.ec_keyword_provider = kwargs.get('ec_keyword_provider', 'llm')
         self.ec_num_entities = kwargs.get('ec_num_entities', 5)
         self.ec_max_score_factor = kwargs.get('ec_max_score_factor', 3)
         self.ec_min_score_factor = kwargs.get('ec_min_score_factor', 0.25)

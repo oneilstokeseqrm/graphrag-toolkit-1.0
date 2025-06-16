@@ -43,8 +43,8 @@ class EntityVSSProvider(EntityProviderBase):
         cypher = f"""
         // get entities for chunk ids
         MATCH (c:`__Chunk__`)<-[:`__MENTIONED_IN__`]-(:`__Statement__`)
-        <-[:`__SUPPORTS__`]-(:`__Fact__`)<-[:`__SUBJECT__`|`__OBJECT__`]-(entity:`__Entity__`)
-        -[r:`__SUBJECT__`]->(f:`__Fact__`)
+        <-[:`__SUPPORTS__`]-()<-[:`__SUBJECT__`|`__OBJECT__`]-(entity:`__Entity__`)
+        -[r:`__RELATION__`]->()
         WHERE {self.graph_store.node_id("c.chunkId")} in $chunkIds
         WITH DISTINCT entity, count(DISTINCT r) AS score ORDER BY score DESC LIMIT $limit
         RETURN {{
@@ -119,7 +119,7 @@ class EntityVSSProvider(EntityProviderBase):
     def _get_reranked_entity_names_tfidf(self, entities:List[ScoredEntity], keywords:List[str]) -> List[ScoredEntity]:
         
         entity_names = [entity.entity.value.lower() for entity in entities]
-        reranked_entity_names = score_values(entity_names, keywords)
+        reranked_entity_names = score_values(entity_names, keywords, ngram_length=1)
 
         return reranked_entity_names
 
