@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
+import time
 from enum import Enum
 
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig
@@ -41,9 +42,12 @@ class QueryModeProvider():
         return QueryMode.SIMPLE if 'single' in response.strip().lower() else QueryMode.COMPLEX
 
     def get_query_mode(self, query:str) -> QueryMode:
-        
+
+        start = time.time()
         query_mode = self._get_query_mode(query)
+        end = time.time()
+        duration_ms = (end-start) * 1000
         
-        logger.debug(f'query_mode: [{query_mode}] {query}')
+        logger.debug(f'query_mode: [{query_mode}] {query} ({duration_ms:.2f} ms)')
         
         return query_mode

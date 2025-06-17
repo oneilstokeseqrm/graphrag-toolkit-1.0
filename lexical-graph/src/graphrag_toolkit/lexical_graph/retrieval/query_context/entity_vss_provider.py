@@ -44,9 +44,10 @@ class EntityVSSProvider(EntityProviderBase):
         // get entities for chunk ids
         MATCH (c:`__Chunk__`)<-[:`__MENTIONED_IN__`]-(:`__Statement__`)
         <-[:`__SUPPORTS__`]-()<-[:`__SUBJECT__`|`__OBJECT__`]-(entity:`__Entity__`)
-        -[r:`__RELATION__`]->()
         WHERE {self.graph_store.node_id("c.chunkId")} in $chunkIds
-        WITH DISTINCT entity, count(DISTINCT r) AS score ORDER BY score DESC LIMIT $limit
+        WITH DISTINCT entity
+        MATCH (entity)-[r:`__SUBJECT__`|`__OBJECT__`]->()
+        WITH entity, count(DISTINCT r) AS score ORDER BY score DESC LIMIT $limit
         RETURN {{
             {node_result('entity', self.graph_store.node_id('entity.entityId'), properties=['value', 'class'])},
             score: score
@@ -119,12 +120,12 @@ class EntityVSSProvider(EntityProviderBase):
     def _get_reranked_entity_names_tfidf(self, entities:List[ScoredEntity], keywords:List[str]) -> List[ScoredEntity]:
         
         entity_names = [entity.entity.value.lower() for entity in entities]
-        reranked_entity_names = score_values(entity_names, keywords, ngram_length=1)
+        reranked_entity_names = score_values(entity_names, keywords, ngram_length=2)
 
         return reranked_entity_names
 
                         
-    def get_entities(self, keywords:List[str]) -> List[ScoredEntity]:
+    def _get_entities(self, keywords:List[str]) -> List[ScoredEntity]:
 
         initial_entity_provider = EntityProvider(self.graph_store, self.args, self.filter_config)
         initial_entities = initial_entity_provider.get_entities(keywords)
@@ -157,11 +158,9 @@ class EntityVSSProvider(EntityProviderBase):
         logger.debug(f'updated_reranked_entity_names: {updated_reranked_entity_names}')
 
         reranked_entities = self._get_reranked_entities(all_entities, updated_reranked_entity_names) 
-        filtered_reranked_entities = reranked_entities[:self.args.ec_num_entities]
-
-        logger.debug(f'all_reranked_entities: {reranked_entities}')
-        logger.debug(f'filtered_reranked_entities: {filtered_reranked_entities}')
+       
+        logger.debug(f'reranked_entities: {reranked_entities}')
         
-        return filtered_reranked_entities
+        return reranked_entities
 
         

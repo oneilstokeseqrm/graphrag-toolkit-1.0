@@ -4,6 +4,7 @@
 from .chunk_based_search import ChunkBasedSearch
 from .entity_based_search import EntityBasedSearch
 from .entity_context_search import EntityContextSearch
+from .entity_network_search import EntityNetworkSearch
 from .topic_based_search import TopicBasedSearch
 from .composite_traversal_based_retriever import CompositeTraversalBasedRetriever, WeightedTraversalBasedRetrieverType
 from .keyword_ranking_search import KeywordRankingSearch

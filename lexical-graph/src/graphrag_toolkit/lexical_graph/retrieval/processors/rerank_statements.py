@@ -79,11 +79,11 @@ class RerankStatements(ProcessorBase):
         
         extras = [
             ', '.join([entity.entity.value.lower() for entity in entity_context])
-            for entity_context in entity_contexts[:self.args.ec_max_contexts]
+            for entity_context in entity_contexts
         ]
 
         match_values = [m for m in match_values if m not in extras] # order in entity context takes precedence
-        num_primary_match_values = len(match_values) if not extras else len(match_values) + min(int(self.args.ec_max_contexts/2), 1) # first entity contexts are important as match values
+        num_primary_match_values = len(match_values) if not extras else len(match_values) + max(int(len(extras)/2), 1) # first entity contexts are important as match values
 
         match_values.extend(extras)
        
@@ -121,7 +121,7 @@ class RerankStatements(ProcessorBase):
 
         extras = ', '.join([
             ', '.join([entity.entity.value.lower() for entity in entity_context])
-            for entity_context in entity_contexts[:self.args.ec_max_contexts]
+            for entity_context in entity_contexts
         ])
 
         rank_query = (

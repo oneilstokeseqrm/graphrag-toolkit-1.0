@@ -138,13 +138,11 @@ class KeywordVSSProvider(KeywordProviderBase):
 
         return keywords
 
-    def get_keywords(self, query_bundle:QueryBundle) -> List[str]:
+    def _get_keywords(self, query_bundle:QueryBundle) -> List[str]:
         
         chunk_ids =self._get_chunk_ids(query_bundle)
         chunk_content = self._get_chunk_content(chunk_ids)
         entities = self._get_entities_for_chunks(chunk_ids)
         keywords = self._get_keywords_for_entities(query_bundle.query_str, chunk_content, entities)
-
-        logger.debug(f'Keywords: {keywords}')
         
         return keywords

@@ -21,7 +21,11 @@ class KeywordNLPProvider(KeywordProviderBase):
             raise ModelError('Please install the spaCy model using: python -m spacy download en_core_web_sm')
 
         
-    def get_keywords(self, query_bundle:QueryBundle) -> List[str]:        
+    def _get_keywords(self, query_bundle:QueryBundle) -> List[str]:        
+        
         doc = self.nlp(query_bundle.query_str)
-        keywords = list(set([entity.text.lower() for entity in doc.ents]))
-        return keywords[:self.args.max_keywords]
+
+        keyword_map = {entity.text.lower():entity.text for entity in doc.ents}
+        keywords = [keyword for _, keyword in keyword_map.items()]
+
+        return keywords

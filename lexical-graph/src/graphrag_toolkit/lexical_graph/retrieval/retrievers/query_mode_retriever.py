@@ -46,6 +46,7 @@ class QueryModeRetriever(BaseRetriever):
             sub_args = self.args.to_dict()
             max_search_results = int(sub_args['max_search_results']/len(keywords)) + 1
             sub_args['max_search_results'] = max_search_results
+            sub_args['ec_keyword_provider'] = 'passthru'
 
             logger.debug(f'Complex query, so running multiple retrievers in parallel [num_retrievers: {len(keywords)}, search_results_per_retriever: {max_search_results}]')
 

@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
+import time
 from typing import List, Dict
 
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
@@ -22,30 +23,32 @@ class EntityContextProvider():
         
     def _get_entity_id_context_tree(self, entities:List[ScoredEntity]) -> Dict[str, Dict]:
         
+        start = time.time()
+        
         entity_ids = [entity.entity.entityId for entity in entities if entity.score > 0] 
+        exclude_entity_ids = set(entity_ids)
         neighbour_entity_ids = set()
         
-        entity_contexts_id_map = { entity_id:{} for entity_id in entity_ids }
+        entity_id_context_tree = { entity_id:{} for entity_id in entity_ids }
         
-        for entity_id, entity_id_context in entity_contexts_id_map.items():
+        for entity_id, entity_id_context in entity_id_context_tree.items():
             
             start_entity_ids = set([entity_id])
-            exclude_entity_ids = set([entity_id])
+            
             current_entity_id_contexts = { entity_id: entity_id_context  }
 
             for num_neighbours in range (3, 1, -1):
 
                 cypher = f"""
-                // expand entities
+                // get next level in tree
                 MATCH (entity:`__Entity__`)-[:`__RELATION__`]->(other)
+                      -[r:`__SUBJECT__`|`__OBJECT__`]->()
                 WHERE  {self.graph_store.node_id('entity.entityId')} IN $entityIds
                 AND NOT {self.graph_store.node_id('other.entityId')} IN $excludeEntityIds
-                WITH entity, other
-                MATCH (other)-[r:`__RELATION__`]-()
-                WITH entity, other, count(r) AS score ORDER BY score DESC
+                WITH entity, other, count(DISTINCT r) AS score ORDER BY score DESC
                 RETURN {{
                     {node_result('entity', self.graph_store.node_id('entity.entityId'), properties=['value', 'class'])},
-                    others: collect(DISTINCT {self.graph_store.node_id('other.entityId')})[0..$numNeighbours]
+                    others: collect({self.graph_store.node_id('other.entityId')})[0..$numNeighbours]
                 }} AS result    
                 """
 
@@ -80,28 +83,35 @@ class EntityContextProvider():
                 start_entity_ids = other_entity_ids
 
                 current_entity_id_contexts = new_entity_id_contexts
+
+        end = time.time()
+        duration_ms = (end-start) * 1000
+
+        logger.debug(f'entity_id_context_tree: {entity_id_context_tree} ({duration_ms:.2f} ms)')
                 
-        return entity_contexts_id_map
+        return entity_id_context_tree
     
     def _get_neighbour_entities(self, entity_id_context_tree:Dict[str, Dict], baseline_score:float) -> List[ScoredEntity]:
+
+        start = time.time()
 
         neighbour_entity_ids = set()
 
         def walk_tree(d):
-            for _, v in d.items():
-                for k, v in v.items():
-                    neighbour_entity_ids.add(k)
-                    walk_tree(v)
-
-        walk_tree(entity_id_context_tree)
+            for entity_id, children in d.items():
+                neighbour_entity_ids.add(entity_id)
+                walk_tree(children)
+            
+        for _, d in entity_id_context_tree.items():
+            walk_tree(d)
         
         logger.debug(f'neighbour_entity_ids: {list(neighbour_entity_ids)}')
 
         cypher = f"""
         // expand entities: score entities by number of relations
-        MATCH (entity:`__Entity__`)-[r:`__RELATION__`]-()
+        MATCH (entity:`__Entity__`)-[r:`__SUBJECT__`|`__OBJECT__`]->()
         WHERE {self.graph_store.node_id('entity.entityId')} IN $entityIds
-        WITH entity, count(r) AS score
+        WITH entity, count(DISTINCT r) AS score
         RETURN {{
             {node_result('entity', self.graph_store.node_id('entity.entityId'), properties=['value', 'class'])},
             score: score
@@ -118,61 +128,88 @@ class EntityContextProvider():
         lower_score_threshhold = baseline_score * self.args.ec_min_score_factor
 
         
-        neighbour_entities = [
+        all_neighbour_entities = [
             ScoredEntity.model_validate(result['result'])
             for result in results 
             if result['result']['score'] <= upper_score_threshold and result['result']['score'] >= lower_score_threshhold
         ]
-        
+
+        logger.debug(f'all_neighbour_entities: {all_neighbour_entities}')
+
+        neighbour_entities = [
+            e 
+            for e in all_neighbour_entities 
+            if e.score <= upper_score_threshold and e.score >= lower_score_threshhold
+        ]
+
         neighbour_entities.sort(key=lambda e:e.score, reverse=True)
+
+        end = time.time()
+        duration_ms = (end-start) * 1000
         
-        logger.debug(f'neighbour_entities: {neighbour_entities}')
+        logger.debug(f'neighbour_entities: {neighbour_entities} ({duration_ms:.2f} ms)')
 
         return neighbour_entities
 
         
     def _get_entity_contexts(self, entities:List[ScoredEntity], entity_id_context_tree:Dict[str, Dict], query_bundle:QueryBundle) -> List[List[ScoredEntity]]:
+
+        start = time.time()
        
         all_entities = {
             entity.entity.entityId:entity for entity in entities
         }
 
-        unsorted_contexts = []
+        logger.debug(f'all_entities: {all_entities}')
 
-        def walk_tree(current_context, d):
-            for k,v in d.items():
+        all_contexts_map = {}
+
+        def context_id(context):
+            return ':'.join([se.entity.entityId for se in context])
+
+        def walk_tree_ex(current_context, d):
+            if not d:
+               all_contexts_map[context_id(current_context)] = current_context
+            
+            for entity_id, children in d.items():
                 context = [c for c in current_context]
-                if k in all_entities:
-                    context.append(all_entities[k])
-                if not v and k in all_entities:
-                    unsorted_contexts.append(context)
-                else:
-                    walk_tree(context, v)
+                if entity_id in all_entities:
+                    context.append(all_entities[entity_id])
+                walk_tree_ex(context, children)
+                
 
-        walk_tree([], entity_id_context_tree)
+        walk_tree_ex([], entity_id_context_tree)
+
+        logger.debug(f'all_contexts_map: {all_contexts_map}')
+
+        partial_path_keys = []
         
-        
-        logger.debug(f'unsorted_contexts: {unsorted_contexts}')
+        for key in all_contexts_map.keys():
+            for other_key in all_contexts_map.keys():
+                if key != other_key and other_key.startswith(key):
+                    partial_path_keys.append(key)
 
-        context_map = {
-            ' '.join([e.entity.value.lower() for e in c]): c
-            for c in unsorted_contexts
-        }
-        
-        scored_context_map = score_values(list(context_map.keys()), [query_bundle.query_str])
+        for key in partial_path_keys:
+            all_contexts_map.pop(key, None)
 
-        logger.debug(f'scored_contexts: {scored_context_map}')
+        all_contexts = [context for _, context in all_contexts_map.items()]
 
-        return [
-            context_map[k]
-            for k, v in scored_context_map.items()
-        ]
+        logger.debug(f'all_contexts: {all_contexts}')
 
-        
+        contexts = all_contexts[:self.args.ec_max_contexts]
+
+        end = time.time()
+        duration_ms = (end-start) * 1000
+
+        logger.debug(f'contexts: {contexts} ({duration_ms:.2f} ms)')
+
+        return contexts
 
                         
     def get_entity_contexts(self, entities:List[ScoredEntity], query_bundle:QueryBundle)  -> List[List[ScoredEntity]]:
 
+        start = time.time()
+        
         entity_id_context_tree = self._get_entity_id_context_tree(entities)
         
         neighbour_entities = self._get_neighbour_entities(
@@ -188,13 +225,13 @@ class EntityContextProvider():
             query_bundle=query_bundle
         )
 
-        if logger.isEnabledFor(logging.DEBUG):
+        end = time.time()
+        duration_ms = (end-start) * 1000
 
-            output = [
-                str([e.entity.value for e in context])
-                for context in entity_contexts
-            ]
-            logger.debug('Contexts:\n' + '\n'.join(output))
+        logger.debug(f"""Retrieved {len(entity_contexts)} entity contexts for '{query_bundle.query_str}' ({duration_ms:.2f} ms): {[
+            str([e.entity.value for e in context])
+            for context in entity_contexts
+        ]}""")
     
        
         return entity_contexts

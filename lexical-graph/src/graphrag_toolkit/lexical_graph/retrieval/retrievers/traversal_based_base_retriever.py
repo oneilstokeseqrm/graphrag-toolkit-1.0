@@ -9,7 +9,7 @@ from typing import List, Any, Type, Optional
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
-from graphrag_toolkit.lexical_graph.retrieval.query_context import KeywordProvider, KeywordVSSProvider, KeywordNLPProvider, KeywordProviderMode
+from graphrag_toolkit.lexical_graph.retrieval.query_context import KeywordProvider, KeywordVSSProvider, KeywordNLPProvider, KeywordProviderMode, PassThruKeywordProvider
 from graphrag_toolkit.lexical_graph.retrieval.query_context import EntityProvider, EntityVSSProvider, EntityContextProvider
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, ScoredEntity
 from graphrag_toolkit.lexical_graph.retrieval.processors import *
@@ -165,18 +165,28 @@ class TraversalBasedBaseRetriever(BaseRetriever):
 
         if not self.entity_contexts:
 
+            start = time.time()
+
             self.entity_contexts = []
 
-            if self.args.ec_strategy == 'vss':
+            if self.args.ec_keyword_provider == 'vss':
                 keyword_provider = KeywordVSSProvider(self.graph_store, self.vector_store, self.args, self.filter_config)
-                entity_provider = EntityProvider(self.graph_store, self.args, self.filter_config)
+            elif self.args.ec_keyword_provider == 'llm':
+                keyword_provider = KeywordProvider(self.args, mode=KeywordProviderMode.SIMPLE)
+            elif self.args.ec_keyword_provider == 'nlp':
+                keyword_provider = KeywordNLPProvider(self.args)
+            elif self.args.ec_keyword_provider == 'passthru':
+                keyword_provider = PassThruKeywordProvider(self.args)
             else:
-                if self.args.ec_strategy == 'nlp':
-                    keyword_provider = KeywordNLPProvider(self.args)
-                else:
-                    keyword_provider = KeywordProvider(self.args, mode=KeywordProviderMode.SIMPLE)
+                raise ValueError(f'Invalid ec_keyword_provider arg. Expected one of: llm, vss, nlp, passthru')
+            
+            if self.args.ec_entity_provider == 'graph':
+                entity_provider = EntityProvider(self.graph_store, self.args, self.filter_config)
+            elif self.args.ec_entity_provider == 'vss':
                 entity_provider = EntityVSSProvider(self.graph_store, self.vector_store, self.args, self.filter_config)
-
+            else:
+                raise ValueError(f'Invalid ec_entity_provider arg. Expected one of: graph, vss')
+            
             logger.debug(f'Entity context strategy: {type(keyword_provider).__name__} + {type(entity_provider).__name__}')
             
             entity_context_provider = EntityContextProvider(self.graph_store, self.args)
@@ -184,6 +194,11 @@ class TraversalBasedBaseRetriever(BaseRetriever):
             keywords = keyword_provider.get_keywords(query_bundle)
             entities = entity_provider.get_entities(keywords)
             entity_contexts = entity_context_provider.get_entity_contexts(entities, query_bundle)
+
+            end = time.time()
+            duration_ms = (end-start) * 1000
+
+            logger.debug(f'Retrieved {len(entity_contexts)} entity contexts ({duration_ms:.2f}ms)')
 
             self.entity_contexts.extend(entity_contexts)
 
@@ -231,7 +246,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
 
         entity_context_strs = [
             ', '.join([entity.entity.value.lower() for entity in entity_context])
-            for entity_context in formatted_search_results.entity_contexts[:self.args.ec_max_contexts]
+            for entity_context in formatted_search_results.entity_contexts
         ]
 
         return [

@@ -28,7 +28,7 @@ class EntityProvider(EntityProviderBase):
 
             cypher = f"""
             // get entities for keywords
-            MATCH (entity:`__Entity__`)-[r:`__RELATION__`]-()
+            MATCH (entity:`__Entity__`)-[r:`__SUBJECT__`|`__OBJECT__`]->()
             WHERE entity.search_str = $keyword and entity.class STARTS WITH $classification
             WITH entity, count(DISTINCT r) AS score ORDER BY score DESC
             RETURN {{
@@ -43,7 +43,7 @@ class EntityProvider(EntityProviderBase):
         else:
             cypher = f"""
             // get entities for keywords
-            MATCH (entity:`__Entity__`)-[r:`__RELATION__`]-()
+            MATCH (entity:`__Entity__`)-[r:`__SUBJECT__`|`__OBJECT__`]->()
             WHERE entity.search_str = $keyword
             WITH entity, count(DISTINCT r) AS score ORDER BY score DESC
             RETURN {{
@@ -63,7 +63,7 @@ class EntityProvider(EntityProviderBase):
             if result['result']['score'] != 0
         ]
                         
-    def get_entities(self, keywords:List[str])  -> List[ScoredEntity]:
+    def _get_entities(self, keywords:List[str])  -> List[ScoredEntity]:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(keywords)) as p:
             scored_entity_batches:Iterator[List[ScoredEntity]] = p.map(self._get_entities_for_keyword, keywords)
@@ -81,13 +81,6 @@ class EntityProvider(EntityProviderBase):
         scored_entities = list(scored_entity_mappings.values())
 
         scored_entities.sort(key=lambda e:e.score, reverse=True)
-
-        scored_entities = scored_entities[:self.args.ec_num_entities]
-
-        logger.debug('Entities:\n' + '\n'.join(
-            entity.model_dump_json(exclude_unset=True, exclude_defaults=True, exclude_none=True, warnings=False) 
-            for entity in scored_entities)
-        )
 
         return scored_entities
 

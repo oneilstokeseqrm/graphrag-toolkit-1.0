@@ -66,7 +66,7 @@ class KeywordProvider(KeywordProviderBase):
         logger.debug(f'Enriched keywords: {enriched_keywords}')
         return enriched_keywords
 
-    def get_keywords(self, query_bundle:QueryBundle) -> List[str]:
+    def _get_keywords(self, query_bundle:QueryBundle) -> List[str]:
         
         query = query_bundle.query_str
 
@@ -81,7 +81,5 @@ class KeywordProvider(KeywordProviderBase):
             keywords.extend(self._get_enriched_keywords(query, num_keywords))
        
         unique_keywords = list({ k.lower(): None for k in keywords}.keys())
-        
-        logger.debug(f'Keywords: {unique_keywords}')
         
         return unique_keywords
