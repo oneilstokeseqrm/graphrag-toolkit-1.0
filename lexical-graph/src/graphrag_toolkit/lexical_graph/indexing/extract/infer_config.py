@@ -40,11 +40,11 @@ class InferClassificationsConfig:
             classification inference process. Defaults to 1.
         on_existing_classifications (Optional[OnExistingClassifications]): Strategy
             to apply when handling pre-existing classifications. Defaults to
-            OnExistingClassifications.MERGE_EXISTING.
+            OnExistingClassifications.REPLACE_EXISTING.
         prompt_template (Optional[str]): Custom template text for classification
             prompts, if applicable. Defaults to None.
     """
     num_samples:Optional[int]=5
     num_iterations:Optional[int]=1
-    on_existing_classifications:Optional[OnExistingClassifications]=OnExistingClassifications.MERGE_EXISTING
+    on_existing_classifications:Optional[OnExistingClassifications]=OnExistingClassifications.REPLACE_EXISTING
     prompt_template:Optional[str]=None
