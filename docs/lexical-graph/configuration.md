@@ -96,7 +96,9 @@ The `batch_writes_enabled` configuration parameter determines whether all of the
 
 #### Caching Amazon Bedrock LLM responses
 
-If you're using Amazon Bedrock, you can use the local filesystem to cache and reuse LLM responses. Set `GraphRAGoOnfig.enable_cache` to `True`. LLM responses will then be saved in clear text to a `cache` directory. Subsequent invocations of the same model with the exact same prompt will return the cached response.
+If you're using Amazon Bedrock, you can use the local filesystem to cache and reuse LLM responses. Set `GraphRAGConfig.enable_cache` to `True`. LLM responses will then be saved in clear text to a `cache` directory. Subsequent invocations of the same model with the exact same prompt will return the cached response.
+
+Note that streaming responses from the query engine are _not_ cached.
 
 The `cache` directory can grow very large, particularly if you are caching extraction responses for a very large ingest. The lexical-graph will not manage the size of this directory or delete old entries. If you enable the cache, ensure you clear or prune the cache directory regularly.
 
