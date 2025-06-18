@@ -16,6 +16,7 @@ from llama_index.core.llms.llm import LLM
 from llama_index.llms.bedrock_converse import BedrockConverse
 from llama_index.core.bridge.pydantic import BaseModel, Field
 from llama_index.core.prompts import BasePromptTemplate
+from llama_index.core.types import TokenGen
 
 
 logger = logging.getLogger(__name__) 
@@ -31,6 +32,33 @@ class LLMCache(BaseModel):
     enable_cache:Optional[bool] = Field(desc='Whether the cache is enabled or disabled', default=False)
     verbose_prompt:Optional[bool] = Field(default=False)
     verbose_response:Optional[bool] = Field(default=False)
+
+    def stream(
+         self,
+        prompt: BasePromptTemplate,
+        **prompt_args: Any
+    ) -> TokenGen:
+        response = None
+
+        if self.verbose_prompt:
+            logger.info('%s%s%s', c_blue, prompt.format(**prompt_args), c_norm)
+
+        try:
+            if isinstance(self.llm, BedrockConverse):
+                if not hasattr(self.llm, '_client'):
+                    config = Config(
+                        retries={'max_attempts': MAX_ATTEMPTS, 'mode': 'standard'},
+                        connect_timeout=TIMEOUT,
+                        read_timeout=TIMEOUT,
+                    )
+                    
+                    session = GraphRAGConfig.session
+                    self.llm._client = session.client('bedrock-runtime', config=config)
+            response = self.llm.stream(prompt, **prompt_args)
+        except Exception as e:
+            raise ModelError(f'{e!s} [Model config: {self.llm.to_json()}]') from e
+            
+        return response
 
     def predict(
         self,
