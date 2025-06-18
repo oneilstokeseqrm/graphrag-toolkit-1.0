@@ -138,6 +138,17 @@ class FixedScopedValueStore(ScopedValueStore):
         """
         pass
 
+class InMemoryScopedValueStore(ScopedValueStore):
+    
+    scoped_values:Dict[str,List[str]] = Field(default={})
+
+    def get_scoped_values(self, label:str, scope:str) -> List[str]:
+        return self.scoped_values.get(scope, [])
+
+    def save_scoped_values(self, label:str, scope:str, values:List[str]) -> None:
+        self.scoped_values[scope] = values
+        
+
 class ScopedValueProvider(BaseComponent):
     """
     Provides a scoped value management system for handling and storing values

@@ -17,7 +17,7 @@ from graphrag_toolkit.lexical_graph.indexing import NodeHandler
 from graphrag_toolkit.lexical_graph.indexing import sink
 from graphrag_toolkit.lexical_graph.indexing.constants import PROPOSITIONS_KEY, DEFAULT_ENTITY_CLASSIFICATIONS
 from graphrag_toolkit.lexical_graph.indexing.extract import ScopedValueProvider, FixedScopedValueProvider, DEFAULT_SCOPE
-from graphrag_toolkit.lexical_graph.indexing.extract import GraphScopedValueStore
+from graphrag_toolkit.lexical_graph.indexing.extract import GraphScopedValueStore, InMemoryScopedValueStore
 from graphrag_toolkit.lexical_graph.indexing.extract import LLMPropositionExtractor, BatchLLMPropositionExtractor
 from graphrag_toolkit.lexical_graph.indexing.extract import TopicExtractor, BatchTopicExtractor
 from graphrag_toolkit.lexical_graph.indexing.extract import ExtractionPipeline
@@ -65,7 +65,7 @@ class ExtractionConfig():
     """
     def __init__(self,
                  enable_proposition_extraction: bool = True,
-                 preferred_entity_classifications: List[str] = DEFAULT_ENTITY_CLASSIFICATIONS,
+                 preferred_entity_classifications: List[str] = [],
                  infer_entity_classifications: Union[InferClassificationsConfig, bool] = False,
                  extract_propositions_prompt_template: Optional[str] = None,
                  extract_topics_prompt_template: Optional[str] = None,
@@ -365,20 +365,26 @@ class LexicalGraphIndex():
 
         entity_classification_provider = None
         topic_provider = None
+        entity_classification_value_store = InMemoryScopedValueStore()
 
         classification_label = 'EntityClassification'
         classification_scope = DEFAULT_SCOPE
+        
 
         if isinstance(self.graph_store, DummyGraphStore):
             entity_classification_provider = FixedScopedValueProvider(
                 scoped_values={DEFAULT_SCOPE: config.extraction.preferred_entity_classifications})
             topic_provider = FixedScopedValueProvider(scoped_values={DEFAULT_SCOPE: []})
         else:
-            initial_scope_values = [] if config.extraction.infer_entity_classifications else config.extraction.preferred_entity_classifications
+            if not config.extraction.infer_entity_classifications:
+                entity_classification_value_store.save_scoped_values(
+                    classification_label, 
+                    classification_scope, 
+                    config.extraction.preferred_entity_classifications
+                )
             entity_classification_provider = ScopedValueProvider(
                 label=classification_label,
-                scoped_value_store=GraphScopedValueStore(graph_store=self.graph_store),
-                initial_scoped_values={classification_scope: initial_scope_values}
+                scoped_value_store=entity_classification_value_store
             )
             topic_provider = ScopedValueProvider(
                 label='StatementTopic',
@@ -387,13 +393,15 @@ class LexicalGraphIndex():
             )
 
         if config.extraction.infer_entity_classifications:
-            infer_config = config.extraction.infer_entity_classifications if isinstance(
-                config.extraction.infer_entity_classifications,
-                InferClassificationsConfig) else InferClassificationsConfig()
+            if isinstance(config.extraction.infer_entity_classifications, InferClassificationsConfig):
+                infer_config = config.extraction.infer_entity_classifications 
+            else:
+                infer_config = InferClassificationsConfig()
+
             pre_processors.append(InferClassifications(
                 classification_label=classification_label,
                 classification_scope=classification_scope,
-                classification_store=GraphScopedValueStore(graph_store=self.graph_store),
+                classification_store=entity_classification_value_store,
                 splitter=SentenceSplitter(chunk_size=256, chunk_overlap=20) if config.chunking else None,
                 default_classifications=config.extraction.preferred_entity_classifications,
                 num_samples=infer_config.num_samples,
