@@ -53,12 +53,13 @@ vector_store = VectorStoreFactory.for_vector_store(
 
 query_engine = LexicalGraphQueryEngine.for_traversal_based_search(
     graph_store, 
-    vector_store
+    vector_store,
+    streaming=True
 )
 
 response = query_engine.query("What are the differences between Neptune Database and Neptune Analytics?")
 
-print(response.response)
+print(response.print_response_stream())
 ```
 
 By default, the `TraversalBasedRetriever` uses a composite search strategy using two subretrievers:
@@ -183,12 +184,13 @@ vector_store = VectorStoreFactory.for_vector_store(
 
 query_engine = LexicalGraphQueryEngine.for_semantic_guided_search(
     graph_store, 
-    vector_store
+    vector_store,
+    streaming=True
 )
 
 response = query_engine.query("What are the differences between Neptune Database and Neptune Analytics?")
 
-print(response.response)
+print(response.print_response_stream())
 ```
 
 By default, the `SemanticGuidedRetriever` uses a composite search strategy using three subretrievers:

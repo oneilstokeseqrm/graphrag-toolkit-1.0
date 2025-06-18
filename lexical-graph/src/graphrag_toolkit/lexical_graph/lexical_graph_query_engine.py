@@ -31,8 +31,9 @@ from llama_index.core.base.base_retriever import BaseRetriever
 from llama_index.core.postprocessor.types import BaseNodePostprocessor
 from llama_index.core.callbacks.base import CallbackManager
 from llama_index.core.base.response.schema import RESPONSE_TYPE
-from llama_index.core.base.response.schema import Response
+from llama_index.core.base.response.schema import Response, StreamingResponse
 from llama_index.core.prompts.mixin import PromptDictType, PromptMixinType
+from llama_index.core.types import TokenGen
 
 logger = logging.getLogger(__name__)
 
@@ -235,6 +236,7 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                  post_processors: Optional[PostProcessorsType] = None,
                  callback_manager: Optional[CallbackManager] = None,
                  filter_config: FilterConfig = None,
+                 streaming: bool = False,
                  **kwargs):
         """
                 Initializes a LexicalGraphQueryEngine instance for querying and generating responses from graph and vector stores.
@@ -269,9 +271,10 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             llm=llm or GraphRAGConfig.response_llm,
             enable_cache=GraphRAGConfig.enable_cache
         )
+        self.streaming = streaming
 
         prompt_provider = kwargs.pop("prompt_provider", None)
-
+        
         if prompt_provider is None:
             prompt_provider = PromptProviderFactory.get_provider()
 
@@ -332,7 +335,26 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
             )
             return response
         except Exception:
-            logger.exception(f'Error answering query [query: {query_bundle.query_str}, context: {search_results}]')
+            logger.exception(f'Error answering query [query: {query_bundle.query_str}, search_results: {search_results}, additional_context: {additional_context}]')
+            raise
+
+    def _generate_streaming_response(
+            self,
+            query_bundle: QueryBundle,
+            search_results: str,
+            additional_context: List[str] = []
+    ) -> TokenGen:
+       
+        try:
+            response = self.llm.stream(
+                prompt=self.chat_template,
+                query=query_bundle.query_str,
+                search_results=search_results,
+                additionalContext='\n'.join(additional_context)
+            )
+            return response
+        except Exception:
+            logger.exception(f'Error answering query [query: {query_bundle.query_str}, search_results: {search_results}, additional_context: {additional_context}]')
             raise
 
     def _format_as_text(self, json_results):
@@ -465,7 +487,11 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
 
             context = self._format_context(results, self.context_format)
             entity_contexts = self._get_entity_contexts(results)
-            answer = self._generate_response(query_bundle, context, entity_contexts)
+            
+            if self.streaming:
+                answer = self._generate_streaming_response(query_bundle, context, entity_contexts)
+            else:
+                answer = self._generate_response(query_bundle, context, entity_contexts)
 
             end = time.time()
 
@@ -488,11 +514,18 @@ class LexicalGraphQueryEngine(BaseQueryEngine):
                 'num_source_nodes': len(results)
             }
 
-            return Response(
-                response=answer,
-                source_nodes=results,
-                metadata=metadata
-            )
+            if self.streaming:
+                return StreamingResponse(
+                    response_gen=answer,
+                    source_nodes=results,
+                    metadata=metadata
+                )
+            else:
+                return Response(
+                    response=answer,
+                    source_nodes=results,
+                    metadata=metadata
+                )
         except Exception as e:
             logger.exception('Error in query processing')
             raise
