@@ -12,7 +12,9 @@ from llama_index.core.prompts import PromptTemplate
 logger = logging.getLogger(__name__)
 
 GET_QUERY_MODE_PROMPT = '''
-Is the following user query best described as a single or multipart query? Answer 'single' or 'multipart'. Do not provide any other explanation.
+Is the following user query best described as a single or multipart query? A multipart query is one that can be decomposed into a list whose parts are completely independent of one another. A singlepart query is one whose parts are related to one another. 
+
+Answer 'single' or 'multipart'. Do not provide any other explanation.
 
 <query>
 {query}
