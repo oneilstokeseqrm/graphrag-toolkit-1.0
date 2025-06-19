@@ -94,6 +94,7 @@ def create_mcp_server(graph_store:GraphStore, vector_store:VectorStore, tenant_i
 
     try:
         from fastmcp import FastMCP
+        from fastmcp.tools import Tool
     except ImportError as e:
         raise ImportError(
             "fastmcp package not found, install with 'pip install fastmcp'"
@@ -117,16 +118,22 @@ def create_mcp_server(graph_store:GraphStore, vector_store:VectorStore, tenant_i
             domain = get_domain(summary)
             
             mcp.add_tool(
-                fn=query_tenant_graph(graph_store, vector_store, tenant_id, domain),
-                name = str(tenant_id),
-                description = summary
+                Tool.from_function(
+                    fn=query_tenant_graph(graph_store, vector_store, tenant_id, domain),
+                    name = str(tenant_id),
+                    description = summary
+                )
+                
             )
 
     if tenant_ids:
         mcp.add_tool(
-            fn=tool_search(graph_store, tenant_ids),
-            name = 'search_',
-            description = 'Given a search term, returns the name of one or more tools that can be used to provide information about the search term. Use this tool to help find other tools that can answer a query.'
+            Tool.from_function(
+                fn=tool_search(graph_store, tenant_ids),
+                name = 'search_',
+                description = 'Given a search term, returns the name of one or more tools that can be used to provide information about the search term. Use this tool to help find other tools that can answer a query.'
+            )
+            
         )
 
     return mcp
