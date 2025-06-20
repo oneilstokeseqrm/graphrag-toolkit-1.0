@@ -83,9 +83,11 @@ def get_tenant_ids(graph_store:GraphStore):
     
     cypher = '''MATCH (n)
     WITH DISTINCT labels(n) as lbls
-    WITH split(lbls[0], '__') AS lbl_parts WHERE size(lbl_parts) > 4
-    RETURN DISTINCT lbl_parts[size(lbl_parts) - 2] AS tenant_id
+    WITH split(lbls[0], '__') AS lbl_parts WHERE size(lbl_parts) > 2
+    WITH lbl_parts WHERE lbl_parts[1] = 'SYS_Class' AND lbl_parts[2] <> ''
+    RETURN DISTINCT lbl_parts[2] AS tenant_id
     '''
+
     results = graph_store.execute_query(cypher)
 
     return [to_tenant_id(result['tenant_id']) for result in results]
