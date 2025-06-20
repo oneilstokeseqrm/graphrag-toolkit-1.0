@@ -84,7 +84,18 @@ class CheckpointFilter(TransformComponent, DoNotCheckpoint):
         Returns:
             A list of BaseNode objects that have been filtered and processed by the inner callable.
         """
-        filtered_nodes = [node for node in nodes if self.checkpoint_does_not_exist(node.id_)]
+        discarded_count = 0
+        filtered_nodes = []
+        
+        for node in nodes:
+            if self.checkpoint_does_not_exist(node.id_):
+                filtered_nodes.append(node)
+            else:
+                discarded_count += 1
+        
+        if discarded_count > 0:
+            logger.info(f'[{type(self.inner).__name__}] Discarded {discarded_count} out of {discarded_count + len(filtered_nodes)} nodes because they have already been checkpointed')
+
         return self.inner.__call__(filtered_nodes, **kwargs)
 
     
