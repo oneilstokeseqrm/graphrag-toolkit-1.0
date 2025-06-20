@@ -26,12 +26,15 @@ class QueryModeRetriever(BaseRetriever):
         
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
 
-        query_mode_provider = QueryModeProvider()
-        query_mode = query_mode_provider.get_query_mode(query_bundle.query_str)
+        if self.args.enable_multipart_queries:
+            query_mode_provider = QueryModeProvider()
+            query_mode = query_mode_provider.get_query_mode(query_bundle.query_str)
+        else:
+            query_mode = QueryMode.SIMPLE
 
         if query_mode == QueryMode.SIMPLE:
             
-            logger.debug('Simple query, so running single retriever')
+            logger.debug(f'Simple query, so running single retriever [enable_multipart_queries: {self.args.enable_multipart_queries}]')
             
             sub_args = self.args.to_dict()
             retriever = self.retriever_fn(**sub_args)

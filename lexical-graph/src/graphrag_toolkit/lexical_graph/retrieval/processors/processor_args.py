@@ -74,6 +74,7 @@ class ProcessorArgs():
         self.reranking_source_metadata_fn = kwargs.get('reranking_source_metadata_fn', None)
         self.source_formatter = kwargs.get('source_formatter', None)
         self.statement_pruning_factor = kwargs.get('statement_pruning_factor', 0.1)
+        self.enable_multipart_queries = kwargs.get('enable_multipart_queries', False)
         self.ec_keyword_provider = kwargs.get('ec_keyword_provider', 'llm')
         self.ec_entity_provider = kwargs.get('ec_entity_provider', 'vss')
         self.ec_num_entities = kwargs.get('ec_num_entities', 5)
