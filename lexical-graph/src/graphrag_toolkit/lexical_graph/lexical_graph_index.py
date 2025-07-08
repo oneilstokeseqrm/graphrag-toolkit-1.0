@@ -16,7 +16,7 @@ from graphrag_toolkit.lexical_graph.storage.vector import MultiTenantVectorStore
 from graphrag_toolkit.lexical_graph.indexing.extract import BatchConfig
 from graphrag_toolkit.lexical_graph.indexing import NodeHandler
 from graphrag_toolkit.lexical_graph.indexing import sink
-from graphrag_toolkit.lexical_graph.indexing.constants import PROPOSITIONS_KEY
+from graphrag_toolkit.lexical_graph.indexing.constants import PROPOSITIONS_KEY, DEFAULT_ENTITY_CLASSIFICATIONS
 from graphrag_toolkit.lexical_graph.indexing.extract import ScopedValueProvider, FixedScopedValueProvider, DEFAULT_SCOPE
 from graphrag_toolkit.lexical_graph.indexing.extract import GraphScopedValueStore, InMemoryScopedValueStore
 from graphrag_toolkit.lexical_graph.indexing.extract import LLMPropositionExtractor, BatchLLMPropositionExtractor
@@ -66,7 +66,7 @@ class ExtractionConfig():
     """
     def __init__(self,
                  enable_proposition_extraction: bool = True,
-                 preferred_entity_classifications: List[str] = [],
+                 preferred_entity_classifications: List[str] = DEFAULT_ENTITY_CLASSIFICATIONS,
                  infer_entity_classifications: Union[InferClassificationsConfig, bool] = False,
                  extract_propositions_prompt_template: Optional[str] = None,
                  extract_topics_prompt_template: Optional[str] = None,
