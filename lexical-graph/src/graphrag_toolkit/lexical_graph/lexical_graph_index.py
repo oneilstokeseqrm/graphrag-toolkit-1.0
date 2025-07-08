@@ -369,12 +369,18 @@ class LexicalGraphIndex():
 
         classification_label = 'EntityClassification'
         classification_scope = DEFAULT_SCOPE
-        
 
         if isinstance(self.graph_store, DummyGraphStore):
             entity_classification_provider = FixedScopedValueProvider(
-                scoped_values={DEFAULT_SCOPE: config.extraction.preferred_entity_classifications})
-            topic_provider = FixedScopedValueProvider(scoped_values={DEFAULT_SCOPE: []})
+                scoped_values={
+                    DEFAULT_SCOPE: config.extraction.preferred_entity_classifications
+                }
+            )
+            topic_provider = FixedScopedValueProvider(
+                scoped_values={
+                    DEFAULT_SCOPE: []
+                }
+            )
         else:
             if not config.extraction.infer_entity_classifications:
                 entity_classification_value_store.save_scoped_values(
@@ -399,16 +405,17 @@ class LexicalGraphIndex():
                 infer_config = InferClassificationsConfig()
 
             pre_processors.append(InferClassifications(
-                classification_label=classification_label,
-                classification_scope=classification_scope,
-                classification_store=entity_classification_value_store,
-                splitter=SentenceSplitter(chunk_size=256, chunk_overlap=20) if config.chunking else None,
-                default_classifications=config.extraction.preferred_entity_classifications,
-                num_samples=infer_config.num_samples,
-                num_iterations=infer_config.num_iterations,
-                merge_action=infer_config.on_existing_classifications,
-                prompt_template=infer_config.prompt_template
-            ))
+                    classification_label=classification_label,
+                    classification_scope=classification_scope,
+                    classification_store=entity_classification_value_store,
+                    splitter=SentenceSplitter(chunk_size=256, chunk_overlap=20) if config.chunking else None,
+                    default_classifications=config.extraction.preferred_entity_classifications,
+                    num_samples=infer_config.num_samples,
+                    num_iterations=infer_config.num_iterations,
+                    merge_action=infer_config.on_existing_classifications,
+                    prompt_template=infer_config.prompt_template
+                )
+            )
 
         topic_extractor = None
 
