@@ -29,9 +29,6 @@ from graphrag_toolkit.lexical_graph.indexing.build import GraphConstruction
 from graphrag_toolkit.lexical_graph.indexing.build import Checkpoint
 from graphrag_toolkit.lexical_graph.indexing.build import BuildFilters
 from graphrag_toolkit.lexical_graph.indexing.build.null_builder import NullBuilder
-from graphrag_toolkit.lexical_graph.utils.async_utils import *
-
-
 
 from llama_index.core.node_parser import SentenceSplitter, NodeParser
 from llama_index.core.schema import BaseNode, NodeRelationship
