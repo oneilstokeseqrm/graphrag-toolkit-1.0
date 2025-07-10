@@ -72,7 +72,7 @@ class ExtractionConfig():
                  extract_topics_prompt_template: Optional[str] = None,
                  extraction_filters: Optional[MetadataFiltersType] = None):
         self.enable_proposition_extraction = enable_proposition_extraction
-        self.preferred_entity_classifications = preferred_entity_classifications
+        self.preferred_entity_classifications = preferred_entity_classifications if preferred_entity_classifications is not None else []
         self.infer_entity_classifications = infer_entity_classifications
         self.extract_propositions_prompt_template = extract_propositions_prompt_template
         self.extract_topics_prompt_template = extract_topics_prompt_template
@@ -364,10 +364,10 @@ class LexicalGraphIndex():
                     prompt_template=config.extraction.extract_propositions_prompt_template
                 ))
 
+        entity_classification_value_store = InMemoryScopedValueStore()
         entity_classification_provider = None
         topic_provider = None
-        entity_classification_value_store = InMemoryScopedValueStore()
-
+        
         classification_label = 'EntityClassification'
         classification_scope = DEFAULT_SCOPE
 
@@ -383,16 +383,18 @@ class LexicalGraphIndex():
                 }
             )
         else:
-            if not config.extraction.infer_entity_classifications:
-                entity_classification_value_store.save_scoped_values(
-                    classification_label, 
-                    classification_scope, 
-                    config.extraction.preferred_entity_classifications
-                )
+
+            entity_classification_value_store.save_scoped_values(
+                classification_label, 
+                classification_scope, 
+                config.extraction.preferred_entity_classifications
+            )
+
             entity_classification_provider = ScopedValueProvider(
                 label=classification_label,
                 scoped_value_store=entity_classification_value_store
             )
+            
             topic_provider = ScopedValueProvider(
                 label='StatementTopic',
                 scoped_value_store=GraphScopedValueStore(graph_store=self.graph_store),
@@ -413,6 +415,7 @@ class LexicalGraphIndex():
                     default_classifications=config.extraction.preferred_entity_classifications,
                     num_samples=infer_config.num_samples,
                     num_iterations=infer_config.num_iterations,
+                    num_classifications=infer_config.num_classifications,
                     merge_action=infer_config.on_existing_classifications,
                     prompt_template=infer_config.prompt_template
                 )
