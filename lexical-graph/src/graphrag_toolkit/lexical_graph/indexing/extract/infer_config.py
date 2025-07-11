@@ -38,6 +38,8 @@ class InferClassificationsConfig:
             Defaults to 5.
         num_iterations (Optional[int]): Number of iterations to perform for the
             classification inference process. Defaults to 1.
+        num_classifications (Optional[int]): Maximum number of classifications to return.
+            Defaults to 15.
         on_existing_classifications (Optional[OnExistingClassifications]): Strategy
             to apply when handling pre-existing classifications. Defaults to
             OnExistingClassifications.MERGE_EXISTING.
@@ -46,5 +48,6 @@ class InferClassificationsConfig:
     """
     num_samples:Optional[int]=5
     num_iterations:Optional[int]=1
+    num_classifications:Optional[int]=15
     on_existing_classifications:Optional[OnExistingClassifications]=OnExistingClassifications.MERGE_EXISTING
     prompt_template:Optional[str]=None
