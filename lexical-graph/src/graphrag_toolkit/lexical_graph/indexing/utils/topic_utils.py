@@ -17,7 +17,7 @@ def format_text(text):
             return text
 
 def format_list(values:List[str]):
-    return '\n'.join([f'   - {value}' for value in values])
+    return '\n'.join(values)
 
 def clean(s):
     return strip_parentheses(format_value(s))
@@ -131,11 +131,13 @@ def parse_extracted_topics(raw_text:str) -> Tuple[TopicCollection, List[str]]:
                             current_statement.facts.append(fact)
     
             if not fact:
+                details = None
                 if parts and current_statement:
                     details = ' '.join([format_value(part) for part in parts])
                     if details:
                         current_statement.details.append(details)
-                garbage.append(f'STATEMENT DETAIL: {line}')
+                if not details:
+                    garbage.append(f'UNPARSEABLE STATEMENT: {line}')
 
         else:
             garbage.append(f'UNPARSEABLE: {line}')
