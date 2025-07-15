@@ -67,12 +67,8 @@ class EntityRelationGraphBuilder(GraphBuilder):
                     'UNWIND $params AS params'
                 ]
 
-                if include_domain_labels:
-                    statements.append(f'MERGE (subject:`__Entity__`:{label_from(fact.subject.classification or DEFAULT_CLASSIFICATION)}{{{graph_client.node_id("entityId")}: params.s_id}})')
-                    statements.append(f'MERGE (object:`__Entity__`:{label_from(fact.object.classification or DEFAULT_CLASSIFICATION)}{{{graph_client.node_id("entityId")}: params.o_id}})')
-                else:
-                    statements.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
-                    statements.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
+                statements.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
+                statements.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
 
                 statements.extend([
                     'MERGE (subject)-[r:`__RELATION__`{value: params.p}]->(object)',
@@ -95,6 +91,32 @@ class EntityRelationGraphBuilder(GraphBuilder):
                 query = '\n'.join(statements)
                     
                 graph_client.execute_query_with_retry(query, self._to_params(properties), max_attempts=5, max_wait=7)
+
+                if include_domain_labels:
+
+                    statements_r = [
+                        '// add domain-specific relations',
+                        'UNWIND $params AS params'
+                    ]
+
+                    statements_r.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
+                    statements_r.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
+
+                    statements_r.extend([
+                        f'MERGE (subject)-[rr:`{relationship_name_from(fact.predicate.value)}`]->(object)',
+                        'ON CREATE SET rr.count = 1 ON MATCH SET rr.count = rr.count + 1'
+                    ])
+
+                    properties_r = {
+                        's_id': fact.subject.entityId,
+                        'o_id': fact.object.entityId
+                    }
+                
+                    query_r= '\n'.join(statements)
+                        
+                    graph_client.execute_query_with_retry(query_r, self._to_params(properties_r), max_attempts=5, max_wait=7)
+
+
 
             else:
                 logger.debug(f'SPC fact, so not creating relation [fact_id: {fact.factId}]')
