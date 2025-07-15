@@ -76,10 +76,7 @@ class EntityGraphBuilder(GraphBuilder):
                 'UNWIND $params AS params'
             ]
 
-            if include_domain_labels:
-                statements.append(f'MERGE (subject:`__Entity__`:{label_from(fact.subject.classification or DEFAULT_CLASSIFICATION)}{{{graph_client.node_id("entityId")}: params.s_id}})')
-            else:
-                statements.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
+            statements.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
 
             statements.extend([
                 'ON CREATE SET subject.value = params.s, subject.search_str = params.s_search_str, subject.class = params.sc',
@@ -95,10 +92,7 @@ class EntityGraphBuilder(GraphBuilder):
 
             if fact.object and fact.object.entityId != fact.subject.entityId:
 
-                if include_domain_labels:
-                    statements.append(f'MERGE (object:`__Entity__`:{label_from(fact.object.classification or DEFAULT_CLASSIFICATION)}{{{graph_client.node_id("entityId")}: params.o_id}})')
-                else:
-                    statements.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
+                statements.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
 
                 statements.extend([
                     'ON CREATE SET object.value = params.o, object.search_str = params.o_search_str, object.class = params.oc',
@@ -115,6 +109,46 @@ class EntityGraphBuilder(GraphBuilder):
             query = '\n'.join(statements)
                 
             graph_client.execute_query_with_retry(query, self._to_params(properties), max_attempts=5, max_wait=7)
+
+            if include_domain_labels:
+            
+                statements_s = [
+                    '// add domain-specific labels',
+                    'UNWIND $params AS params'
+                ]
+
+                statements_s.extend([
+                    f'MERGE (n:`__Entity__`{{{graph_client.node_id("entityId")}: params.n_id}})',
+                    f'SET n :{label_from(fact.subject.classification or DEFAULT_CLASSIFICATION)}', 
+                ])
+
+                properties_s = {
+                    'n_id': fact.subject.entityId
+                }
+
+                query_s = '\n'.join(statements)
+                
+                graph_client.execute_query_with_retry(query_s, self._to_params(properties_s), max_attempts=5, max_wait=7)
+
+                if fact.object and fact.object.entityId != fact.subject.entityId:
+
+                    statements_o = [
+                        '// add domain-specific labels',
+                        'UNWIND $params AS params'
+                    ]
+
+                    statements_o.extend([
+                        f'MERGE (n:`__Entity__`{{{graph_client.node_id("entityId")}: params.n_id}})',
+                        f'SET n :{label_from(fact.object.classification or DEFAULT_CLASSIFICATION)}', 
+                    ])
+
+                    properties_o = {
+                        'n_id': fact.object.entityId
+                    }
+
+                    query_o = '\n'.join(statements)
+                    
+                    graph_client.execute_query_with_retry(query_o, self._to_params(properties_o), max_attempts=5, max_wait=7)
            
 
         else:
