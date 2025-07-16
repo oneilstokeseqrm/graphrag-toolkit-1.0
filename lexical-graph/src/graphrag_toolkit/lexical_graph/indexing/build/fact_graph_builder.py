@@ -63,8 +63,7 @@ class FactGraphBuilder(GraphBuilder):
                 structure for fact validation.
         """
         fact_metadata = node.metadata.get('fact', {})
-        include_domain_labels = kwargs['include_domain_labels']
-
+        
         if fact_metadata:
 
             fact = Fact.model_validate(fact_metadata)
@@ -85,11 +84,7 @@ class FactGraphBuilder(GraphBuilder):
                 'MERGE (fact)-[:`__SUPPORTS__`]->(statement)',
             ])
 
-            if include_domain_labels:
-                statements.append(f'MERGE (subject:`__Entity__`:{label_from(fact.subject.classification or DEFAULT_CLASSIFICATION)}{{{graph_client.node_id("entityId")}: params.s_id}})')
-            else:
-                statements.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
-
+            statements.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
             statements.append(f'MERGE (subject)-[:`__SUBJECT__`]->(fact)')
 
             properties = {
@@ -102,11 +97,7 @@ class FactGraphBuilder(GraphBuilder):
 
             if fact.object:
 
-                if include_domain_labels:
-                    statements.append(f'MERGE (object:`__Entity__`:{label_from(fact.object.classification or DEFAULT_CLASSIFICATION)}{{{graph_client.node_id("entityId")}: params.o_id}})')
-                else:
-                    statements.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
-
+                statements.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
                 statements.append(f'MERGE (object)-[:`__OBJECT__`]->(fact)')
 
                 properties.update({                
