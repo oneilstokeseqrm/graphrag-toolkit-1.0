@@ -4,10 +4,14 @@
 from typing import List, Optional
 import re
 import string
+import uuid
 
 from graphrag_toolkit.lexical_graph.storage.graph.graph_store import NodeId
 
 SEARCH_STRING_PATTERN = re.compile(r'([^\s\w]|_)+')
+
+def new_query_var():
+    return f'n{uuid.uuid4().hex[:5]}'
 
 def search_string_from(value:str):
     """
