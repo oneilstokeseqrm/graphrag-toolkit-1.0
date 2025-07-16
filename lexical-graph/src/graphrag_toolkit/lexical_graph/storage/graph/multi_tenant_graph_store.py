@@ -64,7 +64,7 @@ class MultiTenantGraphStore(GraphStore):
             **kwargs: Additional optional keyword arguments to be passed to the
                 `execute_query_with_retry` method of the `inner` object.
         """
-        self.inner.execute_query_with_retry(query=self._rewrite_query(query), parameters=parameters, max_attempts=max_attempts, max_wait=max_wait)
+        return self.inner.execute_query_with_retry(query=self._rewrite_query(query), parameters=parameters, max_attempts=max_attempts, max_wait=max_wait)
 
     def _logging_prefix(self, query_id:str, correlation_id:Optional[str]=None):
         """

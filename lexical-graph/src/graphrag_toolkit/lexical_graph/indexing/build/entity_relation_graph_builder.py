@@ -6,7 +6,7 @@ from typing import Any
 
 from graphrag_toolkit.lexical_graph.indexing.model import Fact
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
-from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import search_string_from, label_from, relationship_name_from
+from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import search_string_from, label_from, relationship_name_from, new_query_var
 from graphrag_toolkit.lexical_graph.indexing.build.graph_builder import GraphBuilder
 from graphrag_toolkit.lexical_graph.indexing.constants import DEFAULT_CLASSIFICATION
 
@@ -94,29 +94,25 @@ class EntityRelationGraphBuilder(GraphBuilder):
 
                 if include_domain_labels:
 
+                    s_var = new_query_var()
+                    o_var = new_query_var()
+                    r_var = new_query_var()
+                    s_id = fact.subject.entityId
+                    o_id = fact.object.entityId
+                    r_name = relationship_name_from(fact.predicate.value)
+                    r_comment = f'// awsqid:{s_id}-{r_name}-{o_id}'
+
                     statements_r = [
-                        '// add domain-specific relations',
-                        'UNWIND $params AS params'
+                        f"MERGE ({s_var}:`__Entity__`{{{graph_client.node_id('entityId')}: '{s_id}'}})",
+                        f"MERGE ({o_var}:`__Entity__`{{{graph_client.node_id('entityId')}: '{o_id}'}})",
+                        f"MERGE ({s_var})-[{r_var}:`{r_name}`]->({o_var})",
+                        f"ON CREATE SET {r_var}.count = 1 ON MATCH SET {r_var}.count = {r_var}.count + 1",
+                        r_comment
                     ]
 
-                    statements_r.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
-                    statements_r.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
+                    query_r = ' '.join(statements_r)
 
-                    statements_r.extend([
-                        f'MERGE (subject)-[rr:`{relationship_name_from(fact.predicate.value)}`]->(object)',
-                        'ON CREATE SET rr.count = 1 ON MATCH SET rr.count = rr.count + 1'
-                    ])
-
-                    properties_r = {
-                        's_id': fact.subject.entityId,
-                        'o_id': fact.object.entityId
-                    }
-                
-                    query_r= '\n'.join(statements)
-                        
-                    graph_client.execute_query_with_retry(query_r, self._to_params(properties_r), max_attempts=5, max_wait=7)
-
-
+                    graph_client.execute_query_with_retry(query_r, {}, max_attempts=5, max_wait=7)
 
             else:
                 logger.debug(f'SPC fact, so not creating relation [fact_id: {fact.factId}]')
