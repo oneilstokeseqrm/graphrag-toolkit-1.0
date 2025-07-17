@@ -524,7 +524,15 @@ class OpenSearchIndex(VectorIndex):
         """
         if not self.writeable:
             raise IndexError(f'Index {self.index_name()} is read-only')
-
+            
+        non_existent_node_ids = self._remove_existing_nodes([node.node_id for node in nodes])
+        
+        nodes = [
+            node
+            for node in nodes
+            if node.node_id in non_existent_node_ids
+        ]
+        
         id_to_embed_map = embed_nodes(
             nodes, self.embed_model
         )
@@ -541,7 +549,7 @@ class OpenSearchIndex(VectorIndex):
         if docs:
             self.client.index_results(docs)
         
-        return nodes
+        return nodes 
     
     def _update_filters_recursive(self, filters:MetadataFilters):
         """
@@ -653,7 +661,7 @@ class OpenSearchIndex(VectorIndex):
         return [self._to_top_k_result(node) for node in scored_nodes]
 
     # opensearch has a limit of 10,000 results per search, so we use this to paginate the search
-    def paginated_search(self, query, page_size=10000, max_pages=None):
+    def paginated_search(self, query, page_size=10000, max_pages=None, ids_only=False):
         """
         Executes a paginated search on the specified Elasticsearch index and yields
         the results page by page. Designed to handle large datasets by leveraging
@@ -686,6 +694,10 @@ class OpenSearchIndex(VectorIndex):
                 "sort": [{"_id": "asc"}]
             }
             
+            if ids_only:
+                body["_source"] = False
+                body["fields"] = ["id"]
+            
             if search_after:
                 body["search_after"] = search_after
                 
@@ -706,7 +718,7 @@ class OpenSearchIndex(VectorIndex):
             if max_pages and page >= max_pages:
                 break
 
-    def get_all_embeddings(self, query:str, max_results=None):
+    def get_all_embeddings(self, query:str, max_results=None, ids_only=False):
         """
         Retrieves all embeddings for a given query, optionally limiting the maximum number of
         results returned. This method performs a paginated search using the query parameter and
@@ -724,7 +736,7 @@ class OpenSearchIndex(VectorIndex):
         """
         all_results = []
         
-        for page in self.paginated_search(query, page_size=10000):
+        for page in self.paginated_search(query, page_size=10000, ids_only=ids_only):
             all_results.extend(self._to_get_embedding_result(hit) for hit in page)
             if max_results and len(all_results) >= max_results:
                 all_results = all_results[:max_results]
@@ -754,3 +766,52 @@ class OpenSearchIndex(VectorIndex):
         results = self.get_all_embeddings(query, max_results=len(ids) * 2)
         
         return results
+    
+    def _remove_existing_nodes(self, node_ids):
+        
+        existing_doc_ids = self._get_existing_doc_ids_for_ids(node_ids)
+        
+        filtered_nodes = [
+            node_id
+            for node_id in node_ids
+            if node_id not in existing_doc_ids
+        ]
+        
+        doc_ids_to_delete = [
+            d
+            for doc_ids in list(existing_doc_ids.values())
+            for d in doc_ids[1:]
+        ]
+        
+        logger.debug(f'existing_doc_ids: {existing_doc_ids}')
+        
+        for doc_id in doc_ids_to_delete:
+            logger.debug(f'deleting duplicate doc: {doc_id}')
+            self.client._os_client.delete(self.client._index, doc_id)
+       
+        
+        return node_ids
+    
+    def _get_existing_doc_ids_for_ids(self, ids:List[str]=[]):
+   
+        query = {
+            "terms": {
+                f'metadata.{INDEX_KEY}.key': [self._clean_id(i) for i in set(ids)]
+            }
+        }
+    
+        all_results = []
+        
+        for page in self.paginated_search(query, page_size=10000, ids_only=True):
+            all_results.extend(hit for hit in page)
+        
+        doc_id_map = {}
+        
+        for result in all_results:
+            node_id = result['fields']['id'][0]
+            if node_id not in doc_id_map:
+                doc_id_map[node_id] = []
+            doc_id_map[node_id].append(result['_id'])
+            
+        
+        return doc_id_map
