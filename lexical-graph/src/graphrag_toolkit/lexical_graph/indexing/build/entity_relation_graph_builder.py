@@ -6,7 +6,11 @@ from typing import Any
 
 from graphrag_toolkit.lexical_graph.indexing.model import Fact
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
+<<<<<<< HEAD
 from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import relationship_name_from, new_query_var
+=======
+from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import search_string_from, label_from, relationship_name_from, new_query_var
+>>>>>>> main
 from graphrag_toolkit.lexical_graph.indexing.build.graph_builder import GraphBuilder
 from graphrag_toolkit.lexical_graph.indexing.utils.fact_utils import string_complement_to_entity
 
@@ -119,16 +123,16 @@ class EntityRelationGraphBuilder(GraphBuilder):
                 ]
 
                 statements.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
-                statements.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
+                statements.append(f'MERGE (complement:`__Entity__`{{{graph_client.node_id("entityId")}: params.c_id}})')
 
                 statements.extend([
-                    'MERGE (subject)-[r:`__RELATION__`{value: params.p}]->(object)',
+                    'MERGE (subject)-[r:`__RELATION__`{value: params.p}]->(complement)',
                     'ON CREATE SET r.count = 1 ON MATCH SET r.count = r.count + 1'
                 ])
 
                 properties = {
                     's_id': fact.subject.entityId,
-                    'o_id': fact.complement.entityId,
+                    'c_id': fact.complement.entityId,
                     'p': fact.predicate.value
                 }
             
@@ -139,17 +143,17 @@ class EntityRelationGraphBuilder(GraphBuilder):
                 if include_domain_labels:
 
                     s_var = new_query_var()
-                    o_var = new_query_var()
+                    c_var = new_query_var()
                     r_var = new_query_var()
                     s_id = fact.subject.entityId
-                    o_id = fact.complement.entityId
+                    c_id = fact.complement.entityId
                     r_name = relationship_name_from(fact.predicate.value)
-                    r_comment = f'// awsqid:{s_id}-{r_name}-{o_id}'
+                    r_comment = f'// awsqid:{s_id}-{r_name}-{c_id}'
 
                     statements_r = [
                         f"MERGE ({s_var}:`__Entity__`{{{graph_client.node_id('entityId')}: '{s_id}'}})",
-                        f"MERGE ({o_var}:`__Entity__`{{{graph_client.node_id('entityId')}: '{o_id}'}})",
-                        f"MERGE ({s_var})-[{r_var}:`{r_name}`]->({o_var})",
+                        f"MERGE ({c_var}:`__Entity__`{{{graph_client.node_id('entityId')}: '{c_id}'}})",
+                        f"MERGE ({s_var})-[{r_var}:`{r_name}`]->({c_var})",
                         f"ON CREATE SET {r_var}.count = 1 ON MATCH SET {r_var}.count = {r_var}.count + 1",
                         r_comment
                     ]
