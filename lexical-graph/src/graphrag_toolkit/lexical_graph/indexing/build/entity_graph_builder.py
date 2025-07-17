@@ -8,7 +8,7 @@ from graphrag_toolkit.lexical_graph.indexing.model import Fact
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import search_string_from, label_from, new_query_var
 from graphrag_toolkit.lexical_graph.indexing.build.graph_builder import GraphBuilder
-from graphrag_toolkit.lexical_graph.indexing.constants import DEFAULT_CLASSIFICATION
+from graphrag_toolkit.lexical_graph.indexing.constants import DEFAULT_CLASSIFICATION, LOCAL_ENTITY_CLASSIFICATION
 from graphrag_toolkit.lexical_graph.indexing.utils.fact_utils import string_complement_to_entity
 
 from llama_index.core.schema import BaseNode
@@ -65,12 +65,17 @@ class EntityGraphBuilder(GraphBuilder):
         """
         fact_metadata = node.metadata.get('fact', {})
         include_domain_labels = kwargs['include_domain_labels']
+        include_local_entities = kwargs['include_local_entities']
 
         if fact_metadata:
 
             fact = Fact.model_validate(fact_metadata)
-
             fact = string_complement_to_entity(fact)
+
+            if fact.subject.classification and fact.subject.classification == LOCAL_ENTITY_CLASSIFICATION:
+                if not include_local_entities:
+                    logger.debug(f'Ignoring local entities for fact [fact_id: {fact.factId}]')
+                    return
         
             logger.debug(f'Inserting entities for fact [fact_id: {fact.factId}]')
 
@@ -109,7 +114,7 @@ class EntityGraphBuilder(GraphBuilder):
                     'oc': fact.object.classification or DEFAULT_CLASSIFICATION
                 })
 
-            elif fact.complement and fact.complement.entityId != fact.subject.entityId:
+            elif include_local_entities and fact.complement and fact.complement.entityId != fact.subject.entityId:
 
                 statements.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
 
@@ -147,7 +152,7 @@ class EntityGraphBuilder(GraphBuilder):
                     query_o = f"MERGE ({o_var}:`__Entity__`{{{graph_client.node_id('entityId')}: '{o_id}'}}) SET {o_var} :`{o_label}` {o_comment}"  
                     graph_client.execute_query_with_retry(query_o, {}, max_attempts=5, max_wait=7)
 
-                if fact.complement and fact.complement.entityId != fact.subject.entityId:
+                if include_local_entities and fact.complement and fact.complement.entityId != fact.subject.entityId:
 
                     c_var = new_query_var()
                     c_id = fact.complement.entityId

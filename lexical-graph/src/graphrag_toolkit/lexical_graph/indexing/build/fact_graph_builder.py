@@ -6,9 +6,8 @@ from typing import Any
 
 from graphrag_toolkit.lexical_graph.indexing.model import Fact
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
-from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import label_from
 from graphrag_toolkit.lexical_graph.indexing.build.graph_builder import GraphBuilder
-from graphrag_toolkit.lexical_graph.indexing.constants import DEFAULT_CLASSIFICATION
+from graphrag_toolkit.lexical_graph.indexing.constants import LOCAL_ENTITY_CLASSIFICATION
 from graphrag_toolkit.lexical_graph.indexing.utils.fact_utils import string_complement_to_entity
 
 from llama_index.core.schema import BaseNode
@@ -64,11 +63,11 @@ class FactGraphBuilder(GraphBuilder):
                 structure for fact validation.
         """
         fact_metadata = node.metadata.get('fact', {})
+        include_local_entities = kwargs['include_local_entities']
         
         if fact_metadata:
 
             fact = Fact.model_validate(fact_metadata)
-
             fact = string_complement_to_entity(fact)
         
             logger.debug(f'Inserting fact [fact_id: {fact.factId}]')
@@ -87,34 +86,41 @@ class FactGraphBuilder(GraphBuilder):
                 'MERGE (fact)-[:`__SUPPORTS__`]->(statement)',
             ])
 
-            statements.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
-            statements.append(f'MERGE (subject)-[:`__SUBJECT__`]->(fact)')
-
             properties = {
                 'statement_id': fact.statementId,
                 'fact_id': fact.factId,
-                's_id': fact.subject.entityId,
-                'fact': node.text,
-                'p': fact.predicate.value
+                'fact': node.text
             }
 
-            if fact.object:
+            allow_add_entities = include_local_entities if fact.subject.classification and fact.subject.classification == LOCAL_ENTITY_CLASSIFICATION else True
 
-                statements.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
-                statements.append(f'MERGE (object)-[:`__OBJECT__`]->(fact)')
+            if allow_add_entities:
+                
+                statements.append(f'MERGE (subject:`__Entity__`{{{graph_client.node_id("entityId")}: params.s_id}})')
+                statements.append(f'MERGE (subject)-[:`__SUBJECT__`]->(fact)')
 
-                properties.update({                
-                    'o_id': fact.object.entityId
+                properties.update({
+                    's_id': fact.subject.entityId,
+                    'p': fact.predicate.value
                 })
 
-            elif fact.complement:
+                if fact.object:
 
-                statements.append(f'MERGE (complement:`__Entity__`{{{graph_client.node_id("entityId")}: params.c_id}})')
-                statements.append(f'MERGE (complement)-[:`__OBJECT__`]->(fact)')
+                    statements.append(f'MERGE (object:`__Entity__`{{{graph_client.node_id("entityId")}: params.o_id}})')
+                    statements.append(f'MERGE (object)-[:`__OBJECT__`]->(fact)')
 
-                properties.update({                
-                    'c_id': fact.complement.entityId
-                })
+                    properties.update({                
+                        'o_id': fact.object.entityId
+                    })
+
+                elif fact.complement and include_local_entities:
+
+                    statements.append(f'MERGE (complement:`__Entity__`{{{graph_client.node_id("entityId")}: params.c_id}})')
+                    statements.append(f'MERGE (complement)-[:`__OBJECT__`]->(fact)')
+
+                    properties.update({                
+                        'c_id': fact.complement.entityId
+                    })
         
             query = '\n'.join(statements)
                 

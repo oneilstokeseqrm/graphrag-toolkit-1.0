@@ -6,13 +6,10 @@ from typing import Any
 
 from graphrag_toolkit.lexical_graph.indexing.model import Fact
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
-<<<<<<< HEAD
 from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import relationship_name_from, new_query_var
-=======
-from graphrag_toolkit.lexical_graph.storage.graph.graph_utils import search_string_from, label_from, relationship_name_from, new_query_var
->>>>>>> main
 from graphrag_toolkit.lexical_graph.indexing.build.graph_builder import GraphBuilder
 from graphrag_toolkit.lexical_graph.indexing.utils.fact_utils import string_complement_to_entity
+from graphrag_toolkit.lexical_graph.indexing.constants import LOCAL_ENTITY_CLASSIFICATION
 
 from llama_index.core.schema import BaseNode
 
@@ -57,12 +54,17 @@ class EntityRelationGraphBuilder(GraphBuilder):
         """
         fact_metadata = node.metadata.get('fact', {})
         include_domain_labels = kwargs['include_domain_labels']
+        include_local_entities = kwargs['include_local_entities']
 
         if fact_metadata:
 
             fact = Fact.model_validate(fact_metadata)
-
             fact = string_complement_to_entity(fact)
+
+            if fact.subject.classification and fact.subject.classification == LOCAL_ENTITY_CLASSIFICATION:
+                if not include_local_entities:
+                    logger.debug(f'Ignoring local entity relations for fact [fact_id: {fact.factId}]')
+                    return
 
             if fact.subject and fact.object:
         
@@ -113,7 +115,7 @@ class EntityRelationGraphBuilder(GraphBuilder):
 
                     graph_client.execute_query_with_retry(query_r, {}, max_attempts=5, max_wait=7)
             
-            elif fact.subject and fact.complement:
+            elif include_local_entities and fact.subject and fact.complement:
         
                 logger.debug(f'Inserting entity SPC relations for fact [fact_id: {fact.factId}]')
 
