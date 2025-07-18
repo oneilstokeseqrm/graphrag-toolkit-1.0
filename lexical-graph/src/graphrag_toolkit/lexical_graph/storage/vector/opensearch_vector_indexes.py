@@ -790,7 +790,7 @@ class OpenSearchIndex(VectorIndex):
             self.client._os_client.delete(self.client._index, doc_id)
        
         
-        return node_ids
+        return filtered_nodes
     
     def _get_existing_doc_ids_for_ids(self, ids:List[str]=[]):
    
