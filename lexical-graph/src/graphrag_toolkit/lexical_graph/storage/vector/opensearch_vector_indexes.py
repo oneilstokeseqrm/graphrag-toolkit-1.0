@@ -83,7 +83,7 @@ def _bulk_ingest_embeddings(
             requests.append(request)
             return_ids.append(_id)
 
-        errors = bulk(client, requests, max_chunk_bytes=max_chunk_bytes, max_retries=3, initial_backoff=5)
+        (_, errors) = bulk(client, requests, max_chunk_bytes=max_chunk_bytes, max_retries=3, initial_backoff=5)
         
         if not is_aoss:
             client.indices.refresh(index=index_name)
@@ -789,8 +789,8 @@ class OpenSearchIndex(VectorIndex):
         """
         client = self.client._os_client
 
-        if not client:
-            pass
+        if client is None:
+            return
 
         search_after = None
         page = 0
@@ -826,6 +826,9 @@ class OpenSearchIndex(VectorIndex):
                         logger.debug(f'Index not found while conducting paginated search - retrying after 5 seconds [index: {self.underlying_index_name()}, retry_count: {retry_count}]')
                         time.sleep(5)
                         response = None
+                except Exception as ee:
+                    logger.error(f'Error while conducting search with client: {client}')
+                    raise e
 
             hits = response['hits']['hits']
             if not hits:
