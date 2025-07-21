@@ -656,7 +656,7 @@ class OpenSearchIndex(VectorIndex):
         if docs:
             errors = self.client.index_results(docs)
             if errors:
-                logger.error('Errors while addinh embeddings: {errors}')
+                logger.error(f'Errors while adding embeddings: {errors}')
         
         return nodes 
     
