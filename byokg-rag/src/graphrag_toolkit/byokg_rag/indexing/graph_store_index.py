@@ -67,7 +67,6 @@ class NeptuneAnalyticsGraphStoreIndex(DenseIndex):
             logger.warn('id_selector not supported for: {self.__class__.__name__}, ignoring')
 
         response = self.graphstore.execute_query(self.top_k_by_embedding_query.format(query_embedding_vector=query_emb, k=topk))
-        print(response)
 
         return {'hits': [{'document_id': hit["node"]["~id"],
                           'document': hit["node"],

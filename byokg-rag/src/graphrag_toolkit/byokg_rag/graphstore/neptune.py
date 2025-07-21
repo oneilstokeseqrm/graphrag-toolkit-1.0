@@ -110,6 +110,8 @@ class NeptuneAnalyticsGraphStore(GraphStore):
             self.s3_client.upload_file(local_path, bucket, f'{file_path}/{os.path.basename(local_path)}')
 
     def _s3_file_exists(self, s3_path):
+        if s3_path is None:
+            return False
         path = urlparse(s3_path, allow_fragments=False)
         try:
             self.s3_client.head_object(Bucket=path.netloc, Key=path.path.lstrip('/'))
@@ -303,7 +305,7 @@ class NeptuneAnalyticsGraphStore(GraphStore):
     def as_embedding_index(self, embedding:Embedding=None, node_embedding_text_props=None, load=True, embedding_s3_save_location=None):
         """
 
-        Return a NeptuneAnalyticsGraphStoreIndex backed the graph endpoint of this graph store object
+        Return a NeptuneAnalyticsGraphStoreIndex backed by the Neptune Analytics graph endpoint of this graph store object
         The Index can be used for computing, storing and retrieving embeddings
 
         Args:
@@ -326,13 +328,14 @@ class NeptuneAnalyticsGraphStore(GraphStore):
 
         return index
 
-    def get_node_text_for_embedding_input(self, node_embedding_text_props, group_by_node_label=False):
+    def get_node_text_for_embedding_input(self, node_embedding_text_props=None, group_by_node_label=False):
         """
         Get node_ids and text inputs that can be used for embedding computation and vector storage
 
         Args:
-            node_embedding_text_props(dict[str: list]): A dictionary where the keys are node labels and the values are
-             properties to be included in the text representation for embeddings
+            node_embedding_text_props(dict[str: list] or str): A dictionary where the keys are node labels and the values are
+             properties to be included in the text representation for embeddings.
+             If it is the string "ALL_PROPERTIES" then all properties for each node label are included the representation
             group_by_node_label: boolean flag on whether the return values are grouped by node label/node type
         Returns:
             tuple(node_ids:List[Str] or Dict[Str:List[Str]], texts_to_embed:List[Str] or Dict[Str:List[Str]])
@@ -340,9 +343,14 @@ class NeptuneAnalyticsGraphStore(GraphStore):
 
         if node_embedding_text_props is None:
             assert self.node_type_to_property_mapping,\
-            "Node properties to use for embedding must be provided or use `assign_text_repr_prop_for_nodes` to set a default representation for each node"
+            "Node properties to as text input for node embedding must be provided or use `assign_text_repr_prop_for_nodes` to set a default representation for each node"
             logger.info(f'Using text representation property: {self.node_type_to_property_mapping} for as text input for node embedding')
             node_embedding_text_props = {k: [v] for k, v in self.node_type_to_property_mapping.items if v is not None}
+
+        if node_embedding_text_props == "ALL_PROPERTIES":
+            schema_node_labels = self.get_schema()[0]["schema"]["nodeLabelDetails"]
+            node_embedding_text_props = {label: [prop for prop in label_schema["properties"]]
+                                         for label, label_schema in schema_node_labels.items()}
 
         ids, texts_to_embed = ({}, {}) if group_by_node_label else ([], [])
         for node_type, node_properties in node_embedding_text_props.items():

@@ -144,13 +144,13 @@ class ByoKGQueryEngine:
 
             # Process extracted entities
             linked_entities = []
-            if "entity-extraction" in artifacts and "FINISH" not in artifacts["entity-extraction"][0]:
+            if "entity-extraction" in artifacts and artifacts["entity-extraction"] and "FINISH" not in artifacts["entity-extraction"][0]:
                 linked_entities = self.entity_linker.link(artifacts["entity-extraction"], return_dict=False)
                 explored_entities.update(linked_entities)
 
             # Process answer entities
             linked_answers = []
-            if "draft-answer-generation" in artifacts:
+            if "draft-answer-generation" in artifacts and artifacts["draft-answer-generation"]:
                 linked_answers = self.entity_linker.link(artifacts["draft-answer-generation"], return_dict=False)
 
             # Retrieve triplets if we have source entities
@@ -161,7 +161,7 @@ class ByoKGQueryEngine:
                 self._add_to_context(retrieved_context, triplet_context)
 
             # Process paths if available
-            if "path-extraction" in artifacts and explored_entities and self.path_retriever:
+            if "path-extraction" in artifacts and artifacts["path-extraction"] and explored_entities and self.path_retriever:
                 metapaths = [[component.strip() for component in path.split("->")] for path in artifacts["path-extraction"]]
                 path_context = self.path_retriever.retrieve(list(explored_entities), metapaths,linked_answers)
                 self._add_to_context(retrieved_context, path_context)
