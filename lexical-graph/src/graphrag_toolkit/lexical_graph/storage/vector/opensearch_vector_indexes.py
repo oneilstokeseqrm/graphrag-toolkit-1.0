@@ -263,7 +263,7 @@ def index_exists(endpoint, index_name, dimensions, writeable) -> bool:
             index_exists = True
     except RequestError as e:
         if e.error == 'resource_already_exists_exception':
-            pass
+            logger.debug(f'OpenSearch index already exists [index_name: {index_name}, endpoint: {endpoint}]')
         else:
             logger.exception('Error creating an OpenSearch index')
     finally:
