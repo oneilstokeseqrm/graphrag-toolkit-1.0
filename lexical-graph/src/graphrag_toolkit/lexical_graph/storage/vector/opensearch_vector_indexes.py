@@ -4,7 +4,9 @@
 
 import json
 import logging
-from typing import List, Any, Optional
+import time
+import uuid
+from typing import List, Any, Optional, Iterable, Dict
 from dataclasses import dataclass
 
 from llama_index.core.bridge.pydantic import PrivateAttr
@@ -36,8 +38,61 @@ def _get_opensearch_version(self) -> str:
     #info = asyncio_run(self._os_async_client.info())
     return '2.0.9'
 
+def _bulk_ingest_embeddings(
+        self,
+        client: Any,
+        index_name: str,
+        embeddings: List[List[float]],
+        texts: Iterable[str],
+        metadatas: Optional[List[dict]] = None,
+        ids: Optional[List[str]] = None,
+        vector_field: str = "embedding",
+        text_field: str = "content",
+        mapping: Optional[Dict] = None,
+        max_chunk_bytes: Optional[int] = 1 * 1024 * 1024,
+        is_aoss: bool = False,
+    ) -> List[str]:
+        """Bulk Ingest Embeddings into given index."""
+        if not mapping:
+            mapping = {}
+
+        bulk = self._import_bulk()
+        not_found_error = self._import_not_found_error()
+        requests = []
+        return_ids = []
+
+        try:
+            client.indices.get(index=index_name)
+        except not_found_error:
+            client.indices.create(index=index_name, body=mapping)
+
+        for i, text in enumerate(texts):
+            metadata = metadatas[i] if metadatas else {}
+            _id = ids[i] if ids else str(uuid.uuid4())
+            request = {
+                "_op_type": "index",
+                "_index": index_name,
+                vector_field: embeddings[i],
+                text_field: text,
+                "metadata": metadata,
+            }
+            if is_aoss:
+                request["id"] = _id
+            else:
+                request["_id"] = _id
+            requests.append(request)
+            return_ids.append(_id)
+
+        errors = bulk(client, requests, max_chunk_bytes=max_chunk_bytes, max_retries=3, initial_backoff=5)
+        
+        if not is_aoss:
+            client.indices.refresh(index=index_name)
+
+        return errors
+
 import llama_index.vector_stores.opensearch 
 llama_index.vector_stores.opensearch.OpensearchVectorClient._get_opensearch_version = _get_opensearch_version
+llama_index.vector_stores.opensearch.OpensearchVectorClient._bulk_ingest_embeddings = _bulk_ingest_embeddings
 
 @dataclass
 class DummyAuth:
@@ -128,7 +183,34 @@ def create_os_async_client(endpoint, **kwargs):
         retry_on_timeout=True,
         **kwargs
     )
+
+def index_is_available(client, index_name):
     
+    try:
+        query = {
+            "terms": {
+                f'metadata.{INDEX_KEY}.key': ['xxxxxxx']
+            }
+        }
+            
+        body = {
+            "size": 1,
+            "query": query,
+            "sort": [{"_id": "asc"}],
+            "_source": False
+        }
+            
+        response = client.search(
+            index=index_name,
+            body=body
+        )
+
+        return response is not None
+
+    except Exception as err:
+        return False
+    
+
 
 def index_exists(endpoint, index_name, dimensions, writeable) -> bool:
     """
@@ -214,7 +296,7 @@ def create_opensearch_vector_client(endpoint, index_name, dimensions, embed_mode
     text_field = 'value'
     embedding_field = 'embedding'
 
-    logger.debug(f'Creating OpenSearch vector client [endpoint: {endpoint}, index_name={index_name}, embed_model={embed_model}, dimensions={dimensions}]')
+    logger.debug(f'Creating OpenSearch vector client [index_name={index_name}, endpoint: {endpoint}, embed_model={embed_model}, dimensions={dimensions}]')
  
     client = None
     retry_count = 0
@@ -230,13 +312,33 @@ def create_opensearch_vector_client(endpoint, index_name, dimensions, embed_mode
                 os_async_client=create_os_async_client(endpoint),
                 http_auth=DummyAuth(service='aoss')
             )
+
+            start = time.time()
+            is_available = False
+            elapsed = int(time.time() - start)
+
+            while not is_available and elapsed < 60:
+                elapsed = int(time.time() - start) 
+                is_available = index_is_available(client._os_client, index_name)
+                if not is_available:
+                    logger.debug(f'Index not yet online, waiting 10 seconds [index_name: {index_name}, endpoint: {endpoint}, elapsed_seconds: {elapsed}]')
+                    time.sleep(10)
+                    
+
+            if is_available:
+                logger.debug(f'Index online [index_name: {index_name}, endpoint: {endpoint}, elapsed_seconds: {elapsed}]')
+            else:
+                logger.debug(f'Index not yet available, recreating client [index_name: {index_name}, endpoint: {endpoint}, elapsed_seconds: {elapsed}]')
+                client._os_client.close()
+                client = None
+
         except NotFoundError as err:
             retry_count += 1
-            logger.warning(f'Error while creating OpenSearch vector client [retry_count: {retry_count}, error: {err}]')
+            logger.warning(f'Error while creating OpenSearch vector client [index_name: {index_name}, retry_count: {retry_count}, error: {err}]')
             if retry_count > 3:
                 raise err
                 
-    logger.debug(f'Created OpenSearch vector client [client: {client}, retry_count: {retry_count}]')
+    logger.debug(f'Created OpenSearch vector client [index_name: {index_name}, client: {client}, retry_count: {retry_count}]')
             
     return client
         
@@ -254,6 +356,7 @@ class DummyOpensearchVectorClient():
     """
     def __init__(self):
         self._os_async_client = None
+        self._os_client = None
         self._index = None
 
     def index_results(self, nodes: List[BaseNode], **kwargs: Any) -> List[str]:
@@ -406,6 +509,7 @@ class OpenSearchIndex(VectorIndex):
         """
         if self._client:
             if self._client._index != self.underlying_index_name():
+                self._client._os_client.close()
                 self._client = None
 
         if not self._client:
@@ -419,6 +523,9 @@ class OpenSearchIndex(VectorIndex):
             else:
                 self._client = DummyOpensearchVectorClient()
         return self._client
+    
+    def index_exists(self):
+        return index_exists(self.endpoint, self.underlying_index_name(), self.dimensions, self.writeable)
         
     def _clean_id(self, s):
         """
@@ -547,7 +654,9 @@ class OpenSearchIndex(VectorIndex):
             docs.append(doc)
 
         if docs:
-            self.client.index_results(docs)
+            errors = self.client.index_results(docs)
+            if errors:
+                logger.error('Errors while addinh embeddings: {errors}')
         
         return nodes 
     
@@ -682,8 +791,7 @@ class OpenSearchIndex(VectorIndex):
 
         if not client:
             pass
-        
-        
+
         search_after = None
         page = 0
         
@@ -701,10 +809,23 @@ class OpenSearchIndex(VectorIndex):
             if search_after:
                 body["search_after"] = search_after
                 
-            response = client.search(
-                index=self.underlying_index_name(),
-                body=body
-            )
+            retry_count = 0
+            response = None
+
+            while not response:
+                try:
+                    response = client.search(
+                        index=self.underlying_index_name(),
+                        body=body
+                    )
+                except NotFoundError as e:
+                    retry_count += 1
+                    if retry_count > 3:
+                        raise e
+                    else:
+                        logger.debug(f'Index not found while conducting paginated search - retrying after 5 seconds [index: {self.underlying_index_name()}, retry_count: {retry_count}]')
+                        time.sleep(5)
+                        response = None
 
             hits = response['hits']['hits']
             if not hits:
