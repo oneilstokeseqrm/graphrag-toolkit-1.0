@@ -45,10 +45,12 @@ Version 3.10.3 of the toolkit introduces a step into the bulk indexing process t
 3.10.3 introduces a [command-line tool](https://github.com/awslabs/graphrag-toolkit/blob/main/examples/lexical-graph/scripts/repair_opensearch_vector_store.py) that you can use to verify and repair an Amazon OpenSearch Serverless vector store:
 
 ```
-$ python repair_opensearch_vector_store.py --graph-store <graph store info> --vector-store <vector store info>
+$ python repair_opensearch_vector_store.py --graph-store <graph store info> --vector-store <vector store info> --dry-run
 ```
 
-The tool has the following parameters
+The `--dry-run` flag above allows you to run the tool and see what repairs are necessary without actually modifying the indexes. Remove the `--dry-run` flag to repair (delete duplicate documents from) the vector store.
+
+The tool has the following parameters:
 
 | Parameter  | Description | Mandatory | Default |
 | ------------- | ------------- | ------------- | ------------- |
