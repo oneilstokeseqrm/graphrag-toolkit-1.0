@@ -58,7 +58,7 @@ The tool has the following parameters:
 | `--vector-store` | Vector store connection info (for example `aoss://https://123456789012.us-east-1.aoss.amazonaws.com`) | Yes | – |
 | `--tenant-ids` | Space-separated list of tenant ids to check | No | All tenants |
 | `--batch-size` | Number of OpenSearch documents to check with each request to OpenSearch | No | 1000 |
-| `--dry-run` | Verify the store, but do not delete any duplicates | No | Tool deletes duplicate documents from the vector store |
+| `--dry-run` | Verify the store, but do not repair (delete any duplicates from) the store | No | Tool deletes duplicate documents from the vector store |
 
 The tool returns results in the following format:
 
