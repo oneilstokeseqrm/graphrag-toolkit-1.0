@@ -7,6 +7,8 @@
   - [Overview](#overview)
   - [Install dependencies](#install-dependencies)
   - [Creating an OpenSearch Serverless vector store](#creating-a-neptune-analytics-vector-store)
+  - [Amazon OpenSearch Serverless and custom document IDs](#amazon-opensearch-serverless-and-custom-document-ids)
+    - [Verify and repair an Amazon OpenSearch Serverless vector store](#verify-and-repair-an-amazon-opensearch-serverless-vector-store)
 
 ### Overview
 
@@ -42,7 +44,7 @@ Version 3.10.3 of the toolkit introduces a step into the bulk indexing process t
 
 #### Verify and repair an Amazon OpenSearch Serverless vector store
 
-3.10.3 introduces a [command-line tool](https://github.com/awslabs/graphrag-toolkit/blob/main/examples/lexical-graph/scripts/repair_opensearch_vector_store.py) that you can use to verify and repair an Amazon OpenSearch Serverless vector store:
+3.10.3 introduces a [command-line tool](https://github.com/awslabs/graphrag-toolkit/blob/main/examples/lexical-graph/scripts/repair_opensearch_vector_store.py) that you can use to verify and repair an Amazon OpenSearch Serverless vector store. Download [repair_opensearch_vector_store.py](https://github.com/awslabs/graphrag-toolkit/blob/main/examples/lexical-graph/scripts/repair_opensearch_vector_store.py) and run the folliwng command: 
 
 ```
 $ python repair_opensearch_vector_store.py --graph-store <graph store info> --vector-store <vector store info> --dry-run
