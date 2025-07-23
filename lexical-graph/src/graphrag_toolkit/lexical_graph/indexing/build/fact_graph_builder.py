@@ -99,7 +99,7 @@ class FactGraphBuilder(GraphBuilder):
                     'UNWIND $params AS params',
                     f'MERGE (fact:`__Fact__`{{{graph_client.node_id("factId")}: params.fact_id}})',
                     f'MERGE (entity:`__Entity__`{{{graph_client.node_id("entityId")}: params.entity_id}})',
-                    f'MERGE (object)-[:`__{relationship_type.upper()}__`]->(fact)'              
+                    f'MERGE (entity)-[:`__{relationship_type.upper()}__`]->(fact)'              
                 ]
 
                 properties_e2f = {
@@ -111,17 +111,19 @@ class FactGraphBuilder(GraphBuilder):
                 
                 graph_client.execute_query_with_retry(query_e2f, self._to_params(properties_e2f), max_attempts=5, max_wait=7)
 
-
-            allow_add_entities = include_local_entities if fact.subject.classification and fact.subject.classification == LOCAL_ENTITY_CLASSIFICATION else True
-
             
-            if allow_add_entities:
-
+            if fact.subject.classification == LOCAL_ENTITY_CLASSIFICATION:
+                if include_local_entities:
+                    insert_entity_fact_relationship(fact.subject.entityId, 'subject')
+                    if fact.object:
+                        insert_entity_fact_relationship(fact.object.entityId, 'object')
+                    if fact.complement:
+                        insert_entity_fact_relationship(fact.complement.entityId, 'object')
+            else:
                 insert_entity_fact_relationship(fact.subject.entityId, 'subject')
-                
                 if fact.object:
-                    insert_entity_fact_relationship(fact.object.entityId, 'object')
-                elif fact.complement and include_local_entities:
+                    insert_entity_fact_relationship(fact.object.entityId, 'object')          
+                if fact.complement and include_local_entities:
                     insert_entity_fact_relationship(fact.complement.entityId, 'object')
 
 

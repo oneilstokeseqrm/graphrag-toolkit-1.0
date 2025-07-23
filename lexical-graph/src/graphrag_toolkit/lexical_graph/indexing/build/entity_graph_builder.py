@@ -72,7 +72,7 @@ class EntityGraphBuilder(GraphBuilder):
             fact = Fact.model_validate(fact_metadata)
             fact = string_complement_to_entity(fact)
 
-            if fact.subject.classification and fact.subject.classification == LOCAL_ENTITY_CLASSIFICATION:
+            if fact.subject.classification == LOCAL_ENTITY_CLASSIFICATION:
                 if not include_local_entities:
                     logger.debug(f'Ignoring local entities for fact [fact_id: {fact.factId}]')
                     return
