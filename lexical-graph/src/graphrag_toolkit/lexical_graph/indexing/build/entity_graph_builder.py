@@ -83,15 +83,11 @@ class EntityGraphBuilder(GraphBuilder):
 
                 statements = [
                     '// insert entities',
-                    'UNWIND $params AS params'
-                ]
-
-                statements.append(f'MERGE (entity:`__Entity__`{{{graph_client.node_id("entityId")}: params.e_id}})')
-
-                statements.extend([
+                    'UNWIND $params AS params',
+                    f'MERGE (entity:`__Entity__`{{{graph_client.node_id("entityId")}: params.e_id}})',
                     'ON CREATE SET entity.value = params.v, entity.search_str = params.e_search_str, entity.class = params.ec',
-                    'ON MATCH SET entity.value = params.v, entity.search_str = params.e_search_str, entity.class = params.ec',
-                ])
+                    'ON MATCH SET entity.value = params.v, entity.search_str = params.e_search_str, entity.class = params.ec'
+                ]
 
                 properties = {
                     'e_id': entity.entityId,
