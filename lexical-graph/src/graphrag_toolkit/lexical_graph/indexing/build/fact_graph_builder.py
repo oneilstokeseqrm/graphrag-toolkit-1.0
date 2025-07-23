@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from graphrag_toolkit.lexical_graph.indexing.model import Fact
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
@@ -92,7 +92,7 @@ class FactGraphBuilder(GraphBuilder):
                 
             graph_client.execute_query_with_retry(query, self._to_params(properties), max_attempts=5, max_wait=7)
 
-            def insert_entity_fact_relationship(entity_id:str, relationship_type:str):
+            def insert_entity_fact_relationship(relationship_type:str, entity_id:Optional[str]=None):
 
                 statements_e2f = [
                     f'// insert entity-fact {relationship_type.lower()} relationship',
@@ -102,29 +102,33 @@ class FactGraphBuilder(GraphBuilder):
                     f'MERGE (entity)-[:`__{relationship_type.upper()}__`]->(fact)'              
                 ]
 
-                properties_e2f = {
-                    'fact_id': fact.factId,
-                    'entity_id': entity_id
-                }
+                properties_e2f = {}
 
+                if entity_id:
+                    properties_e2f['fact_id'] = fact.factId
+                    properties_e2f['entity_id'] = entity_id
+        
                 query_e2f = '\n'.join(statements_e2f)
                 
                 graph_client.execute_query_with_retry(query_e2f, self._to_params(properties_e2f), max_attempts=5, max_wait=7)
 
             
+            insert_entity_fact_relationship('subject')
+            insert_entity_fact_relationship('object')
+            
             if fact.subject.classification == LOCAL_ENTITY_CLASSIFICATION:
                 if include_local_entities:
-                    insert_entity_fact_relationship(fact.subject.entityId, 'subject')
+                    insert_entity_fact_relationship('subject', fact.subject.entityId)
                     if fact.object:
-                        insert_entity_fact_relationship(fact.object.entityId, 'object')
+                        insert_entity_fact_relationship('object', fact.object.entityId)
                     if fact.complement:
-                        insert_entity_fact_relationship(fact.complement.entityId, 'object')
+                        insert_entity_fact_relationship('object', fact.complement.entityId)
             else:
-                insert_entity_fact_relationship(fact.subject.entityId, 'subject')
+                insert_entity_fact_relationship('subject', fact.subject.entityId)
                 if fact.object:
-                    insert_entity_fact_relationship(fact.object.entityId, 'object')          
+                    insert_entity_fact_relationship('object', fact.object.entityId)          
                 if fact.complement and include_local_entities:
-                    insert_entity_fact_relationship(fact.complement.entityId, 'object')
+                    insert_entity_fact_relationship('object', fact.complement.entityId)
 
 
             statements_prev = [
