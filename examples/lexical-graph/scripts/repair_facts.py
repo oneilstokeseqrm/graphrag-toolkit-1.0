@@ -200,7 +200,7 @@ def create_entity_entity_relation(graph_store, facts):
     cypher = '''
     UNWIND $params AS params
     MATCH (s:`__Entity__`{value: params.s_value}), (o:`__Entity__`{value: params.o_value})
-    MERGE (s)-[:`__RELATION__`{value: params.p}]->(o)
+    MERGE (s)-[r:`__RELATION__`{value: params.p}]->(o) ON CREATE SET r.count = 1 ON MATCH SET r.count = r.count + 1
     '''
     
     graph_store.execute_query_with_retry(cypher, parameters)
@@ -247,11 +247,9 @@ def create_fact_next_relation(graph_store, facts):
         
     graph_store.execute_query_with_retry(query_next, parameters, max_attempts=5, max_wait=7)
     
-def get_stats(graph_store, tenant_id):
+def get_stats(graph_store):
 
-    stats = {
-        'tenant_id': tenant_id or 'default_'
-    }
+    stats = {}
 
     cypher = '''
     MATCH (:`__Entity__`)-[r:`__SUBJECT__`]->(:`__Fact__`)
@@ -271,14 +269,14 @@ def get_stats(graph_store, tenant_id):
     
     stats['num_object_relationships'] = results[0]['count']
     
-    cypher = '''
-    MATCH (:`__Entity__`)-[r:`__RELATION__`]->(:`__Entity__`)
-    RETURN count(r) AS count
-    '''
-    
-    results = graph_store.execute_query_with_retry(cypher, {})
-    
-    stats['num_relation_relationships'] = results[0]['count']
+    #cypher = '''
+    #MATCH (:`__Entity__`)-[r:`__RELATION__`]->(:`__Entity__`)
+    #RETURN count(r) AS count
+    #'''
+    #
+    #results = graph_store.execute_query_with_retry(cypher, {})
+    #
+    #stats['num_relation_relationships'] = results[0]['count']
     
     cypher = '''
     MATCH (:`__Fact__`)-[r:`__NEXT__`]->(:`__Fact__`)
@@ -316,6 +314,12 @@ def repair(graph_store_info, batch_size, tenant_id=None):
             TenantId(tenant_id)
         )
         
+    stats = {
+        'tenant_id': tenant_id
+    }
+    
+    stats['before'] = get_stats(graph_store)
+        
     print("Deleting anon 'vertex' vertices and relationships...")       
     delete_anon_vertices(graph_store, batch_size=batch_size)
 
@@ -337,16 +341,16 @@ def repair(graph_store_info, batch_size, tenant_id=None):
             print(f'  {total}')
     print(f'  Done')
 
-    print()
-    print('Creating RELATION entity-entity relationships...')
-    total = 0
-    for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
-        facts = get_facts(graph_store, fact_id_batch)
-        create_entity_entity_relation(graph_store, facts)
-        total += len(fact_id_batch)
-        if total % TOTAL_MOD == 0:
-            print(f'  {total}')
-    print(f'  Done')
+    #print()
+    #print('Creating RELATION entity-entity relationships...')
+    #total = 0
+    #for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
+    #    facts = get_facts(graph_store, fact_id_batch)
+    #    create_entity_entity_relation(graph_store, facts)
+    #    total += len(fact_id_batch)
+    #    if total % TOTAL_MOD == 0:
+    #        print(f'  {total}')
+    #print(f'  Done')
 
     print()
     print('Creating NEXT fact-fact relationships...')
@@ -359,7 +363,7 @@ def repair(graph_store_info, batch_size, tenant_id=None):
             print(f'  {total}')
     print(f'  Done')
 
-    stats = get_stats(graph_store, tenant_id)
+    stats['after'] = get_stats(graph_store)
 
     return stats
 
