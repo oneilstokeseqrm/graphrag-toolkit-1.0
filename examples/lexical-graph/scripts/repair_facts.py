@@ -1,0 +1,399 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+
+import argparse
+import json
+import logging
+import sys
+import json
+
+from itertools import islice
+
+from graphrag_toolkit.lexical_graph import set_logging_config
+from graphrag_toolkit.lexical_graph import LexicalGraphQueryEngine, TenantId
+from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
+from graphrag_toolkit.lexical_graph.storage.graph import MultiTenantGraphStore
+from graphrag_toolkit.lexical_graph.storage.graph import NonRedactedGraphQueryLogFormatting
+
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+TOTAL_MOD = 10000
+
+def delete_anon_vertices(graph_store, batch_size):
+
+    total_nodes = 0
+    total_rels = 0
+
+    params = {
+        'batch_size': batch_size
+    }
+    
+    cypher = '''
+    MATCH (:`vertex`)-[r]-()
+    WITH r LIMIT $batch_size
+    DELETE r
+    RETURN count(r) AS count
+    '''
+    
+    print("  Deleting anon 'vertex' relationships...")
+    
+    results = graph_store.execute_query_with_retry(cypher, params)
+    count = results[0]['count']
+    total_rels += count
+    
+    while count > 0:
+        results = graph_store.execute_query_with_retry(cypher, params)
+        count = results[0]['count']
+        total_rels += count
+        if total_rels % TOTAL_MOD == 0:
+            print(f'  {total_rels}')
+        
+    print(f"  Number deleted: {total_rels}")
+        
+        
+    cypher = '''
+    MATCH (n:`vertex`)
+    WITH n LIMIT $batch_size
+    DELETE n
+    RETURN count(n) AS count
+    '''
+    
+    print()
+    print("  Deleting anon 'vertex' nodes...")
+    
+    results = graph_store.execute_query_with_retry(cypher, params)
+    count = results[0]['count']
+    total_nodes += count
+    
+    while count > 0:
+        results = graph_store.execute_query_with_retry(cypher, params)
+        count = results[0]['count']
+        total_nodes += count
+        if total_nodes % TOTAL_MOD == 0:
+            print(f'  {total_nodes}')
+        
+    print(f"  Number deleted: {total_rels}")
+
+def get_fact_ids(graph_store):
+    
+    cypher = '''
+    MATCH (n:`__Fact__`) 
+    RETURN id(n) AS fact_id'''
+    
+    results = graph_store.execute_query_with_retry(cypher, {})
+    
+    return [r['fact_id'] for r in results]
+    
+def get_fact_ids_from_sources(graph_store):
+    
+    cypher = '''
+    MATCH (n:`__Source__`) 
+    RETURN id(n) AS source_id'''
+    
+    results = graph_store.execute_query_with_retry(cypher, {})
+    
+    source_ids = [r['source_id'] for r in results]
+    
+    print
+    
+    cypher = '''
+    MATCH (n:`__Source__`)<-[:`__EXTRACTED_FROM__`]-(:`__Chunk__`)
+    <-[:`__MENTIONED_IN__`]-(:`__Statement__`)
+    <-[:`__SUPPORTS__`]-(f:`__Fact__`)
+    WHERE id(n) = $source_id
+    RETURN id(f) AS fact_id
+    '''
+    
+    fact_ids = []
+    
+    for source_id in source_ids:
+        params = {
+            'source_id': source_id
+        }
+        results = graph_store.execute_query_with_retry(cypher, params)
+        source_fact_ids = [r['fact_id'] for r in results]
+        fact_ids.extend(source_fact_ids)
+    
+    return list(set(fact_ids))
+
+def get_facts(graph_store, fact_ids):
+    
+    facts = []
+    
+    cypher = '''
+    MATCH (n:`__Fact__`) 
+    WHERE id(n) in $fact_ids 
+    RETURN id(n) AS fact_id, n.value AS value'''
+    
+    params = {
+        'fact_ids': fact_ids
+    }
+    
+    results = graph_store.execute_query_with_retry(cypher, params)
+    
+    for result in results:
+        s = []
+        p = []
+        o = []
+        fact_id = result['fact_id']
+        value = result['value']
+        parts = value.split(' ')
+        for part in parts:
+            if part.upper() == part and part.replace('-', '').isalpha():
+                p.append(part)
+            else:
+                if p:
+                    o.append(part)
+                else:
+                    s.append(part)
+                
+        fact = {
+            'fact_id': fact_id,
+            'subject': ' '.join(s),
+            'predicate': '_'.join(p),
+            'object': ' '.join(o)
+        }
+        facts.append(fact)
+    return facts
+		
+def create_entity_fact_relation(graph_store, facts, relationship_type):
+    
+    params = []
+    
+    for fact in facts:
+        params.append({
+            'fact_id': fact['fact_id'],
+            'entity_value': fact[relationship_type]
+        })
+    
+    parameters = {
+        'params': params    
+    }
+    
+    cypher = f'''
+    UNWIND $params AS params
+    MATCH (f:`__Fact__`{{`~id`: params.fact_id}}), (e:`__Entity__`{{value: params.entity_value}})
+    MERGE (e)-[:`__{relationship_type.upper()}__`]->(f)
+    '''
+    
+    graph_store.execute_query_with_retry(cypher, parameters)
+    
+    
+    
+def create_entity_entity_relation(graph_store, facts):
+    
+    params = []
+    
+    for fact in facts:
+        params.append({
+            's_value': fact['subject'],
+            'o_value': fact['object'],
+            'p': fact['predicate']
+        })
+    
+    parameters = {
+        'params': params    
+    }
+    
+    cypher = '''
+    UNWIND $params AS params
+    MATCH (s:`__Entity__`{value: params.s_value}), (o:`__Entity__`{value: params.o_value})
+    MERGE (s)-[:`__RELATION__`{value: params.p}]->(o)
+    '''
+    
+    graph_store.execute_query_with_retry(cypher, parameters)
+    
+    
+    
+def create_fact_next_relation(graph_store, facts):
+
+    params = []
+    
+    for fact in facts:
+        params.append({
+            'fact_id': fact['fact_id']
+        })
+    
+    parameters = {
+        'params': params    
+    }
+    
+    
+    statements_prev = [
+        '// insert connection to prev facts',
+        'UNWIND $params AS params',
+        f'MATCH (fact:`__Fact__`{{{graph_store.node_id("factId")}: params.fact_id}})<-[:`__SUBJECT__`]-(:`__Entity__`)-[:`__OBJECT__`]->(prevFact:`__Fact__`)',
+        'WHERE fact <> prevFact and NOT ((fact)<-[:`__NEXT__`]-(prevFact))',
+        'WITH DISTINCT fact, prevFact',
+        'MERGE (fact)<-[:`__NEXT__`]-(prevFact)'
+    ]
+
+    query_prev = '\n'.join(statements_prev)
+        
+    graph_store.execute_query_with_retry(query_prev, parameters, max_attempts=5, max_wait=7)
+    
+    statements_next = [
+        '// insert connection to next facts',
+        'UNWIND $params AS params',
+        f'MATCH (fact:`__Fact__`{{{graph_store.node_id("factId")}: params.fact_id}})<-[:`__OBJECT__`]-(:`__Entity__`)-[:`__SUBJECT__`]->(nextFact:`__Fact__`)',
+        'WHERE fact <> nextFact and NOT ((fact)-[:`__NEXT__`]->(nextFact))',
+        'WITH DISTINCT fact, nextFact',
+        'MERGE (fact)-[:`__NEXT__`]->(nextFact)'
+    ]
+
+    query_next = '\n'.join(statements_next)
+        
+    graph_store.execute_query_with_retry(query_next, parameters, max_attempts=5, max_wait=7)
+    
+def get_stats(graph_store, tenant_id):
+
+    stats = {
+        'tenant_id': tenant_id or 'default_'
+    }
+
+    cypher = '''
+    MATCH (:`__Entity__`)-[r:`__SUBJECT__`]->(:`__Fact__`)
+    RETURN count(r) AS count
+    '''
+    
+    results = graph_store.execute_query_with_retry(cypher, {})
+    
+    stats['num_subject_relationships'] = results[0]['count']
+    
+    cypher = '''
+    MATCH (:`__Entity__`)-[r:`__OBJECT__`]->(:`__Fact__`)
+    RETURN count(r) AS count
+    '''
+    
+    results = graph_store.execute_query_with_retry(cypher, {})
+    
+    stats['num_object_relationships'] = results[0]['count']
+    
+    cypher = '''
+    MATCH (:`__Entity__`)-[r:`__RELATION__`]->(:`__Entity__`)
+    RETURN count(r) AS count
+    '''
+    
+    results = graph_store.execute_query_with_retry(cypher, {})
+    
+    stats['num_relation_relationships'] = results[0]['count']
+    
+    cypher = '''
+    MATCH (:`__Fact__`)-[r:`__NEXT__`]->(:`__Fact__`)
+    RETURN count(r) AS count
+    '''
+    
+    results = graph_store.execute_query_with_retry(cypher, {})
+    
+    stats['num_next_relationships'] = results[0]['count']
+    
+    return stats
+
+def iter_batch(iterable, batch_size):
+    source_iter = iter(iterable)
+    while source_iter:
+        b = list(islice(source_iter, batch_size))
+        if len(b) == 0:
+            break
+        yield b
+
+def repair(graph_store_info, batch_size, tenant_id=None):
+
+    graph_store = GraphStoreFactory.for_graph_store(
+        graph_store_info,
+        log_formatting=NonRedactedGraphQueryLogFormatting()
+    )
+    
+
+    if not tenant_id:
+        print(f'Repairing for default tenant')
+    else:
+        print(f'Repairing for tenant {tenant_id}')
+        graph_store = MultiTenantGraphStore.wrap(
+            graph_store,
+            TenantId(tenant_id)
+        )
+        
+    print("Deleting anon 'vertex' vertices and relationships...")       
+    delete_anon_vertices(graph_store, batch_size=batch_size)
+
+    print()
+    print('Getting fact ids...')
+    fact_ids = get_fact_ids_from_sources(graph_store)
+    
+    print(f'Number facts: {len(fact_ids)}')
+
+    print()
+    print('Creating SUBJECT|OBJECT entity-fact relationships...')
+    total = 0
+    for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
+        facts = get_facts(graph_store, fact_id_batch)
+        create_entity_fact_relation(graph_store, facts, 'subject')
+        create_entity_fact_relation(graph_store, facts, 'object')
+        total += len(fact_id_batch)
+        if total % TOTAL_MOD == 0:
+            print(f'  {total}')
+    print(f'  Done')
+
+    print()
+    print('Creating RELATION entity-entity relationships...')
+    total = 0
+    for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
+        facts = get_facts(graph_store, fact_id_batch)
+        create_entity_entity_relation(graph_store, facts)
+        total += len(fact_id_batch)
+        if total % TOTAL_MOD == 0:
+            print(f'  {total}')
+    print(f'  Done')
+
+    print()
+    print('Creating NEXT fact-fact relationships...')
+    total = 0
+    for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):    
+        facts = get_facts(graph_store, fact_id_batch)
+        create_fact_next_relation(graph_store, facts)
+        total += len(fact_id_batch)
+        if total % TOTAL_MOD == 0:
+            print(f'  {total}')
+    print(f'  Done')
+
+    stats = get_stats(graph_store, tenant_id)
+
+    return stats
+
+
+def do_repair():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--graph-store', help = 'Graph store connection string')
+    parser.add_argument('--tenant-id', nargs='*', help = 'Space-separated list of tenant ids (optional)')
+    parser.add_argument('--batch-size', nargs='?', help = 'Batch size (optional, default 100)')
+    
+    args, _ = parser.parse_known_args()
+    args_dict = { k:v for k,v in vars(args).items() if v}
+
+    graph_store_info = args_dict['graph_store']
+    tenant_ids = args_dict.get('tenant_id', [])
+    batch_size = int(args_dict.get('batch_size', 100))
+
+    print(f'graph_store_info : {graph_store_info}')
+    print(f'tenant_ids       : {tenant_ids}')
+    print(f'batch_size       : {batch_size}')
+    print()
+
+    results = []
+    
+    if not tenant_ids:
+            results.append(repair(graph_store_info, batch_size))
+    else:
+        for tenant_id in tenant_ids:
+            results.append(repair(graph_store_info, batch_size, tenant_id))
+                
+    print()
+    print(json.dumps(results, indent=2))
+    
+            
+if __name__ == '__main__':
+    do_repair()
