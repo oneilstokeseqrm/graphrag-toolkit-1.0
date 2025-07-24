@@ -9,6 +9,7 @@ import sys
 import json
 
 from itertools import islice
+from tqdm import tqdm
 
 from graphrag_toolkit.lexical_graph import set_logging_config
 from graphrag_toolkit.lexical_graph import LexicalGraphQueryEngine, TenantId
@@ -19,12 +20,15 @@ from graphrag_toolkit.lexical_graph.storage.graph import NonRedactedGraphQueryLo
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-TOTAL_MOD = 10000
-
 def delete_anon_vertices(graph_store, batch_size):
-
-    total_nodes = 0
-    total_rels = 0
+    
+    cypher = '''
+    MATCH (:`vertex`)-[r]-()
+    RETURN count(r) AS count
+    '''
+    
+    results = graph_store.execute_query_with_retry(cypher, {})
+    rel_count = results[0]['count']
 
     params = {
         'batch_size': batch_size
@@ -37,20 +41,24 @@ def delete_anon_vertices(graph_store, batch_size):
     RETURN count(r) AS count
     '''
     
-    print("  Deleting anon 'vertex' relationships...")
+    progress_bar_1 = tqdm(total=rel_count, desc="Deleting anon 'vertex' relationships")
     
     results = graph_store.execute_query_with_retry(cypher, params)
     count = results[0]['count']
-    total_rels += count
+    progress_bar_1.update(count)
     
     while count > 0:
         results = graph_store.execute_query_with_retry(cypher, params)
         count = results[0]['count']
-        total_rels += count
-        if total_rels % TOTAL_MOD == 0:
-            print(f'  {total_rels}')
-        
-    print(f"  Number deleted: {total_rels}")
+        progress_bar_1.update(count)
+    
+    cypher = '''
+    MATCH (n:`vertex`)
+    RETURN count(n) AS count
+    '''
+    
+    results = graph_store.execute_query_with_retry(cypher, {})
+    node_count = results[0]['count']
         
         
     cypher = '''
@@ -60,21 +68,17 @@ def delete_anon_vertices(graph_store, batch_size):
     RETURN count(n) AS count
     '''
     
-    print()
-    print("  Deleting anon 'vertex' nodes...")
+    progress_bar_2 = tqdm(total=node_count, desc="Deleting anon 'vertex' nodes")
     
     results = graph_store.execute_query_with_retry(cypher, params)
     count = results[0]['count']
-    total_nodes += count
+    progress_bar_2.update(count)
     
     while count > 0:
         results = graph_store.execute_query_with_retry(cypher, params)
         count = results[0]['count']
-        total_nodes += count
-        if total_nodes % TOTAL_MOD == 0:
-            print(f'  {total_nodes}')
-        
-    print(f"  Number deleted: {total_rels}")
+        progress_bar_2.update(count)
+    
 
 def get_fact_ids(graph_store):
     
@@ -108,6 +112,8 @@ def get_fact_ids_from_sources(graph_store):
     
     fact_ids = []
     
+    progress_bar_1 = tqdm(total=len(source_ids), desc='Getting fact ids from sources')
+    
     for source_id in source_ids:
         params = {
             'source_id': source_id
@@ -115,6 +121,7 @@ def get_fact_ids_from_sources(graph_store):
         results = graph_store.execute_query_with_retry(cypher, params)
         source_fact_ids = [r['fact_id'] for r in results]
         fact_ids.extend(source_fact_ids)
+        progress_bar_1.update(1)
     
     return list(set(fact_ids))
 
@@ -320,26 +327,15 @@ def repair(graph_store_info, batch_size, tenant_id=None):
     
     stats['before'] = get_stats(graph_store)
         
-    print("Deleting anon 'vertex' vertices and relationships...")       
     delete_anon_vertices(graph_store, batch_size=batch_size)
-
-    print()
-    print('Getting fact ids...')
     fact_ids = get_fact_ids_from_sources(graph_store)
-    
-    print(f'Number facts: {len(fact_ids)}')
 
-    print()
-    print('Creating SUBJECT|OBJECT entity-fact relationships...')
-    total = 0
+    progress_bar_1 = tqdm(total=len(fact_ids), desc='Creating SUBJECT|OBJECT entity-fact relationships')
     for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
         facts = get_facts(graph_store, fact_id_batch)
         create_entity_fact_relation(graph_store, facts, 'subject')
         create_entity_fact_relation(graph_store, facts, 'object')
-        total += len(fact_id_batch)
-        if total % TOTAL_MOD == 0:
-            print(f'  {total}')
-    print(f'  Done')
+        progress_bar_1.update(len(fact_id_batch))
 
     #print()
     #print('Creating RELATION entity-entity relationships...')
@@ -352,16 +348,11 @@ def repair(graph_store_info, batch_size, tenant_id=None):
     #        print(f'  {total}')
     #print(f'  Done')
 
-    print()
-    print('Creating NEXT fact-fact relationships...')
-    total = 0
+    progress_bar_2 = tqdm(total=len(fact_ids), desc='Creating NEXT fact-fact relationships')
     for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):    
         facts = get_facts(graph_store, fact_id_batch)
         create_fact_next_relation(graph_store, facts)
-        total += len(fact_id_batch)
-        if total % TOTAL_MOD == 0:
-            print(f'  {total}')
-    print(f'  Done')
+        progress_bar_2.update(len(fact_id_batch))
 
     stats['after'] = get_stats(graph_store)
 
