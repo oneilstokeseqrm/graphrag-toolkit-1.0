@@ -59,7 +59,7 @@ def delete_anon_vertices(graph_store, batch_size):
     total_rels = 0
     total_nodes = 0
     
-    progress_bar_1 = tqdm(total=1000000, desc='Deleting anon relationship')
+    progress_bar_1 = tqdm(total=1000000, desc='Deleting invalid SUBJECT|OBJECT relationship')
     
     cypher = '''
     MATCH ()-[r]->()
@@ -93,7 +93,7 @@ def delete_anon_vertices(graph_store, batch_size):
         total_rels += count
         progress_bar_1.update(count)
         
-    print(f'Deleted {total_rels} anonymous relationships')
+    print(f'Deleted {total_rels} invalid SUBJECT|OBJECT relationships')
     
     #progress_bar_2 = tqdm(total=1000000, desc='Deleting anon nodes')
     #        
