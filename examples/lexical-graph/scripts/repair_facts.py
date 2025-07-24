@@ -21,64 +21,114 @@ from graphrag_toolkit.lexical_graph.storage.graph import NonRedactedGraphQueryLo
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-def delete_anon_vertices(graph_store, batch_size):
-    
-    cypher = '''
-    MATCH (:`vertex`)-[r]-()
-    RETURN count(r) AS count
-    '''
-    
-    results = graph_store.execute_query_with_retry(cypher, {})
-    rel_count = results[0]['count']
+#set_logging_config('DEBUG', ['graphrag_toolkit.lexical_graph.storage.graph'])
 
+def get_anon_rel_ids(graph_store, batch_size):
+    
     params = {
         'batch_size': batch_size
     }
     
     cypher = '''
-    MATCH (:`vertex`)-[r]-()
-    WITH r LIMIT $batch_size
-    DELETE r
-    RETURN count(r) AS count
+    MATCH (:`vertex`)-[r]->()
+    RETURN DISTINCT id(r) AS rel_id LIMIT $batch_size
     '''
     
-    progress_bar_1 = tqdm(total=rel_count, desc="Deleting anon 'vertex' relationships")
+    results = graph_store.execute_query_with_retry(cypher, params)
+    
+    return [r['rel_id'] for r in results]
+    
+def get_anon_node_ids(graph_store, batch_size):
+    
+    params = {
+        'batch_size': batch_size
+    }
+    
+    cypher = '''
+    MATCH (n:`vertex`)
+    RETURN DISTINCT id(n) AS node_id LIMIT $batch_size
+    '''
     
     results = graph_store.execute_query_with_retry(cypher, params)
-    count = results[0]['count']
+    
+    return [r['node_id'] for r in results]
+    
+
+def delete_anon_vertices(graph_store, batch_size):
+    
+    total_rels = 0
+    total_nodes = 0
+    
+    progress_bar_1 = tqdm(total=1000000, desc='Deleting anon relationship')
+    
+    cypher = '''
+    MATCH ()-[r]->()
+    WHERE id(r) in $rel_ids
+    DELETE r
+    '''
+    
+    rel_ids = get_anon_rel_ids(graph_store, batch_size)
+    count = len(rel_ids)
+    
+    params = {
+       'rel_ids': rel_ids 
+    }
+    
+    graph_store.execute_query_with_retry(cypher, params)
+    
+    total_rels += count
     progress_bar_1.update(count)
     
+    
     while count > 0:
-        results = graph_store.execute_query_with_retry(cypher, params)
-        count = results[0]['count']
+        rel_ids = get_anon_rel_ids(graph_store, batch_size)
+        count = len(rel_ids)
+        
+        params = {
+           'rel_ids': rel_ids 
+        }
+    
+        graph_store.execute_query_with_retry(cypher, params)
+    
+        total_rels += count
         progress_bar_1.update(count)
-    
-    cypher = '''
-    MATCH (n:`vertex`)
-    RETURN count(n) AS count
-    '''
-    
-    results = graph_store.execute_query_with_retry(cypher, {})
-    node_count = results[0]['count']
         
-        
-    cypher = '''
-    MATCH (n:`vertex`)
-    WITH n LIMIT $batch_size
-    DELETE n
-    RETURN count(n) AS count
-    '''
+    print(f'Deleted {total_rels} anonymous relationships')
     
-    progress_bar_2 = tqdm(total=node_count, desc="Deleting anon 'vertex' nodes")
-    
-    results = graph_store.execute_query_with_retry(cypher, params)
-    count = results[0]['count']
-    progress_bar_2.update(count)
-    
-    while count > 0:
-        results = graph_store.execute_query_with_retry(cypher, params)
-        count = results[0]['count']
-        progress_bar_2.update(count)
+    #progress_bar_2 = tqdm(total=1000000, desc='Deleting anon nodes')
+    #        
+    #cypher = '''
+    #MATCH (n)
+    #WHERE id(n) in $node_ids
+    #DETACH DELETE n
+    #'''
+    #
+    #node_ids = get_anon_node_ids(graph_store, batch_size)
+    #count = len(node_ids)
+    #
+    #params = {
+    #   'node_ids': node_ids 
+    #}
+    #
+    #graph_store.execute_query_with_retry(cypher, params)
+#
+    #total_nodes += count
+    #progress_bar_2.update(count)
+    #
+    #while count > 0:
+    #    node_ids = get_anon_node_ids(graph_store, batch_size)
+    #    count = len(node_ids)
+    #
+    #    params = {
+    #       'node_ids': node_ids 
+    #    }
+    #
+    #    graph_store.execute_query_with_retry(cypher, params)
+#
+    #    total_nodes += count
+    #    progress_bar_2.update(count)
+    #    
+    #print(f'Deleted {total_nodes} nodes relationships')
     
 
 def get_fact_ids(graph_store):
