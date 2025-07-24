@@ -7,6 +7,7 @@ import json
 import logging
 import sys
 import json
+import time
 
 from itertools import islice
 from tqdm import tqdm
@@ -391,4 +392,7 @@ def do_repair():
     
             
 if __name__ == '__main__':
+    start = time.time()
     do_repair()
+    end = time.time()
+    print(end - start)
