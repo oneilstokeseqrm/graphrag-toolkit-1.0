@@ -23,6 +23,29 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 #set_logging_config('DEBUG', ['graphrag_toolkit.lexical_graph.storage.graph'])
 
+def get_anon_rel_ids_count(graph_store, fact_ids, batch_size):
+    
+    total_rels = 0
+    
+    progress_bar_1 = tqdm(total=len(fact_ids), desc='Counting invalid SUBJECT|OBJECT relationships')
+    for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
+        cypher = '''
+        MATCH (f)<-[r]-(:`vertex`) WHERE id(f) in $fact_ids
+        RETURN count(r) AS count
+        '''
+    
+        params = {
+            'fact_ids': fact_id_batch
+        }
+    
+        results = graph_store.execute_query_with_retry(cypher, params)
+    
+        counts = [r['count'] for r in results]
+        total_rels += sum(counts)
+        progress_bar_1.update(len(fact_id_batch))
+    
+    return total_rels
+
 def get_anon_rel_ids(graph_store, batch_size):
     
     params = {
@@ -54,13 +77,14 @@ def get_anon_node_ids(graph_store, batch_size):
     return [r['node_id'] for r in results]
     
 
-def delete_anon_vertices(graph_store, batch_size):
+def delete_invalid_relationships(graph_store, fact_ids, batch_size):
     
     total_rels = 0
     total_nodes = 0
     
+    num_invalid_rels = get_anon_rel_ids_count(graph_store, fact_ids, batch_size)
     
-    progress_bar_1 = tqdm(total=1000000, desc='Deleting invalid SUBJECT|OBJECT relationship')
+    progress_bar_1 = tqdm(total=num_invalid_rels, desc='Deleting invalid SUBJECT|OBJECT relationship')
     
     cypher = '''
     MATCH ()-[r]->()
@@ -438,9 +462,8 @@ def repair(graph_store_info, batch_size, tenant_id=None):
     
     stats['before'] = get_stats(graph_store, fact_ids, batch_size)
         
-    delete_anon_vertices(graph_store, batch_size=batch_size)
+    delete_invalid_relationships(graph_store, fact_ids, batch_size=batch_size)
     
-
     progress_bar_1 = tqdm(total=len(fact_ids), desc='Creating SUBJECT|OBJECT entity-fact relationships')
     for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
         facts = get_facts(graph_store, fact_id_batch)
