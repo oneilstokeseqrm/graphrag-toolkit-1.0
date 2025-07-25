@@ -309,24 +309,69 @@ def create_fact_next_relation(graph_store, facts):
 def get_stats(graph_store, fact_ids, batch_size):
 
     stats = {}
+    
+    total_subject = 0
+    
+    progress_bar_1 = tqdm(total=len(fact_ids), desc='Counting SUBJECT relationships')
+    for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
+        cypher = '''
+        MATCH (f)<-[r:`__SUBJECT__`]-() WHERE id(f) in $fact_ids
+        RETURN count(r) AS count
+        '''
+    
+        params = {
+            'fact_ids': fact_id_batch
+        }
+    
+        results = graph_store.execute_query_with_retry(cypher, params)
+    
+        counts = [r['count'] for r in results]
+        total_subject += sum(counts)
+        progress_bar_1.update(len(fact_id_batch))
+    
+    stats['num_subject_relationships'] = total_subject
+    
+    total_object = 0
+    
+    progress_bar_1 = tqdm(total=len(fact_ids), desc='Counting OBJECT relationships')
+    for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
+        cypher = '''
+        MATCH (f)<-[r:`__OBJECT__`]-() WHERE id(f) in $fact_ids
+        RETURN count(r) AS count
+        '''
+    
+        params = {
+            'fact_ids': fact_id_batch
+        }
+    
+        results = graph_store.execute_query_with_retry(cypher, params)
+    
+        counts = [r['count'] for r in results]
+        total_object += sum(counts)
+        progress_bar_1.update(len(fact_id_batch))
+    
+    stats['num_object_relationships'] = total_object
+    
+    
+    
 
-    cypher = '''
-    MATCH (:`__Entity__`)-[r:`__SUBJECT__`]->()
-    RETURN count(r) AS count
-    '''
-    
-    results = graph_store.execute_query_with_retry(cypher, {})
-    
-    stats['num_subject_relationships'] = results[0]['count']
-    
-    cypher = '''
-    MATCH (:`__Entity__`)-[r:`__OBJECT__`]->()
-    RETURN count(r) AS count
-    '''
-    
-    results = graph_store.execute_query_with_retry(cypher, {})
-    
-    stats['num_object_relationships'] = results[0]['count']
+    #cypher = '''
+    #MATCH (:`__Entity__`)-[r:`__SUBJECT__`]->()
+    #RETURN count(r) AS count
+    #'''
+    #
+    #results = graph_store.execute_query_with_retry(cypher, {})
+    #
+    #stats['num_subject_relationships'] = results[0]['count']
+    #
+    #cypher = '''
+    #MATCH (:`__Entity__`)-[r:`__OBJECT__`]->()
+    #RETURN count(r) AS count
+    #'''
+    #
+    #results = graph_store.execute_query_with_retry(cypher, {})
+    #
+    #stats['num_object_relationships'] = results[0]['count']
     
     #cypher = '''
     #MATCH (:`__Entity__`)-[r:`__RELATION__`]->(:`__Entity__`)
@@ -337,7 +382,7 @@ def get_stats(graph_store, fact_ids, batch_size):
     #
     #stats['num_relation_relationships'] = results[0]['count']
     
-    total = 0
+    total_next = 0
 
     progress_bar_1 = tqdm(total=len(fact_ids), desc='Counting NEXT relationships')
     for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
@@ -353,10 +398,10 @@ def get_stats(graph_store, fact_ids, batch_size):
         results = graph_store.execute_query_with_retry(cypher, params)
     
         counts = [r['count'] for r in results]
-        total += sum(counts)
+        total_next += sum(counts)
         progress_bar_1.update(len(fact_id_batch))
     
-    stats['num_next_relationships'] = total
+    stats['num_next_relationships'] = total_next
     
     return stats
 
