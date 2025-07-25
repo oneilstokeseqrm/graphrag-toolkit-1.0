@@ -315,7 +315,7 @@ def get_stats(graph_store, fact_ids, batch_size):
     progress_bar_1 = tqdm(total=len(fact_ids), desc='Counting SUBJECT relationships')
     for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
         cypher = '''
-        MATCH (f)<-[r:`__SUBJECT__`]-() WHERE id(f) in $fact_ids
+        MATCH (f)<-[r:`__SUBJECT__`]-(:`__Entity__`) WHERE id(f) in $fact_ids
         RETURN count(r) AS count
         '''
     
@@ -336,7 +336,7 @@ def get_stats(graph_store, fact_ids, batch_size):
     progress_bar_1 = tqdm(total=len(fact_ids), desc='Counting OBJECT relationships')
     for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
         cypher = '''
-        MATCH (f)<-[r:`__OBJECT__`]-() WHERE id(f) in $fact_ids
+        MATCH (f)<-[r:`__OBJECT__`]-(:`__Entity__`) WHERE id(f) in $fact_ids
         RETURN count(r) AS count
         '''
     
