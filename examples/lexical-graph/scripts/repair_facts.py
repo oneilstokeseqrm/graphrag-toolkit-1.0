@@ -30,7 +30,7 @@ def get_anon_rel_ids(graph_store, batch_size):
     }
     
     cypher = '''
-    MATCH (:`vertex`)-[r]->()
+    MATCH (:`vertex`)-[r:`__SUBJECT__`|`__OBJECT__`]->()
     RETURN DISTINCT id(r) AS rel_id LIMIT $batch_size
     '''
     
@@ -58,6 +58,8 @@ def delete_anon_vertices(graph_store, batch_size):
     
     total_rels = 0
     total_nodes = 0
+    
+    batch_size = batch_size * 10
     
     progress_bar_1 = tqdm(total=1000000, desc='Deleting invalid SUBJECT|OBJECT relationship')
     
@@ -305,12 +307,12 @@ def create_fact_next_relation(graph_store, facts):
         
     graph_store.execute_query_with_retry(query_next, parameters, max_attempts=5, max_wait=7)
     
-def get_stats(graph_store):
+def get_stats(graph_store, fact_ids):
 
     stats = {}
 
     cypher = '''
-    MATCH (:`__Entity__`)-[r:`__SUBJECT__`]->(:`__Fact__`)
+    MATCH (:`__Entity__`)-[r:`__SUBJECT__`]->()
     RETURN count(r) AS count
     '''
     
@@ -319,7 +321,7 @@ def get_stats(graph_store):
     stats['num_subject_relationships'] = results[0]['count']
     
     cypher = '''
-    MATCH (:`__Entity__`)-[r:`__OBJECT__`]->(:`__Fact__`)
+    MATCH (:`__Entity__`)-[r:`__OBJECT__`]->()
     RETURN count(r) AS count
     '''
     
@@ -336,14 +338,24 @@ def get_stats(graph_store):
     #
     #stats['num_relation_relationships'] = results[0]['count']
     
-    cypher = '''
-    MATCH (:`__Fact__`)-[r:`__NEXT__`]->(:`__Fact__`)
-    RETURN count(r) AS count
-    '''
+    total = 0
+
+    for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
+        cypher = '''
+        MATCH (f)-[r:`__NEXT__`]->() WHERE id(f) in $fact_ids
+        RETURN count(r) AS count
+        '''
     
-    results = graph_store.execute_query_with_retry(cypher, {})
+        params = {
+            'fact_ids': fact_id_batch
+        }
     
-    stats['num_next_relationships'] = results[0]['count']
+        results = graph_store.execute_query_with_retry(cypher, params)
+    
+        counts = [r['count'] for r in results]
+        total += sum(counts)
+    
+    stats['num_next_relationships'] = total
     
     return stats
 
@@ -372,14 +384,16 @@ def repair(graph_store_info, batch_size, tenant_id=None):
             TenantId(tenant_id)
         )
         
+    fact_ids = get_fact_ids_from_sources(graph_store)
+        
     stats = {
         'tenant_id': tenant_id
     }
     
-    stats['before'] = get_stats(graph_store)
+    stats['before'] = get_stats(graph_store, fact_ids)
         
     delete_anon_vertices(graph_store, batch_size=batch_size)
-    fact_ids = get_fact_ids_from_sources(graph_store)
+    
 
     progress_bar_1 = tqdm(total=len(fact_ids), desc='Creating SUBJECT|OBJECT entity-fact relationships')
     for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
@@ -405,7 +419,7 @@ def repair(graph_store_info, batch_size, tenant_id=None):
         create_fact_next_relation(graph_store, facts)
         progress_bar_2.update(len(fact_id_batch))
 
-    stats['after'] = get_stats(graph_store)
+    stats['after'] = get_stats(graph_store, fact_ids)
 
     return stats
 
