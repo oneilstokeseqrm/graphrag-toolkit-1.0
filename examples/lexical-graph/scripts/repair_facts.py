@@ -166,7 +166,7 @@ def get_fact_ids(graph_store):
     
     return [r['fact_id'] for r in results]
     
-def get_fact_ids_from_sources(graph_store):
+def get_fact_ids_from_sources(graph_store, skip_invalid_relationships):
     
     cypher = '''
     MATCH (n:`__Source__`) 
@@ -176,19 +176,20 @@ def get_fact_ids_from_sources(graph_store):
     
     source_ids = [r['source_id'] for r in results]
     
-    print
+    and_clause = ' AND NOT ((f)<-[:`__SUBJECT__`|`__OBJECT__`]-(:`__Entity__`))' if skip_invalid_relationships else ''
     
-    cypher = '''
+    cypher = f'''
     MATCH (n:`__Source__`)<-[:`__EXTRACTED_FROM__`]-(:`__Chunk__`)
     <-[:`__MENTIONED_IN__`]-(:`__Statement__`)
     <-[:`__SUPPORTS__`]-(f:`__Fact__`)
-    WHERE id(n) = $source_id
+    WHERE id(n) = $source_id{and_clause}
     RETURN id(f) AS fact_id
     '''
     
     fact_ids = []
     
-    progress_bar_1 = tqdm(total=len(source_ids), desc='Getting fact ids from sources')
+    desc = 'Getting fact ids for facts without SUBJECT|OBJECT relationships' if skip_invalid_relationships else 'Getting fact ids from sources'
+    progress_bar_1 = tqdm(total=len(source_ids), desc=desc)
     
     for source_id in source_ids:
         params = {
@@ -240,7 +241,7 @@ def get_facts(graph_store, fact_ids):
         }
         facts.append(fact)
     return facts
-		
+
 def create_entity_fact_relation(graph_store, facts, relationship_type):
     
     params = []
@@ -437,7 +438,7 @@ def iter_batch(iterable, batch_size):
             break
         yield b
 
-def repair(graph_store_info, batch_size, tenant_id=None):
+def repair(graph_store_info, batch_size, skip_invalid_relationships, tenant_id=None):
 
     graph_store = GraphStoreFactory.for_graph_store(
         graph_store_info,
@@ -453,19 +454,22 @@ def repair(graph_store_info, batch_size, tenant_id=None):
             graph_store,
             TenantId(tenant_id)
         )
-        
-    fact_ids = get_fact_ids_from_sources(graph_store)
-        
+
+    fact_ids = get_fact_ids_from_sources(graph_store, False)
+    fact_ids_to_process = fact_ids if not skip_invalid_relationships else get_fact_ids_from_sources(graph_store, True)
+   
+            
     stats = {
         'tenant_id': tenant_id
     }
     
     stats['before'] = get_stats(graph_store, fact_ids, batch_size)
         
-    delete_invalid_relationships(graph_store, fact_ids, batch_size=batch_size)
+    if not skip_invalid_relationships:
+        delete_invalid_relationships(graph_store, fact_ids, batch_size=batch_size)
     
-    progress_bar_1 = tqdm(total=len(fact_ids), desc='Creating SUBJECT|OBJECT entity-fact relationships')
-    for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):
+    progress_bar_1 = tqdm(total=len(fact_ids_to_process), desc='Creating SUBJECT|OBJECT entity-fact relationships')
+    for fact_id_batch in iter_batch(fact_ids_to_process, batch_size=batch_size):
         facts = get_facts(graph_store, fact_id_batch)
         create_entity_fact_relation(graph_store, facts, 'subject')
         create_entity_fact_relation(graph_store, facts, 'object')
@@ -482,8 +486,8 @@ def repair(graph_store_info, batch_size, tenant_id=None):
     #        print(f'  {total}')
     #print(f'  Done')
 
-    progress_bar_2 = tqdm(total=len(fact_ids), desc='Creating NEXT fact-fact relationships')
-    for fact_id_batch in iter_batch(fact_ids, batch_size=batch_size):    
+    progress_bar_2 = tqdm(total=len(fact_ids_to_process), desc='Creating NEXT fact-fact relationships')
+    for fact_id_batch in iter_batch(fact_ids_to_process, batch_size=batch_size):    
         facts = get_facts(graph_store, fact_id_batch)
         create_fact_next_relation(graph_store, facts)
         progress_bar_2.update(len(fact_id_batch))
@@ -499,6 +503,7 @@ def do_repair():
     parser.add_argument('--graph-store', help = 'Graph store connection string')
     parser.add_argument('--tenant-id', nargs='*', help = 'Space-separated list of tenant ids (optional)')
     parser.add_argument('--batch-size', nargs='?', help = 'Batch size (optional, default 100)')
+    parser.add_argument('--skip-invalid-relationships', action='store_true', help = 'Skip deleting invalid relationships (optional)')
     
     args, _ = parser.parse_known_args()
     args_dict = { k:v for k,v in vars(args).items() if v}
@@ -506,19 +511,21 @@ def do_repair():
     graph_store_info = args_dict['graph_store']
     tenant_ids = args_dict.get('tenant_id', [])
     batch_size = int(args_dict.get('batch_size', 100))
+    skip_invalid_relationships = bool(args_dict.get('skip_invalid_relationships', False))
 
-    print(f'graph_store_info : {graph_store_info}')
-    print(f'tenant_ids       : {tenant_ids}')
-    print(f'batch_size       : {batch_size}')
+    print(f'graph_store_info           : {graph_store_info}')
+    print(f'tenant_ids                 : {tenant_ids}')
+    print(f'batch_size                 : {batch_size}')
+    print(f'skip_invalid_relationships : {skip_invalid_relationships}')
     print()
 
     results = []
     
     if not tenant_ids:
-            results.append(repair(graph_store_info, batch_size))
+            results.append(repair(graph_store_info, batch_size, skip_invalid_relationships))
     else:
         for tenant_id in tenant_ids:
-            results.append(repair(graph_store_info, batch_size, tenant_id))
+            results.append(repair(graph_store_info, batch_size, skip_invalid_relationships, tenant_id))
                 
     print()
     print(json.dumps(results, indent=2))
