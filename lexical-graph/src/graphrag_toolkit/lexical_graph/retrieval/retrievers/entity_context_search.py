@@ -147,23 +147,33 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         
         results = self.graph_store.execute_query(cypher, properties)
         
-        all_entity_ids = set()
+        all_entity_ids = {}
         entity_map = {}
+
+        def add_entity_id(entity_id):
+            if entity_id not in all_entity_ids:
+                all_entity_ids[entity_id] = 0
+            all_entity_ids[entity_id] += 1
         
         for result in results:
-            all_entity_ids.add(result['s'])
-            all_entity_ids.update(result['c'])
+            add_entity_id(result['s'])
+            for entity_id in result['s']:
+                add_entity_id(entity_id)
             entity_map[result['s']] = result['c']
+
+        sorted_all_entity_ids = {k: v for k, v in sorted(all_entity_ids.items(), key=lambda item: item[1], reverse=True)}
             
         cypher = f'''
         // get entity context scores
-        MATCH (s:`__Entity__`)-[r:`__RELATION__`]-()
+        MATCH (s:`__Entity__`)-[r:`__SUBJECT__`|`__OBJECT__`]->(f)
         WHERE {self.graph_store.node_id("s.entityId")} in $entityIds
-        RETURN {self.graph_store.node_id("s.entityId")} as s_id, s.value AS value, sum(r.count) AS score
+        RETURN {self.graph_store.node_id("s.entityId")} as s_id, s.value AS value, count(f) AS score
         '''
         
+        entity_ids = list(set(start_node_ids + list(sorted_all_entity_ids.keys())[:self.args.intermediate_limit]))
+        
         properties = {
-            'entityIds': list(all_entity_ids)
+            'entityIds': entity_ids
         }
         
         results = self.graph_store.execute_query(cypher, properties)
@@ -187,6 +197,9 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
             logger.debug(f'parent: {parent_entity}')
 
             for child in children:
+
+                if child not in entity_score_map:
+                    continue
 
                 child_entity = entity_score_map[child]
                 child_score = child_entity['score']
