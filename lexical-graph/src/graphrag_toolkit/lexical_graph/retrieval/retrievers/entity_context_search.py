@@ -134,7 +134,7 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
 
         cypher = f'''
         // get entity context
-        MATCH (s:`__Entity__`)-[:`__RELATION__`*1..2]-(c:`__Entity__`)
+        MATCH (s:`__Entity__`)-[:`__RELATION__`*1..2]-(c)
         WHERE {self.graph_store.node_id("s.entityId")} in $entityIds
         AND NOT {self.graph_store.node_id("c.entityId")} in $entityIds
         RETURN {self.graph_store.node_id("s.entityId")} as s, collect(distinct {self.graph_store.node_id("c.entityId")}) as c LIMIT $limit
