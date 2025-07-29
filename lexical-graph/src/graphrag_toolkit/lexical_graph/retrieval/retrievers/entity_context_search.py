@@ -188,6 +188,9 @@ class EntityContextSearch(TraversalBasedBaseRetriever):
         
         for parent, children in entity_map.items():
 
+            if parent not in entity_score_map[parent]:
+                continue
+
             parent_entity = entity_score_map[parent]
             parent_score = parent_entity['score']
 
