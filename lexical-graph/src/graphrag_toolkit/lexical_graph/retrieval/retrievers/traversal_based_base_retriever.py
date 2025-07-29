@@ -9,6 +9,8 @@ from typing import List, Any, Type, Optional
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
+from graphrag_toolkit.lexical_graph.retrieval.query_context import KeywordProvider, KeywordVSSProvider, KeywordNLPProvider, KeywordProviderMode, PassThruKeywordProvider
+from graphrag_toolkit.lexical_graph.retrieval.query_context import EntityProvider, EntityVSSProvider, EntityContextProvider
 from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, SearchResult, ScoredEntity
 from graphrag_toolkit.lexical_graph.retrieval.processors import *
 
@@ -24,6 +26,7 @@ DEFAULT_PROCESSORS = [
     FilterByMetadata,               
     PopulateStatementStrs,
     RerankStatements,
+    PruneStatements,
     RescoreResults,
     SortResults,
     TruncateResults,
@@ -74,7 +77,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
                  processor_args:Optional[ProcessorArgs]=None,
                  processors:Optional[List[Type[ProcessorBase]]]=None,
                  formatting_processors:Optional[List[Type[ProcessorBase]]]=None,
-                 entities:Optional[List[ScoredEntity]]=None,
+                 entity_contexts:Optional[List[List[ScoredEntity]]]=None,
                  filter_config:FilterConfig=None,
                  **kwargs):
         """
@@ -115,7 +118,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
         self.vector_store = vector_store
         self.processors = processors if processors is not None else DEFAULT_PROCESSORS
         self.formatting_processors = formatting_processors if formatting_processors is not None else DEFAULT_FORMATTING_PROCESSORS
-        self.entities = entities or []
+        self.entity_contexts:List[List[ScoredEntity]] = entity_contexts or []
         self.filter_config = filter_config or FilterConfig()
         
     def get_statements_by_topic_and_source(self, statement_ids):
@@ -219,6 +222,47 @@ class TraversalBasedBaseRetriever(BaseRetriever):
         }} as result ORDER BY result.score DESC LIMIT $limit'''
 
         return f'{match_clause}{return_clause}'
+    
+    def _init_entity_contexts(self, query_bundle: QueryBundle) -> List[str]:
+
+        if not self.entity_contexts:
+
+            start = time.time()
+
+            self.entity_contexts = []
+
+            if self.args.ec_keyword_provider == 'vss':
+                keyword_provider = KeywordVSSProvider(self.graph_store, self.vector_store, self.args, self.filter_config)
+            elif self.args.ec_keyword_provider == 'llm':
+                keyword_provider = KeywordProvider(self.args, mode=KeywordProviderMode.SIMPLE)
+            elif self.args.ec_keyword_provider == 'nlp':
+                keyword_provider = KeywordNLPProvider(self.args)
+            elif self.args.ec_keyword_provider == 'passthru':
+                keyword_provider = PassThruKeywordProvider(self.args)
+            else:
+                raise ValueError(f'Invalid ec_keyword_provider arg. Expected one of: llm, vss, nlp, passthru')
+            
+            if self.args.ec_entity_provider == 'graph':
+                entity_provider = EntityProvider(self.graph_store, self.args, self.filter_config)
+            elif self.args.ec_entity_provider == 'vss':
+                entity_provider = EntityVSSProvider(self.graph_store, self.vector_store, self.args, self.filter_config)
+            else:
+                raise ValueError(f'Invalid ec_entity_provider arg. Expected one of: graph, vss')
+            
+            logger.debug(f'Entity context strategy: {type(keyword_provider).__name__} + {type(entity_provider).__name__}')
+            
+            entity_context_provider = EntityContextProvider(self.graph_store, self.args)
+
+            keywords = keyword_provider.get_keywords(query_bundle)
+            entities = entity_provider.get_entities(keywords)
+            entity_contexts = entity_context_provider.get_entity_contexts(entities, query_bundle)
+
+            end = time.time()
+            duration_ms = (end-start) * 1000
+
+            logger.debug(f'Retrieved {len(entity_contexts)} entity contexts ({duration_ms:.2f}ms)')
+
+            self.entity_contexts.extend(entity_contexts)
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
         """
@@ -235,9 +279,11 @@ class TraversalBasedBaseRetriever(BaseRetriever):
             List[NodeWithScore]: A list of nodes with their associated scores, ready for further processing or display.
 
         """
-        logger.debug(f'[{type(self).__name__}] Begin retrieve [args: {self.args.to_dict()}]')
+        logger.debug(f'[{type(self).__name__}] Begin retrieve [query: {query_bundle.query_str}, args: {self.args.to_dict()}]')
         
         start_retrieve = time.time()
+
+        self._init_entity_contexts(query_bundle)
         
         start_node_ids = self.get_start_node_ids(query_bundle)
         search_results:SearchResultCollection = self.do_graph_search(query_bundle, start_node_ids)
@@ -260,11 +306,19 @@ class TraversalBasedBaseRetriever(BaseRetriever):
         logger.debug(f'[{type(self).__name__}] Retrieval: {retrieval_ms:.2f}ms')
         logger.debug(f'[{type(self).__name__}] Processing: {processing_ms:.2f}ms')
 
+        entity_context_strs = [
+            ', '.join([entity.entity.value.lower() for entity in entity_context])
+            for entity_context in formatted_search_results.entity_contexts
+        ]
+
         return [
             NodeWithScore(
                 node=TextNode(
                     text=formatted_search_result.model_dump_json(exclude_none=True, exclude_defaults=True, indent=2),
-                    metadata=search_result.model_dump(exclude_none=True, exclude_unset=True, exclude_defaults=True)
+                    metadata={
+                        'result': search_result.model_dump(exclude_none=True, exclude_unset=True, exclude_defaults=True),
+                        'entity_contexts': entity_context_strs
+                    }
                 ), 
                 score=search_result.score
             ) 
@@ -295,7 +349,7 @@ class TraversalBasedBaseRetriever(BaseRetriever):
             if result['result'].get('source', None)
         ]
 
-        return SearchResultCollection(results=search_results)
+        return SearchResultCollection(results=search_results, entity_contexts=self.entity_contexts)
 
     @abc.abstractmethod
     def get_start_node_ids(self, query_bundle: QueryBundle) -> List[str]:

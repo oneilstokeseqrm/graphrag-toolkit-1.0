@@ -267,11 +267,6 @@ class KeywordEntitySearch(BaseRetriever):
             List[ScoredEntity]: A sorted list of scored entities based on the provided keywords.
 
         """
-        tasks = [
-            self._get_entities_for_keyword(keyword)
-            for keyword in keywords
-            if keyword
-        ]
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(keywords)) as p:
             scored_entity_batches:Iterator[List[ScoredEntity]] = p.map(self._get_entities_for_keyword, keywords)

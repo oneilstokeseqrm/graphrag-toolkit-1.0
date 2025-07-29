@@ -6,10 +6,9 @@ import concurrent.futures
 from typing import List, Generator, Tuple, Any, Optional, Type
 
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig
-from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection, ScoredEntity, Entity
+from graphrag_toolkit.lexical_graph.retrieval.model import SearchResultCollection
 from graphrag_toolkit.lexical_graph.storage.graph import GraphStore
 from graphrag_toolkit.lexical_graph.storage.vector.vector_store import VectorStore
-from graphrag_toolkit.lexical_graph.retrieval.retrievers.keyword_entity_search import KeywordEntitySearch
 from graphrag_toolkit.lexical_graph.retrieval.processors import ProcessorBase, ProcessorArgs
 from graphrag_toolkit.lexical_graph.retrieval.retrievers.traversal_based_base_retriever import TraversalBasedBaseRetriever
 
@@ -86,28 +85,11 @@ class EntityBasedSearch(TraversalBasedBaseRetriever):
         Returns:
             List[str]: A list of entity IDs as strings.
         """
-        logger.debug('Getting start node ids for entity-based search...')
+    
+        if not self.entity_contexts:
+            logger.warning(f'No entity ids available for entity based search')
 
-        if self.entities:
-            return [entity.entity.entityId for entity in self.entities]
-        
-        keyword_entity_search = KeywordEntitySearch(
-            graph_store=self.graph_store, 
-            max_keywords=self.args.max_keywords,
-            expand_entities=self.args.expand_entities
-        )
-
-        entity_search_results = keyword_entity_search.retrieve(query_bundle)
-
-        entities = [
-            ScoredEntity(
-                entity=Entity.model_validate_json(entity_search_result.text), 
-                score=entity_search_result.score
-            )
-            for entity_search_result in entity_search_results
-        ]
-
-        return [entity.entity.entityId for entity in entities]
+        return [entity_context[0].entity.entityId for entity_context in self.entity_contexts] 
     
     def _for_each_disjoint(self, values:List[Any], others:Optional[List[Any]]=None) -> Generator[Tuple[Any, List[Any]], None, None]:
         """
