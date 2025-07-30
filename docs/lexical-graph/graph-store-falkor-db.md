@@ -27,7 +27,7 @@ Before creating a FalkorDB graph store, you must register the `FalkorDBGraphStor
 
 ```python
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
-from graphrag_toolkit.lexical_graph.storage.graph.falkordb import FalkorDBGraphStoreFactory
+from graphrag_toolkit_contrib.lexical_graph.storage.graph.falkordb import FalkorDBGraphStoreFactory
 
 GraphStoreFactory.register(FalkorDBGraphStoreFactory)
 
@@ -43,7 +43,7 @@ To create a [FalkorDB Cloud](https://app.falkordb.cloud/) graph store, supply a 
 
 ```python
 from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
-from graphrag_toolkit.lexical_graph.storage.graph.falkordb import FalkorDBGraphStoreFactory
+from graphrag_toolkit_contrib.lexical_graph.storage.graph.falkordb import FalkorDBGraphStoreFactory
 
 falkordb_connection_info = 'falkordb://your-falkordb-endpoint'
 
