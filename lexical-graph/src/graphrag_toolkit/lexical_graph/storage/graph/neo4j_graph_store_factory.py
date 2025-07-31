@@ -6,7 +6,6 @@ from graphrag_toolkit.lexical_graph.storage.graph.neo4j_graph_store import Neo4j
 logger = logging.getLogger(__name__)
 
 NEO4J_SCHEMES = ['bolt', 'bolt+ssc', 'bolt+s', 'neo4j', 'neo4j+ssc', 'neo4j+s'] 
-DEFAULT_DATABASE_NAME = 'graphrag'
 
 class Neo4jGraphStoreFactory(GraphStoreFactoryMethod):
 
