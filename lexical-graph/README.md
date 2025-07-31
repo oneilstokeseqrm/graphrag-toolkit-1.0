@@ -4,7 +4,7 @@ The lexical-graph package provides a framework for automating the construction o
 
 ### Features
 
-  - Built-in graph store support for [Amazon Neptune Analytics](https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html) and [Amazon Neptune Database](https://docs.aws.amazon.com/neptune/latest/userguide/intro.html) 
+  - Built-in graph store support for [Amazon Neptune Analytics](https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html), [Amazon Neptune Database](https://docs.aws.amazon.com/neptune/latest/userguide/intro.html), and [Neo4j](https://neo4j.com/docs/).
   - Built-in vector store support for Neptune Analytics, [Amazon OpenSearch Serverless](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless.html) and Postgres with the pgvector extension.
   - Built-in support for foundation models (LLMs and embedding models) on [Amazon Bedrock](https://docs.aws.amazon.com/bedrock/).
   - Easily extended to support additional graph and vector stores and model backends.
@@ -24,7 +24,7 @@ If you're running on AWS, you must run your application in an AWS region contain
 
 ### Additional dependencies
 
-You will need to install additional dependencies for specific vector store backends:
+You will need to install additional dependencies for specific graph and vector store backends:
 
 #### Amazon OpenSearch Serverless
 
@@ -36,6 +36,12 @@ $ pip install opensearch-py llama-index-vector-stores-opensearch
 
 ```
 $ pip install psycopg2-binary pgvector
+```
+
+#### Neo4j
+
+```
+$ pip install neo4j
 ```
 
 ### Supported Python versions
@@ -56,32 +62,33 @@ from llama_index.readers.web import SimpleWebPageReader
 
 def run_extract_and_build():
 
-    graph_store = GraphStoreFactory.for_graph_store(
-        'neptune-db://my-graph.cluster-abcdefghijkl.us-east-1.neptune.amazonaws.com'
-    )
-    
-    vector_store = VectorStoreFactory.for_vector_store(
-        'aoss://https://abcdefghijkl.us-east-1.aoss.amazonaws.com'
-    )
+    with (
+        GraphStoreFactory.for_graph_store(
+            'neptune-db://my-graph.cluster-abcdefghijkl.us-east-1.neptune.amazonaws.com'
+        ) as graph_store,
+        VectorStoreFactory.for_vector_store(
+            'aoss://https://abcdefghijkl.us-east-1.aoss.amazonaws.com'
+        ) as vector_store
+    ):
 
-    graph_index = LexicalGraphIndex(
-        graph_store, 
-        vector_store
-    )
+        graph_index = LexicalGraphIndex(
+            graph_store, 
+            vector_store
+        )
 
-    doc_urls = [
-        'https://docs.aws.amazon.com/neptune/latest/userguide/intro.html',
-        'https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html',
-        'https://docs.aws.amazon.com/neptune-analytics/latest/userguide/neptune-analytics-features.html',
-        'https://docs.aws.amazon.com/neptune-analytics/latest/userguide/neptune-analytics-vs-neptune-database.html'
-    ]
+        doc_urls = [
+            'https://docs.aws.amazon.com/neptune/latest/userguide/intro.html',
+            'https://docs.aws.amazon.com/neptune-analytics/latest/userguide/what-is-neptune-analytics.html',
+            'https://docs.aws.amazon.com/neptune-analytics/latest/userguide/neptune-analytics-features.html',
+            'https://docs.aws.amazon.com/neptune-analytics/latest/userguide/neptune-analytics-vs-neptune-database.html'
+        ]
 
-    docs = SimpleWebPageReader(
-        html_to_text=True,
-        metadata_fn=lambda url:{'url': url}
-    ).load_data(doc_urls)
+        docs = SimpleWebPageReader(
+            html_to_text=True,
+            metadata_fn=lambda url:{'url': url}
+        ).load_data(doc_urls)
 
-    graph_index.extract_and_build(docs, show_progress=True)
+        graph_index.extract_and_build(docs, show_progress=True)
 
 if __name__ == '__main__':
     run_extract_and_build()

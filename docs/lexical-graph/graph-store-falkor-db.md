@@ -49,7 +49,9 @@ falkordb_connection_info = 'falkordb://your-falkordb-endpoint'
 
 GraphStoreFactory.register(FalkorDBGraphStoreFactory)
 
-graph_store = GraphStoreFactory.for_graph_store(falkordb_connection_info)
+with GraphStoreFactory.for_graph_store(falkordb_connection_info) as graph_store:
+  ...
+
 ```
 
 You may also need to pass a username and password, and specify whether or not to use SSL:
@@ -59,12 +61,14 @@ from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 
 falkordb_connection_info = 'falkordb://<your-falkordb-endpoint>'
 
-graph_store = GraphStoreFactory.for_graph_store(
-    falkordb_connection_info,
-    username='<username>',
-    password='<password>',
-    ssl=True
-)
+with GraphStoreFactory.for_graph_store(
+      falkordb_connection_info,
+      username='<username>',
+      password='<password>',
+      ssl=True
+  ) as graph_store:
+
+    ...
 ```
 
 To create a local FalkorDB graph store, supply a connection string that has only `falkordb://`;
@@ -74,6 +78,7 @@ from graphrag_toolkit.lexical_graph.storage import GraphStoreFactory
 
 falkordb_connection_info = 'falkordb://'
 
-graph_store = GraphStoreFactory.for_graph_store(falkordb_connection_info)
+with GraphStoreFactory.for_graph_store(falkordb_connection_info) as graph_store:
+  ...
 ```
 
