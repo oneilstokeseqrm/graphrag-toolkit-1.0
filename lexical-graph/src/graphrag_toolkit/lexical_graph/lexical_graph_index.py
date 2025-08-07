@@ -546,7 +546,7 @@ class LexicalGraphIndex():
             **kwargs
         )
 
-        sink_fn = sink if not handler else Pipe(handler.accept)
+        sink_fn = sink if not handler else Pipe(handler)
         nodes | build_pipeline | sink_fn
 
     def extract_and_build(
@@ -600,5 +600,5 @@ class LexicalGraphIndex():
             **kwargs
         )
 
-        sink_fn = sink if not handler else Pipe(handler.accept)
+        sink_fn = sink if not handler else Pipe(handler)
         nodes | extraction_pipeline | build_pipeline | sink_fn
