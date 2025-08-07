@@ -305,6 +305,7 @@ class LexicalGraphIndex():
             indexing_config: Optional[IndexingConfigType] = None,
     ):
         from llama_index.core.utils import globals_helper
+        globals_helper.stopwords
         
         tenant_id = to_tenant_id(tenant_id)
 
