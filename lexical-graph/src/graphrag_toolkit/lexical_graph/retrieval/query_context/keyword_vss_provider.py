@@ -20,7 +20,7 @@ from llama_index.core.schema import QueryBundle
 logger = logging.getLogger(__name__)
 
 IDENTIFY_RELEVANT_ENTITIES_PROMPT = '''
-You are an expert AI assistant specialising in knowledge graphs. Below is a user-supplied question a list of entities, and the context in which those entities appear. Given the question and the context, your task is to identify up to {num_entities} of the most relevant entities from the list. Return them, most relevant first. You do not have to return the maximum number of entities; you can return fewer. 
+You are an expert AI assistant specialising in knowledge graphs. Below is a user-supplied question and a list of entities, and the context in which those entities appear. Given the question and the context, your task is to identify up to {num_entities} of the most relevant entities from the list. Return them, most relevant first. You do not have to return the maximum number of entities; you can return fewer. 
 
 <question>
 {question}
