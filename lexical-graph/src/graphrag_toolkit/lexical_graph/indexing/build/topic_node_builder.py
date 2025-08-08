@@ -105,7 +105,7 @@ class TopicNodeBuilder(NodeBuilder):
                 continue
             existing_statements[statement.value] = None
             
-        node.metadata['statements'] = ' '.join(list(existing_statements.keys()))
+        node.metadata['statements'] = list(existing_statements.keys())
 
         return node
 
@@ -185,5 +185,8 @@ class TopicNodeBuilder(NodeBuilder):
                 topic_node = self._add_statements(topic_node, topic.statements)
             
                 topic_nodes[topic_id] = topic_node
+
+        for topic_node in topic_nodes.values():
+            topic_node.metadata['statements'] = ' '.join(topic_node.metadata['statements'])
 
         return list(topic_nodes.values())
