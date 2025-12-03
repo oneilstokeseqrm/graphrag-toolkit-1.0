@@ -7,7 +7,7 @@ import numpy as np
 
 from pgvector.psycopg2 import register_vector
 from typing import List, Sequence, Dict, Any, Optional, Callable
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 from graphrag_toolkit.lexical_graph.metadata import FilterConfig, type_name_for_key_value, format_datetime
 from graphrag_toolkit.lexical_graph.config import GraphRAGConfig, EmbeddingType
@@ -127,40 +127,13 @@ def parse_metadata_filters_recursive(metadata_filters:MetadataFilters) -> str:
     """
     def to_key(key: str) -> str:
         """
-        Parses metadata filters recursively into a string representation suitable for
-        a database query.
-
-        The function takes metadata filters and processes them recursively to generate
-        a string representation that can be incorporated into database queries. It
-        utilizes helper functions for converting filter keys into the specific format
-        used in the query syntax.
-
-        Args:
-            metadata_filters: MetadataFilters instance representing the metadata filters
-                to be processed.
-
-        Returns:
-            str: A string representation of the metadata filters formatted for database
-                queries.
+        Convert a metadata key to the JSONB path used in queries.
         """
         return f"metadata->'source'->'metadata'->>'{key}'"
     
     def to_sql_filter(f: MetadataFilter) -> str:
         """
-        Parses metadata filters recursively to generate an SQL-compatible filter string.
-
-        This function processes a collection of metadata filters, converting them step
-        by step into a valid SQL-like filter expression. It makes use of helper
-        functions to generate the appropriate SQL syntax for filters and their
-        operators while handling specific cases like empty filters.
-
-        Args:
-            metadata_filters (MetadataFilters): A structured object containing metadata
-                filters that need to be processed into SQL-compatible expressions.
-
-        Returns:
-            str: A string representing the SQL-compatible filter derived from the
-            provided metadata filters.
+        Convert a single MetadataFilter into a SQL predicate string.
         """
         key = to_key(f.key)
         (operator, operator_formatter) = to_sql_operator(f.operator)
@@ -188,7 +161,7 @@ def parse_metadata_filters_recursive(metadata_filters:MetadataFilters) -> str:
         
     if metadata_filters.condition == FilterCondition.NOT:
         return f"(NOT {' '.join(filter_strs)})"
-    elif metadata_filters.condition == FilterCondition.AND or metadata_filters.condition == FilterCondition.OR:
+    elif metadata_filters.condition in (FilterCondition.AND, FilterCondition.OR):
         condition = f' {metadata_filters.condition.value.upper()} '
         return f"({condition.join(filter_strs)})"
     else:
@@ -198,21 +171,11 @@ def parse_metadata_filters_recursive(metadata_filters:MetadataFilters) -> str:
 def filter_config_to_sql_filters(filter_config:FilterConfig) -> str:
     """
     Converts a given FilterConfig object into an SQL WHERE clause-like filter string.
-
-    This function translates the source filters provided in the FilterConfig
-    into a SQL-compatible filter representation. If the provided filter_config
-    or its source_filters attribute is None, it returns an empty string.
-
-    Args:
-        filter_config (FilterConfig): The filter configuration object containing
-            source filters to be converted into an SQL-compatible format.
-
-    Returns:
-        str: A string representation of the converted SQL-compatible filters.
     """
     if filter_config is None or filter_config.source_filters is None:
         return ''
     return parse_metadata_filters_recursive(filter_config.source_filters)
+
 
 class PGIndex(VectorIndex):
 
@@ -227,38 +190,20 @@ class PGIndex(VectorIndex):
                   password:str=None,
                   embed_model:EmbeddingType=None,
                   dimensions:int=None,
-                  enable_iam_db_auth=False):
+                  enable_iam_db_auth:bool=False):
         """
         Creates an instance of the `PGIndex` class based on the provided database connection
-        information, index name, and embedding configuration. It parses the `connection_string`
-        to extract overriding parameters and defaults any missing values to the provided or preset defaults.
+        information, index name, and embedding configuration.
 
-        Args:
-            index_name (str): The name of the index to create or reference.
-            connection_string (str): A database connection string (e.g., in URI format)
-            containing username, password, hostname, port, database, and optional query parameters.
-            database (str, optional): The name of the database. Defaults to 'postgres'.
-            schema_name (str, optional): The name of the database schema. Defaults to 'graphrag'.
-            host (str, optional): The database hostname. Defaults to 'localhost'.
-            port (int, optional): The port to connect to on the database host. Defaults to 5432.
-            username (str, optional): The username for database authentication. Defaults to None.
-            password (str, optional): The password for database authentication. Defaults to None.
-            embed_model (EmbeddingType, optional): The embedding model to use for generating index
-            embeddings. Defaults to None.
-            dimensions (int, optional): The dimensionality of the embeddings. Defaults to None.
-            enable_iam_db_auth (bool, optional): A flag indicating whether to enable IAM
-            database authentication. Defaults to False.
-
-        Returns:
-            PGIndex: An instance of the `PGIndex` class properly configured with the provided
-            or inferred parameters.
+        **Neon / DSN note**: any additional libpq connection parameters (e.g. `sslmode`,
+        `sslrootcert`, `sslcert`, `sslkey`, `options`, `channel_binding`, `application_name`)
+        can be supplied as standard URI query parameters and will be forwarded to
+        `psycopg2.connect(...)`. The special flag `enable_iam_db_auth` is interpreted by
+        this class and is *not* forwarded to psycopg2.
         """
-        def compute_enable_iam_db_auth(s, default):
-            """Representation of a PostgreSQL-based vector index for efficient querying and
-            storage of vectors in a database. This class provides functionality to interface
-            with a PostgreSQL database and manage operations such as indexing, storing, and
-            querying vector data. It supports various configurations like schema, host, port,
-            and authentication settings to offer flexible and secure database connections.
+        def compute_enable_iam_db_auth(s: str, default: bool) -> bool:
+            """
+            Decide whether IAM auth should be enabled based on the query string.
             """
             if 'enable_iam_db_auth' in s.lower():
                 return 'enable_iam_db_auth=true' in s.lower()
@@ -266,27 +211,52 @@ class PGIndex(VectorIndex):
                 return default
         
         parsed = urlparse(connection_string)
+        query_params = parse_qs(parsed.query or "")
 
+        # Basic connection components
         database = parsed.path[1:] if parsed.path else database
         host = parsed.hostname or host
         port = parsed.port or port
         username = parsed.username or username
         password = parsed.password or password
-        enable_iam_db_auth = compute_enable_iam_db_auth(parsed.query, enable_iam_db_auth)
-        
+
+        # Determine IAM auth from query string (toolkit flag, not libpq)
+        enable_iam_db_auth = compute_enable_iam_db_auth(parsed.query or "", enable_iam_db_auth)
+
+        # Extract libpq-compatible connection kwargs from query parameters.
+        # We intentionally do NOT pass `enable_iam_db_auth` through to psycopg2.
+        allowed_connect_params = {
+            "sslmode",
+            "sslrootcert",
+            "sslcert",
+            "sslkey",
+            "options",
+            "channel_binding",
+            "application_name",
+        }
+        connect_kwargs: Dict[str, Any] = {}
+
+        for key in allowed_connect_params:
+            if key in query_params and query_params[key]:
+                # Use the last value if multiple are provided
+                connect_kwargs[key] = query_params[key][-1]
+
         embed_model = embed_model or GraphRAGConfig.embed_model
         dimensions = dimensions or GraphRAGConfig.embed_dimensions
 
-        return PGIndex(index_name=index_name, 
-                       database=database, 
-                       schema_name=schema_name,
-                       host=host, 
-                       port=port, 
-                       username=username, 
-                       password=password, 
-                       dimensions=dimensions, 
-                       embed_model=embed_model, 
-                       enable_iam_db_auth=enable_iam_db_auth)
+        return PGIndex(
+            index_name=index_name,
+            database=database,
+            schema_name=schema_name,
+            host=host,
+            port=port,
+            username=username,
+            password=password,
+            dimensions=dimensions,
+            embed_model=embed_model,
+            enable_iam_db_auth=enable_iam_db_auth,
+            connect_kwargs=connect_kwargs,
+        )
 
     index_name:str
     database:str
@@ -299,33 +269,19 @@ class PGIndex(VectorIndex):
     embed_model:EmbeddingType
     enable_iam_db_auth:bool=False
     initialized:bool=False
+    # Additional libpq/psycopg2 connection keyword args derived from the DSN query string.
+    # For example: sslmode, sslrootcert, channel_binding, options, etc.
+    connect_kwargs:Dict[str, Any] = {}
 
     def _get_connection(self):
         """
-        Establishes a connection to the database, configures it, and optionally initializes the schema and
-        indexes required for the application. The method supports IAM-based authentication for Amazon RDS if
-        enabled. It also ensures that the schema is initialized exactly once during the lifecycle of the object,
-        creating necessary tables and indexes if they do not exist. Logs warnings for existing database objects.
+        Establish a connection to the database, configure it, and optionally initialize
+        the schema and indexes required for the application.
 
-        Raises:
-            psycopg2.Error: Raised if there is an issue with establishing the database connection or executing
-            queries to initialize the schema and indexes.
-            Exception: Raised if there are other unforeseen errors during the schema initialization or database
-            interactions.
-
-        Attributes:
-            enable_iam_db_auth (bool): Indicates whether IAM-based authentication for AWS RDS is enabled.
-            host (str): The hostname of the database server.
-            username (str): The username for the database connection.
-            password (Optional[str]): The static password for connecting to the database if IAM is disabled.
-            port (int): The port number on which the database listens for connections.
-            database (str): The name of the database to connect to.
-            initialized (bool): Tracks whether the schema and indexes have already been initialized.
-            writeable (bool): Specifies whether the database connection should handle schema initialization and
-            updates.
-            schema_name (str): The schema name where the table resides.
-            index_name (str): Identifier used for managing and initializing the table and its related indexes.
-            dimensions (int): Dimensionality of the vector column used in the table for embeddings.
+        - If IAM DB auth is enabled, we obtain a temporary auth token from RDS and
+          use that in place of the password.
+        - In all cases, we pass any supported libpq kwargs found in the original DSN
+          query string (e.g. sslmode=require) to psycopg2.connect(...).
         """
         token = None
 
@@ -341,13 +297,17 @@ class PGIndex(VectorIndex):
 
         password = token or self.password
 
+        # Apply libpq-compatible kwargs (e.g. sslmode, sslrootcert, channel_binding)
+        connect_kwargs = dict(self.connect_kwargs or {})
+        connect_kwargs.setdefault("connect_timeout", 30)
+
         dbconn = psycopg2.connect(
             host=self.host,
             user=self.username, 
             password=password,
             port=self.port, 
             database=self.database,
-            connect_timeout=30
+            **connect_kwargs,
         )
 
         dbconn.set_session(autocommit=True)
@@ -363,13 +323,14 @@ class PGIndex(VectorIndex):
                 if self.writeable:
 
                     try:
-                        cur.execute(f'''CREATE TABLE IF NOT EXISTS {self.schema_name}.{self.underlying_index_name()}(
-                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                            {self.index_name}Id VARCHAR(255) unique,
-                            value text,
-                            metadata jsonb,
-                            embedding vector({self.dimensions})
-                            );'''
+                        cur.execute(
+                            f'''CREATE TABLE IF NOT EXISTS {self.schema_name}.{self.underlying_index_name()}(
+                                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                {self.index_name}Id VARCHAR(255) unique,
+                                value text,
+                                metadata jsonb,
+                                embedding vector({self.dimensions})
+                                );'''
                         )
                     except UniqueViolation:
                         # For alt approaches, see: https://stackoverflow.com/questions/29900845/create-schema-if-not-exists-raises-duplicate-key-error
@@ -378,21 +339,33 @@ class PGIndex(VectorIndex):
 
                     index_name = f'{self.underlying_index_name()}_{self.index_name}Id_idx'
                     try:
-                        cur.execute(f'CREATE INDEX IF NOT EXISTS {index_name} ON {self.schema_name}.{self.underlying_index_name()} USING hash ({self.index_name}Id);')
+                        cur.execute(
+                            f'CREATE INDEX IF NOT EXISTS {index_name} '
+                            f'ON {self.schema_name}.{self.underlying_index_name()} '
+                            f'USING hash ({self.index_name}Id);'
+                        )
                     except UniqueViolation:
                         logger.warning(f"Index already exists, so ignoring CREATE: {index_name}")
                         pass
 
                     index_name = f'{self.underlying_index_name()}_{self.index_name}Id_embedding_idx'
                     try:
-                        cur.execute(f'CREATE INDEX IF NOT EXISTS {index_name} ON {self.schema_name}.{self.underlying_index_name()} USING hnsw (embedding vector_l2_ops)')
+                        cur.execute(
+                            f'CREATE INDEX IF NOT EXISTS {index_name} '
+                            f'ON {self.schema_name}.{self.underlying_index_name()} '
+                            f'USING hnsw (embedding vector_l2_ops)'
+                        )
                     except UniqueViolation:
                         logger.warning(f"Index already exists, so ignoring CREATE: {index_name}")
                         pass
                     
                     index_name = f'{self.underlying_index_name()}_{self.index_name}Id_gin_idx'
                     try:
-                        cur.execute(f'CREATE INDEX IF NOT EXISTS {index_name} ON {self.schema_name}.{self.underlying_index_name()} USING GIN (metadata)')
+                        cur.execute(
+                            f'CREATE INDEX IF NOT EXISTS {index_name} '
+                            f'ON {self.schema_name}.{self.underlying_index_name()} '
+                            f'USING GIN (metadata)'
+                        )
                     except UniqueViolation:
                         logger.warning(f"Index already exists, so ignoring CREATE: {index_name}")
                         pass
@@ -407,21 +380,7 @@ class PGIndex(VectorIndex):
 
     def add_embeddings(self, nodes:Sequence[BaseNode]) -> Sequence[BaseNode]:
         """
-        Adds embeddings for a sequence of nodes into the database. This method processes
-        each node by generating embeddings using the specified embedding model and
-        inserts or updates these nodes in the underlying indexed database table. The method
-        ensures write authorization before proceeding and handles exceptions related to
-        undefined tables. Nodes for a specific tenant that references non-existent tables
-        are logged as warnings without causing the entire operation to fail.
-
-        Args:
-            nodes (Sequence[BaseNode]): A sequence of nodes for which embeddings are to be
-                generated and stored in the database. Each node includes an identifier,
-                textual data, and metadata.
-
-        Returns:
-            Sequence[BaseNode]: The same sequence of nodes that were provided as input,
-                potentially with modifications or updates to their embeddings.
+        Adds embeddings for a sequence of nodes into the database.
         """
         if not self.writeable:
             raise IndexError(f'Index {self.index_name} is read-only')
@@ -436,8 +395,15 @@ class PGIndex(VectorIndex):
             )
             for node in nodes:
                 cur.execute(
-                    f'INSERT INTO {self.schema_name}.{self.underlying_index_name()} ({self.index_name}Id, value, metadata, embedding) SELECT %s, %s, %s, %s WHERE NOT EXISTS (SELECT * FROM {self.schema_name}.{self.underlying_index_name()} c WHERE c.{self.index_name}Id = %s);',
-                    (node.id_, node.text,  json.dumps(node.metadata), id_to_embed_map[node.id_], node.id_)
+                    f'INSERT INTO {self.schema_name}.{self.underlying_index_name()} '
+                    f'({self.index_name}Id, value, metadata, embedding) '
+                    f'SELECT %s, %s, %s, %s '
+                    f'WHERE NOT EXISTS ('
+                    f'  SELECT * FROM {self.schema_name}.{self.underlying_index_name()} c '
+                    f'  WHERE c.{self.index_name}Id = %s'
+                    f');',
+                    (node.id_, node.text, json.dumps(node.metadata),
+                     id_to_embed_map[node.id_], node.id_)
                 )
 
         except UndefinedTable as e:
@@ -456,22 +422,6 @@ class PGIndex(VectorIndex):
     def _to_top_k_result(self, r):
         """
         Converts a raw result into a structured Top K result dictionary.
-
-        The method processes the given input `r` to construct a dictionary containing
-        details like score, metadata, and specific index-related information. The
-        conversion ensures a clear and detailed representation of the data extracted
-        from the input.
-
-        Args:
-            r: A tuple containing the raw data to be processed. The tuple is expected
-               to follow a specific format where `r[2]` contains the score, `r[1]`
-               contains metadata (as a dictionary or JSON payload), and `r[0]` is
-               typically unused in this method.
-
-        Returns:
-            dict: A dictionary containing the transformed data, including a rounded
-                  score, associated metadata fields, and key-value pairs if index-related
-                  information is present within the metadata.
         """
         result = {
             'score': round(r[2], 7)
@@ -496,25 +446,7 @@ class PGIndex(VectorIndex):
     
     def _to_get_embedding_result(self, r):
         """
-        Converts and processes the result from an embedding query into a formatted dictionary.
-
-        The function processes the input result tuple, extracting the ID, value, embedding,
-        and metadata while ensuring proper type conversion and dictionary formatting.
-        It filters out specific metadata keys based on predefined criteria.
-
-        Args:
-            r (tuple): A tuple containing the results of an embedding query. It is
-                expected to have the following structure:
-                - Index 0: The ID associated with the result.
-                - Index 1: The value corresponding to the embedding.
-                - Index 2: Metadata information in the form of a dictionary or a
-                  JSON-formatted string.
-                - Index 3: The embedding as an array-like object.
-
-        Returns:
-            dict: A dictionary containing the processed result data with keys for 'id',
-                'value', 'embedding', and any additional metadata except those excluded
-                by filtering.
+        Convert the result from an embedding query into a formatted dictionary.
         """
         id = r[0]
         value = r[1]
@@ -543,24 +475,6 @@ class PGIndex(VectorIndex):
         """
         Retrieves the top K results from the database based on the provided query
         and optional filter configuration.
-
-        This method interacts with a database to obtain the top K matching entries
-        that align with the user's query. It supports additional filtering through
-        the optional filter configuration. Results are sorted in ascending order
-        of their similarity scores.
-
-        Args:
-            query_bundle (QueryBundle): Query object containing the `embedding`
-                for similarity search.
-            top_k (int): The number of top results to fetch from the database.
-                Defaults to 5.
-            filter_config (Optional[FilterConfig]): An optional configuration
-                object defining additional filters applied to the query.
-
-        Returns:
-            Sequence[Dict[str, Any]]: A sequence of dictionaries, where each
-            dictionary represents a top result containing relevant metadata and
-            similarity scores.
         """
         dbconn = self._get_connection()
         cur = dbconn.cursor()
@@ -602,24 +516,7 @@ class PGIndex(VectorIndex):
 
     def get_embeddings(self, ids:List[str]=[]) -> Sequence[Dict[str, Any]]:
         """
-        Retrieves embeddings from the database for the given list of IDs. This method
-        queries the underlying database table to fetch the corresponding embeddings,
-        metadata, and other data associated with the specified IDs. The results are
-        formatted into a list of embedding dictionaries.
-
-        Args:
-            ids (List[str], optional): A list of string IDs for which embeddings need
-                to be fetched. Defaults to an empty list.
-
-        Returns:
-            Sequence[Dict[str, Any]]: A list of dictionaries where each dictionary
-                represents an embedding, its metadata, and associated data for the
-                given IDs.
-
-        Raises:
-            UndefinedTable: Raised when the underlying table does not exist in the
-                database.
-
+        Retrieves embeddings from the database for the given list of IDs.
         """
         dbconn = self._get_connection()
         cur = dbconn.cursor()
@@ -631,9 +528,10 @@ class PGIndex(VectorIndex):
 
         try:
 
-            cur.execute(f'''SELECT {self.index_name}Id, value, metadata, embedding
-                FROM {self.schema_name}.{self.underlying_index_name()}
-                WHERE {self.index_name}Id IN ({format_ids(ids)});'''
+            cur.execute(
+                f'''SELECT {self.index_name}Id, value, metadata, embedding
+                    FROM {self.schema_name}.{self.underlying_index_name()}
+                    WHERE {self.index_name}Id IN ({format_ids(ids)});'''
             )
 
             results = cur.fetchall()
